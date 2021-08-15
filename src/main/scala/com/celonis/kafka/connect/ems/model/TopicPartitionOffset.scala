@@ -3,17 +3,28 @@
  */
 package com.celonis.kafka.connect.ems.model
 
+import cats.Show
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 
 class Topic(val value: String) extends AnyVal
+object Topic {
+  implicit val show: Show[Topic] = Show.show(_.value)
+}
 
 class Partition(val value: Int) extends AnyVal
-
-class Offset(val value: Long) extends AnyVal
+object Partition {
+  implicit val show: Show[Partition] = Show.show(_.value.toString)
+}
+class Offset(val value: Long) extends AnyVal {
+  def >(other: Offset): Boolean = value > other.value
+}
 
 object Offset {
   implicit def orderingByOffsetValue[A <: Offset]: Ordering[A] =
     Ordering.by(_.value)
+
+  implicit val show: Show[Offset] = Show.show(_.value.toString)
+
 }
 
 case class TopicPartition(topic: Topic, partition: Partition) {

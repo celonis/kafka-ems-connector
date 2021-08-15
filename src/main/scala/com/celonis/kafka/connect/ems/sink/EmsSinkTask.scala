@@ -15,6 +15,7 @@ import com.celonis.kafka.connect.ems.model.SinkData
 import com.celonis.kafka.connect.ems.model.Topic
 import com.celonis.kafka.connect.ems.model.TopicPartition
 import com.celonis.kafka.connect.ems.storage.EmsUploader
+import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata

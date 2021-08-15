@@ -1,7 +1,7 @@
 /*
  * Copyright 2017-2021 Celonis Ltd
  */
-package com.celonis.kafka.connect.storage
+package com.celonis.kafka.connect.ems.storage
 import com.celonis.kafka.connect.ems.model.Partition
 import com.celonis.kafka.connect.ems.model.Topic
 import com.celonis.kafka.connect.ems.model.TopicPartition
@@ -57,13 +57,13 @@ class FileSystemTests extends AnyFunSuite with Matchers {
     val partition = 1
     val tp        = TopicPartition(new Topic(topic), new Partition(partition))
     val output    = FileSystem.createOutput(dir.toPath, sink, tp)
-    output.stream.close()
-    output.file.exists() shouldBe true
-    output.file shouldBe Paths.get(dir.toString,
-                                   sink,
-                                   topic,
-                                   partition.toString,
-                                   partition.toString + ".parquet",
+    output.close()
+    output.outputFile().exists() shouldBe true
+    output.outputFile() shouldBe Paths.get(dir.toString,
+                                           sink,
+                                           topic,
+                                           partition.toString,
+                                           partition.toString + ".parquet",
     ).toFile
     FileSystem.deleteDir(dir)
     dir.exists() shouldBe false

@@ -4,10 +4,10 @@
 package com.celonis.kafka.connect.ems.storage
 
 import cats.Show
+import cats.implicits.toShow
 import com.celonis.kafka.connect.ems.model.Offset
-import com.celonis.kafka.connect.ems.model.Partition
 import com.celonis.kafka.connect.ems.model.Record
-import com.celonis.kafka.connect.ems.model.Topic
+import com.celonis.kafka.connect.ems.model.TopicPartition
 import org.apache.kafka.connect.data.Schema
 
 import java.io.File
@@ -23,8 +23,7 @@ trait Writer extends AutoCloseable {
 }
 
 case class WriterState(
-  topic:           Topic,
-  partition:       Partition,
+  topicPartition:  TopicPartition,
   offset:          Offset,
   committedOffset: Option[Offset],
   fileSize:        Long,
@@ -36,8 +35,8 @@ case class WriterState(
 
 object WriterState {
   implicit val show: Show[WriterState] = Show.show { state =>
-    s"${state.topic.value}-${state.partition.value}:${state.offset.value} ${state.committedOffset.map(
+    s"${state.topicPartition.topic.show}-${state.topicPartition.partition.show}:${state.offset.show} ${state.committedOffset.map(
       _.value.toString,
-    ).getOrElse("-")} ${state.records} ${state.fileSize} ${state.lastWriteTs}"
+    ).getOrElse("-")} records=${state.records} fileSize=${state.fileSize} lastWrite=${state.lastWriteTs}"
   }
 }

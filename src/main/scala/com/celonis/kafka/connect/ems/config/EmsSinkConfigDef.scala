@@ -11,12 +11,12 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_INTERVAL_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_INTERVAL_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_RECORDS_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_RECORDS_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_SIZE_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_SIZE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETIRES_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
@@ -53,25 +53,25 @@ object EmsSinkConfigDef {
       TARGET_TABLE_DOC,
     )
     .define(
-      FLUSH_SIZE_KEY,
+      COMMIT_SIZE_KEY,
       Type.LONG,
       null,
       Importance.HIGH,
-      FLUSH_SIZE_DOC,
+      COMMIT_SIZE_DOC,
     )
     .define(
-      FLUSH_RECORDS_KEY,
+      COMMIT_RECORDS_KEY,
       Type.INT,
       null,
       Importance.HIGH,
-      FLUSH_RECORDS_DOC,
+      COMMIT_RECORDS_DOC,
     )
     .define(
-      FLUSH_INTERVAL_KEY,
+      COMMIT_INTERVAL_KEY,
       Type.LONG,
       null,
       Importance.HIGH,
-      FLUSH_INTERVAL_DOC,
+      COMMIT_INTERVAL_DOC,
     )
     .define(
       TMP_DIRECTORY_KEY,
