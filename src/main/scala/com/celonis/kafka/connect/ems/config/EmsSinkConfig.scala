@@ -10,12 +10,12 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_INTERVAL_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_INTERVAL_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_RECORDS_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_RECORDS_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_SIZE_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_SIZE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETIRES_DEFAULT
@@ -41,7 +41,7 @@ case class EmsSinkConfig(
   errorPolicy:      ErrorPolicy,
   commitPolicy:     CommitPolicy,
   retries:          RetryConfig,
-  tempDirectory:    Path,
+  workingDir:       Path,
 )
 
 object EmsSinkConfig {
@@ -117,17 +117,17 @@ object EmsSinkConfig {
 
   def extractCommitPolicy(props: Map[String, _]): Either[String, CommitPolicy] =
     for {
-      size <- longOr(props, FLUSH_SIZE_KEY, FLUSH_SIZE_DOC).flatMap { l =>
-        if (l < 1000000L) error(FLUSH_SIZE_KEY, "Flush size needs to be at least 1000000 (1 MB).")
+      size <- longOr(props, COMMIT_SIZE_KEY, COMMIT_SIZE_DOC).flatMap { l =>
+        if (l < 1000000L) error(COMMIT_SIZE_KEY, "Flush size needs to be at least 1000000 (1 MB).")
         else l.asRight[String]
       }
-      records <- longOr(props, FLUSH_RECORDS_KEY, FLUSH_RECORDS_DOC).flatMap { l =>
-        if (l <= 0) error(FLUSH_RECORDS_KEY, "Uploading the data to EMS requires a record count greater than 0.")
+      records <- longOr(props, COMMIT_RECORDS_KEY, COMMIT_RECORDS_DOC).flatMap { l =>
+        if (l <= 0) error(COMMIT_RECORDS_KEY, "Uploading the data to EMS requires a record count greater than 0.")
         else l.asRight[String]
       }
-      interval <- longOr(props, FLUSH_INTERVAL_KEY, FLUSH_INTERVAL_DOC).flatMap { l =>
+      interval <- longOr(props, COMMIT_INTERVAL_KEY, COMMIT_INTERVAL_DOC).flatMap { l =>
         if (l <= 1000)
-          error(FLUSH_INTERVAL_KEY, "The stop gap interval for uploading the data cannot be smaller than 1000 (1s).")
+          error(COMMIT_INTERVAL_KEY, "The stop gap interval for uploading the data cannot be smaller than 1000 (1s).")
         else l.asRight[String]
       }
     } yield DefaultCommitPolicy(size, interval.millis, records)

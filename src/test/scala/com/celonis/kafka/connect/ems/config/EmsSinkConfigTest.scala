@@ -10,12 +10,12 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_INTERVAL_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_INTERVAL_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_RECORDS_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_RECORDS_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_SIZE_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLUSH_SIZE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_DOC
@@ -53,9 +53,9 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         TARGET_TABLE_KEY     -> expected.target,
         AUTHORIZATION_KEY    -> expected.authorizationKey,
         ERROR_POLICY_KEY     -> expected.errorPolicy.entryName,
-        FLUSH_SIZE_KEY       -> policy.fileSize,
-        FLUSH_INTERVAL_KEY   -> policy.interval.toMillis,
-        FLUSH_RECORDS_KEY    -> policy.records,
+        COMMIT_SIZE_KEY      -> policy.fileSize,
+        COMMIT_INTERVAL_KEY  -> policy.interval.toMillis,
+        COMMIT_RECORDS_KEY   -> policy.records,
         ERROR_RETRY_INTERVAL -> expected.retries.interval,
         NBR_OF_RETRIES_KEY   -> expected.retries.retries,
         TMP_DIRECTORY_KEY    -> dir.toString,
@@ -94,16 +94,16 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     testMissingConfig(TARGET_TABLE_KEY, TARGET_TABLE_DOC)
   }
 
-  test(s"returns an error if $FLUSH_SIZE_KEY is missing") {
-    testMissingConfig(FLUSH_SIZE_KEY, FLUSH_SIZE_DOC)
+  test(s"returns an error if $COMMIT_SIZE_KEY is missing") {
+    testMissingConfig(COMMIT_SIZE_KEY, COMMIT_SIZE_DOC)
   }
 
-  test(s"returns an error if $FLUSH_RECORDS_KEY is missing") {
-    testMissingConfig(FLUSH_RECORDS_KEY, FLUSH_RECORDS_DOC)
+  test(s"returns an error if $COMMIT_RECORDS_KEY is missing") {
+    testMissingConfig(COMMIT_RECORDS_KEY, COMMIT_RECORDS_DOC)
   }
 
-  test(s"returns an error if $FLUSH_INTERVAL_KEY is missing") {
-    testMissingConfig(FLUSH_INTERVAL_KEY, FLUSH_INTERVAL_DOC)
+  test(s"returns an error if $COMMIT_INTERVAL_KEY is missing") {
+    testMissingConfig(COMMIT_INTERVAL_KEY, COMMIT_INTERVAL_DOC)
   }
 
   test(s"returns an error if $ERROR_POLICY_KEY is missing") {
@@ -131,9 +131,9 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         TARGET_TABLE_KEY     -> sinkConfig.target,
         AUTHORIZATION_KEY    -> sinkConfig.authorizationKey,
         ERROR_POLICY_KEY     -> sinkConfig.errorPolicy.entryName,
-        FLUSH_SIZE_KEY       -> policy.fileSize,
-        FLUSH_INTERVAL_KEY   -> policy.interval.toMillis,
-        FLUSH_RECORDS_KEY    -> policy.records,
+        COMMIT_SIZE_KEY      -> policy.fileSize,
+        COMMIT_INTERVAL_KEY  -> policy.interval.toMillis,
+        COMMIT_RECORDS_KEY   -> policy.records,
         ERROR_RETRY_INTERVAL -> sinkConfig.retries.interval,
         NBR_OF_RETRIES_KEY   -> sinkConfig.retries.retries,
         TMP_DIRECTORY_KEY    -> dir.toString,

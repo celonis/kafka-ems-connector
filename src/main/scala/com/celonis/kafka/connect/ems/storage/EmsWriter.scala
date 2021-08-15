@@ -22,22 +22,27 @@ class EmsWriter(
 
   override def write(record: Record): Unit = {
     logger.debug("[{}] EmsWriter.write: Internal state: {}", sinkName, internalState.show)
-    formatWriter.write(record.value)
+    if (record.metadata.offset > internalState.offset) {
+      formatWriter.write(record.value)
 
-    internalState = internalState.copy(
-      fileSize    = formatWriter.size,
-      records     = internalState.records + 1,
-      offset      = record.metadata.offset,
-      lastWriteTs = System.currentTimeMillis(),
-    )
+      internalState = internalState.copy(
+        fileSize    = formatWriter.size,
+        records     = internalState.records + 1,
+        offset      = record.metadata.offset,
+        lastWriteTs = System.currentTimeMillis(),
+      )
+    } else {
+      logger.debug(
+        "[{}] EmsWriter.write: ignoring record. Offset is already processed. current={} received={}",
+        sinkName,
+        internalState.offset.show,
+        record.metadata.offset.show,
+      )
+    }
   }
 
   override def shouldRollover(schema: Schema): Boolean =
-    rolloverOnSchemaChange && schemaIsDifferent(schema)
-
-  private def schemaIsDifferent(schema: Schema): Boolean = internalState.schema != schema
-
-  private def rolloverOnSchemaChange: Boolean = formatWriter.rolloverFileOnSchemaChange()
+    formatWriter.rolloverFileOnSchemaChange() && internalState.schema != schema
 
   override def close(): Unit = formatWriter.close()
 
@@ -50,5 +55,6 @@ class EmsWriter(
 
     commitPolicy.shouldFlush(commitContext)
   }
+
   override def state: WriterState = internalState
 }

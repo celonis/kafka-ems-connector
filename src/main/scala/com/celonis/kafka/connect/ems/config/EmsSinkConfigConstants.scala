@@ -20,14 +20,14 @@ object EmsSinkConfigConstants {
   val TMP_DIRECTORY_DOC: String =
     s"The folder to store the temporary files as it accumulates data. If not specified then [${System.getProperty("java. io. tmpdir")}] is being used."
 
-  val FLUSH_SIZE_KEY: String = s"$CONNECTOR_PREFIX.flush.size.bytes"
-  val FLUSH_SIZE_DOC: String = s"When accumulating the parquet files, the file is uploaded when reaching this limit."
+  val COMMIT_SIZE_KEY: String = s"$CONNECTOR_PREFIX.commit.size.bytes"
+  val COMMIT_SIZE_DOC: String = "The accumulated file size to upload to EMS."
 
-  val FLUSH_RECORDS_KEY: String = s"$CONNECTOR_PREFIX.flush.records"
-  val FLUSH_RECORDS_DOC: String = s"The number of records written to the local file before the data is uploaded to EMS."
+  val COMMIT_RECORDS_KEY: String = s"$CONNECTOR_PREFIX.commit.records"
+  val COMMIT_RECORDS_DOC: String = s"Commit the accumulated file to EMS when this number of records was reached."
 
-  val FLUSH_INTERVAL_KEY: String = s"$CONNECTOR_PREFIX.flush.interval.ms"
-  val FLUSH_INTERVAL_DOC: String =
+  val COMMIT_INTERVAL_KEY: String = s"$CONNECTOR_PREFIX.commit.interval.ms"
+  val COMMIT_INTERVAL_DOC: String =
     s"The time interval in milliseconds to upload the data to EMS if the other two commit policies are not yet applicable."
 
   val PROGRESS_COUNTER_ENABLED: String = "connect.progress.enabled"

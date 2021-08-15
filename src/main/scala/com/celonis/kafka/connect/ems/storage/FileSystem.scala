@@ -27,28 +27,51 @@ object FileSystem {
   }
 
   def createOutput(dir: Path, sinkName: String, topicPartition: TopicPartition): FileAndStream = {
+    val sinkDir = Paths.get(dir.toString, sinkName).toFile
+    if (!sinkDir.exists()) sinkDir.mkdir()
+    val topicDir = Paths.get(dir.toString, sinkName, topicPartition.topic.value).toFile
+    if (!topicDir.exists()) topicDir.mkdir()
     val topicPartitionDir =
-      Paths.get(dir.toString, sinkName, topicPartition.topic.value, topicPartition.partition.value.toString)
-    Paths.get(dir.toString, sinkName).toFile.mkdir()
-    Paths.get(dir.toString, sinkName, topicPartition.topic.value).toFile.mkdir()
-    Paths.get(dir.toString,
-              sinkName,
-              topicPartition.topic.value,
-              topicPartition.partition.value.toString,
-    ).toFile.mkdir()
-    topicPartitionDir.toFile.createNewFile()
-    val filePath             = Paths.get(topicPartitionDir.toString, topicPartition.partition.value.toString + ".parquet")
-    val file                 = filePath.toFile
+      Paths.get(dir.toString, sinkName, topicPartition.topic.value, topicPartition.partition.value.toString).toFile
+    if (!topicPartitionDir.exists()) topicPartitionDir.mkdir()
+    val filePath = Paths.get(topicPartitionDir.toString, topicPartition.partition.value.toString + ".parquet")
+    val file     = filePath.toFile
+    if (file.exists()) {
+      file.delete()
+    }
+    file.createNewFile()
     val outputFile           = new FileOutputStream(file)
     val bufferedOutputStream = new BufferedOutputStream(outputFile)
-    FileAndStream(bufferedOutputStream, file)
+    new FileAndStream(bufferedOutputStream, file)
   }
 }
 
-case class FileAndStream(stream: OutputStream, file: File) extends AutoCloseable {
+/**
+  * Wraps writing to an output. Unfortunately Parquet library hides the actual writer in [[PositionOutputStream]] implementation
+  * and there's no way to get the correct data size written and the one in the buffers.
+  * As a result this class updates the size it writes.
+  * @param stream - Instance of the [[OutputStream]] to write the parquet data
+  * @param file - The file it's writing to
+  */
+class FileAndStream(stream: OutputStream, file: File) extends AutoCloseable {
+  private var _size:    Long = file.length()
   override def close(): Unit = stream.close()
-  def size: Long = {
-    stream.flush()
-    file.length()
+
+  def write(b: Int): Unit = {
+    stream.write(b)
+    _size += Integer.BYTES
   }
+  def write(b: Array[Byte]): Unit = {
+    stream.write(b)
+    _size += b.length
+  }
+  def write(b: Array[Byte], off: Int, len: Int): Unit = {
+    stream.write(b, off, len)
+    _size += len
+  }
+
+  def flush(): Unit = stream.flush()
+  def size:    Long = _size
+
+  def outputFile(): File = file
 }
