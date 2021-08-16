@@ -3,6 +3,7 @@
  */
 package com.celonis.kafka.connect.ems.config
 
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_KEY
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -13,7 +14,7 @@ import java.util.UUID
 class WorkingFolderTests extends AnyFunSuite with Matchers {
   test(s"return an error if $TMP_DIRECTORY_KEY is missing") {
     val expectedMessage =
-      s"Invalid [$TMP_DIRECTORY_KEY]. The folder to store the temporary files as it accumulates data. If not specified then [${System.getProperty("java. io. tmpdir")}] is being used."
+      s"Invalid [$TMP_DIRECTORY_KEY]. $TMP_DIRECTORY_DOC"
     EmsSinkConfig.extractWorkingDirectory(Map.empty) shouldBe Left(expectedMessage)
     EmsSinkConfig.extractWorkingDirectory(Map("a" -> "b", "b" -> 1)) shouldBe Left(expectedMessage)
     EmsSinkConfig.extractWorkingDirectory(Map("a" -> "b", TMP_DIRECTORY_KEY + ".ext" -> 1)) shouldBe Left(
@@ -23,19 +24,19 @@ class WorkingFolderTests extends AnyFunSuite with Matchers {
 
   test(s"return an error if $TMP_DIRECTORY_KEY is empty") {
     val expectedMessage =
-      s"Invalid [$TMP_DIRECTORY_KEY]. The folder to store the temporary files as it accumulates data. If not specified then [${System.getProperty("java. io. tmpdir")}] is being used."
+      s"Invalid [$TMP_DIRECTORY_KEY]. $TMP_DIRECTORY_DOC"
     EmsSinkConfig.extractWorkingDirectory(Map(TMP_DIRECTORY_KEY -> "")) shouldBe Left(expectedMessage)
   }
 
   test(s"return an error if $TMP_DIRECTORY_KEY is null") {
     val expectedMessage =
-      s"Invalid [$TMP_DIRECTORY_KEY]. The folder to store the temporary files as it accumulates data. If not specified then [${System.getProperty("java. io. tmpdir")}] is being used."
+      s"Invalid [$TMP_DIRECTORY_KEY]. $TMP_DIRECTORY_DOC"
     EmsSinkConfig.extractWorkingDirectory(Map(TMP_DIRECTORY_KEY -> null)) shouldBe Left(expectedMessage)
   }
 
   test(s"return an error if $TMP_DIRECTORY_KEY is not a string") {
     val expectedMessage =
-      s"Invalid [$TMP_DIRECTORY_KEY]. The folder to store the temporary files as it accumulates data. If not specified then [${System.getProperty("java. io. tmpdir")}] is being used."
+      s"Invalid [$TMP_DIRECTORY_KEY]. $TMP_DIRECTORY_DOC"
     EmsSinkConfig.extractWorkingDirectory(Map(TMP_DIRECTORY_KEY -> 2)) shouldBe Left(expectedMessage)
   }
 

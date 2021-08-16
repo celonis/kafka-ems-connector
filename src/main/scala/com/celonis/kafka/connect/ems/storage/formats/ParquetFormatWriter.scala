@@ -15,7 +15,6 @@ import org.apache.parquet.hadoop.ParquetWriter
 import org.apache.parquet.hadoop.ParquetWriter.DEFAULT_BLOCK_SIZE
 import org.apache.parquet.hadoop.ParquetWriter.DEFAULT_PAGE_SIZE
 import org.apache.parquet.hadoop.metadata.CompressionCodecName
-import org.apache.parquet.hadoop.ParquetFileWriter
 
 class ParquetFormatWriter(output: FileAndStream, writer: ParquetWriter[AnyRef]) extends FormatWriter with LazyLogging {
   override def write(value: SinkData): Unit = {
