@@ -3,6 +3,11 @@
  */
 package com.celonis.kafka.connect.ems.sink
 
+import cats.effect.IO
+import cats.effect.Ref
+import cats.effect.unsafe.implicits.global
+import cats.effect.unsafe.IORuntime
+import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigDef
 import com.celonis.kafka.connect.ems.conversion.ValueToSinkDataConverter
@@ -15,6 +20,7 @@ import com.celonis.kafka.connect.ems.model.SinkData
 import com.celonis.kafka.connect.ems.model.Topic
 import com.celonis.kafka.connect.ems.model.TopicPartition
 import com.celonis.kafka.connect.ems.storage.EmsUploader
+import com.celonis.kafka.connect.ems.storage.Writer
 import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
@@ -26,7 +32,6 @@ import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
 import scala.jdk.CollectionConverters._
-import scala.util.control.NonFatal
 
 class EmsSinkTask extends SinkTask with StrictLogging {
 
@@ -49,17 +54,18 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     }
     maybeSetErrorInterval(config)
 
-    writerManager = WriterManager.from(config, sinkName, new EmsUploader(config.url, config.authorizationKey))
+    val writers = Ref.unsafe[IO, Map[TopicPartition, Writer]](Map.empty)
+    writerManager =
+      WriterManager.from(config,
+                         sinkName,
+                         new EmsUploader(config.url, config.authorizationKey, config.target, IORuntime.global.compute),
+                         writers,
+      )
+
   }
 
   private def getSinkName(props: util.Map[String, String]): Option[String] =
     Option(props.get("name")).filter(_.trim.nonEmpty)
-
-  /* private def propsFromContext(props: util.Map[String, String]): util.Map[String, String] =
-    Option(context)
-      .flatMap(c => Option(c.configs()))
-      .filter(_.isEmpty == false)
-      .getOrElse(props)*/
 
   private def maybeSetErrorInterval(config: EmsSinkConfig): Unit =
     //if error policy is retry set retry interval
@@ -71,25 +77,27 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   override def put(records: util.Collection[SinkRecord]): Unit = {
     logger.debug("[{}] EmsSinkTask:put records={}", sinkName, records.size())
 
-    records.asScala
-      //filter our "deletes
+    val io = records.asScala
+      //filter our "deletes" for now
       .filter(_.value() != null)
-      .foreach {
-        record =>
-          writerManager.write(
-            Record(
-              Option(record.key()).fold(Option.empty[SinkData])(key =>
-                Option(ValueToSinkDataConverter(key, Option(record.keySchema()))),
-              ),
-              ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
-              RecordMetadata(TopicPartition(new Topic(record.topic()), new Partition(record.kafkaPartition())),
-                             new Offset(record.kafkaOffset()),
-              ),
+      .toList
+      .traverse { record =>
+        writerManager.write(
+          Record(
+            Option(record.key()).fold(Option.empty[SinkData])(key =>
+              Option(ValueToSinkDataConverter(key, Option(record.keySchema()))),
             ),
-          )
+            ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
+            RecordMetadata(TopicPartition(new Topic(record.topic()), new Partition(record.kafkaPartition())),
+                           new Offset(record.kafkaOffset()),
+            ),
+          ),
+        )
       }
 
-    if (records.isEmpty) writerManager.maybeUploadData()
+    io.unsafeRunSync()
+    if (records.isEmpty)
+      writerManager.maybeUploadData().unsafeRunSync()
     ()
   }
 
@@ -119,10 +127,12 @@ class EmsSinkTask extends SinkTask with StrictLogging {
 
     val actualOffsets = writerManager
       .preCommit(topicPartitionOffsetTransformed)
-      .map {
-        case (topicPartition, offsetAndMetadata) =>
-          (topicPartition.toKafka, offsetAndMetadata)
-      }.asJava
+      .map { map =>
+        map.map {
+          case (topicPartition, offsetAndMetadata) =>
+            (topicPartition.toKafka, offsetAndMetadata)
+        }.asJava
+      }.unsafeRunSync()
 
     logger.debug(s"[{}] Returning latest written offsets={}", sinkName: Any, getDebugInfo(actualOffsets): Any)
     actualOffsets
@@ -131,19 +141,13 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   override def open(partitions: util.Collection[KafkaTopicPartition]): Unit = {
     val partitionsDebug = partitions.asScala.map(tp => s"${tp.topic()}-${tp.partition()}").mkString(",")
     logger.debug(s"[{}] Open partitions", sinkName, partitionsDebug)
+    val topicPartitions = partitions.asScala
+      .map(tp => TopicPartition(new Topic(tp.topic), new Partition(tp.partition)))
+      .toSet
 
-    try {
-      val topicPartitions = partitions.asScala
-        .map(tp => TopicPartition(new Topic(tp.topic), new Partition(tp.partition)))
-        .toSet
-
-      writerManager
-        .open(topicPartitions)
-    } catch {
-      case NonFatal(e) =>
-        logger.error(s"[$sinkName] Error opening s3 sink writer", e)
-        throw e
-    }
+    writerManager
+      .open(topicPartitions)
+      .unsafeRunSync()
   }
 
   /**
@@ -151,17 +155,19 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     * may be changing, eg, in a re-balance. Therefore, we must commit our open files
     * for those (topic,partitions) to ensure no records are lost.
     */
-  override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
-    logger.debug(s"[{}] EmsSinkTask.close with {} partitions", sinkName, partitions.size())
-
-    writerManager.close()
-  }
+  override def close(partitions: util.Collection[KafkaTopicPartition]): Unit =
+    (for {
+      _ <- IO(logger.debug(s"[{}] EmsSinkTask.close with {} partitions", sinkName, partitions.size()))
+      _ <- writerManager.close(partitions.asScala.map(tp =>
+        TopicPartition(new Topic(tp.topic()), new Partition(tp.partition())),
+      ).toList)
+    } yield ()).unsafeRunSync()
 
   override def stop(): Unit = {
-    logger.debug(s"[{}] EmsSinkTask.Stop", sinkName)
-
-    writerManager.close()
+    (for {
+      _ <- IO(logger.debug(s"[{}] EmsSinkTask.Stop", sinkName))
+      _ <- writerManager.close()
+    } yield ()).unsafeRunSync()
     writerManager = null
   }
-
 }

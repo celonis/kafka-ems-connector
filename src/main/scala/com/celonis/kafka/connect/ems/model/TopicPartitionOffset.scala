@@ -4,6 +4,7 @@
 package com.celonis.kafka.connect.ems.model
 
 import cats.Show
+import cats.implicits.toShow
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 
 class Topic(val value: String) extends AnyVal
@@ -36,6 +37,8 @@ case class TopicPartition(topic: Topic, partition: Partition) {
 object TopicPartition {
   def from(kafkaTopicPartition: KafkaTopicPartition): TopicPartition =
     TopicPartition(new Topic(kafkaTopicPartition.topic()), new Partition(kafkaTopicPartition.partition()))
+
+  implicit val show: Show[TopicPartition] = Show.show(tp => s"Topic=${tp.topic.show} Partition=${tp.partition.show}")
 }
 
 case class TopicPartitionOffset(topic: Topic, partition: Partition, offset: Offset) {

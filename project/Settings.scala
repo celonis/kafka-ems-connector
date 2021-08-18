@@ -184,7 +184,7 @@ object Settings extends Dependencies {
     Compile / connectInput := true,
     Compile / outputStrategy := Some(StdoutOutput),
     resolvers ++= projectResolvers,
-    libraryDependencies ++= mainDeps,
+    //libraryDependencies ++= mainDeps,
     crossScalaVersions := supportedScalaVersionsUsed
     /*Global / concurrentRestrictions := {
       val max = java.lang.Runtime.getRuntime.availableProcessors

@@ -3,13 +3,17 @@
  */
 package com.celonis.kafka.connect.ems.storage
 
-import cats.implicits.toShow
+import cats.effect.IO
+import cats.effect.Ref
+import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.model.Record
+import com.celonis.kafka.connect.ems.model.RecordMetadata
 import com.celonis.kafka.connect.ems.model.TopicPartition
 import com.celonis.kafka.connect.ems.model.TopicPartitionOffset
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.StrictLogging
+import io.circe.syntax._
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 
 import java.nio.file.Path
@@ -28,85 +32,117 @@ class WriterManager(
   uploader:      Uploader,
   workingDir:    Path,
   writerBuilder: WriterBuilder,
+  writersRef:    Ref[IO, Map[TopicPartition, Writer]],
 ) extends StrictLogging {
-  private val writers = scala.collection.mutable.Map.empty[TopicPartition, Writer]
 
   /**
     * Uploads the data to EMS if the commit policy is met.
     * @return
     */
-  def maybeUploadData(): Unit = {
+  def maybeUploadData(): IO[Unit] = {
     // The data is uploaded sequentially. We might want to parallelize the process
     logger.debug(s"[{}] Received call to WriterManager.maybeUploadData", sinkName)
-    writers.values.filter(_.shouldFlush).foreach(commit)
+    for {
+      writers <- writersRef.get.map(_.values.filter(_.shouldFlush).toList)
+      _       <- writers.traverse(w => commit(w))
+    } yield ()
   }
+
+  private case class CommitWriterResult(newWriter: Writer, offset: TopicPartitionOffset)
 
   /**
     *  Committing a file created by the writer, will result creating a new writer
     * @param writer - An instance of [[Writer]]
     * @return
     */
-  private def commit(writer: Writer): Option[TopicPartitionOffset] = {
+  private def commit(writer: Writer): IO[Option[CommitWriterResult]] = {
     val state = writer.state
     //check if data was written to the file
-    if (state.records == 0) None
+    if (state.records == 0) IO.pure(None)
     else {
-      writer.close()
-      val file = writer.state.file
-      uploader.upload(file)
-      file.delete()
-      val newWriter = writerBuilder.writerFrom(writer)
-      writers += writer.state.topicPartition -> newWriter
-      val offset = TopicPartitionOffset(writer.state.topicPartition.topic,
-                                        writer.state.topicPartition.partition,
-                                        writer.state.offset,
-      )
-      Some(offset)
+      for {
+        _   <- IO(writer.close())
+        file = writer.state.file
+        _ <- IO(
+          logger.info(s"Uploading file: $file for topic-partition:${TopicPartition.show.show(state.topicPartition)}"),
+        )
+        response <- uploader.upload(file)
+        _        <- IO(logger.info(s"Received ${response.asJson.noSpaces} for uploading file:$file"))
+        _        <- IO(file.delete())
+        newWriter = writerBuilder.writerFrom(writer)
+        _        <- writersRef.update(map => map + (writer.state.topicPartition -> newWriter))
+      } yield CommitWriterResult(
+        newWriter,
+        TopicPartitionOffset(writer.state.topicPartition.topic,
+                             writer.state.topicPartition.partition,
+                             writer.state.offset,
+        ),
+      ).some
     }
   }
 
-  private def commit(topicPartition: TopicPartition): Option[TopicPartitionOffset] =
-    writers.get(topicPartition).flatMap(commit)
+  /*  private def commit(topicPartition: TopicPartition): IO[Option[TopicPartitionOffset]] = {
+    writersRef.get.map(_.get(topicPartition)).flatMap(_.fold(IO.pure(None))(commit))
+  }*/
 
   /**
     * When a partition is opened we cleanup the folder where the temp files are accumulating
     * @param partitions - A set of topic-partition tuples which the current task will own
     */
-  def open(partitions: Set[TopicPartition]): Unit = {
-    writers.values.foreach(_.close())
-    writers.clear()
-    partitions.foreach { partition =>
-      FileSystem.cleanup(workingDir, sinkName, partition)
-    }
-  }
+  def open(partitions: Set[TopicPartition]): IO[Unit] =
+    for {
+      writers <- writersRef.get.map(_.values.toList)
+      _       <- writers.traverse(w => IO(w.close()))
+      _       <- writersRef.update(_ => Map.empty)
+      _       <- partitions.toList.traverse(partition => IO(FileSystem.cleanup(workingDir, sinkName, partition)))
+    } yield ()
 
-  def close(): Unit = {
-    logger.debug(s"[{}] Received call to WriterManager.close", sinkName)
-    writers.foreach {
-      case (tp, writer) =>
-        writer.close()
-        FileSystem.cleanup(workingDir, sinkName, tp)
-    }
-    writers.clear()
-  }
+  def close(partitions: List[TopicPartition]): IO[Unit] =
+    for {
+      _ <- IO(logger.info(s"[{}] Received call to WriterManager.close(partitions):",
+                          sinkName,
+                          partitions.map(_.show).mkString(";"),
+      ))
+      writersMap   <- writersRef.get
+      _            <- partitions.flatMap(writersMap.get).traverse(w => IO(w.close()))
+      newWritersMap = writersMap -- partitions.toSet
+      //do not cleanup the folders. on open partitions we do that.
+      _ <- writersRef.update(_ => newWritersMap)
+    } yield ()
 
-  def write(record: Record): Unit = {
-    logger.debug(s"[{}] Received call to WriterManager.write for {}", sinkName, record.metadata.show)
+  def close(): IO[Unit] =
+    for {
+      _          <- IO(logger.info(s"[{}] Received call to WriterManager.close()", sinkName))
+      writers    <- writersRef.get.map(_.values.toList)
+      partitions <- writers.traverse(w => IO(w.close()).map(_ => w.state.topicPartition))
+      _          <- partitions.traverse(partition => IO(FileSystem.cleanup(workingDir, sinkName, partition)))
+      _          <- writersRef.update(_ => Map.empty)
+    } yield ()
 
-    val writer = writers.getOrElseUpdate(record.metadata.topicPartition, writerBuilder.writerFrom(record))
-    val schema = record.value.schema()
-    if (writer.shouldRollover(schema)) {
-      commit(record.metadata.topicPartition)
-    }
-    //we might have had the commit above and as a result a new writer
-    val latestWriter = writers(record.metadata.topicPartition)
-    latestWriter.write(record)
-
-    // Is accumulated data requiring an upload?!
-    if (writer.shouldFlush)
-      commit(record.metadata.topicPartition)
-    ()
-  }
+  def write(record: Record): IO[Unit] =
+    for {
+      _ <- IO {
+        logger.debug(
+          s"[$sinkName] Received call to WriterManager.write for ${RecordMetadata.show.show(record.metadata)}",
+        )
+      }
+      writersMap <- writersRef.get
+      writer <- writersMap.get(record.metadata.topicPartition) match {
+        case Some(value) => IO(value)
+        case None =>
+          IO(writerBuilder.writerFrom(record)).flatMap { writer =>
+            writersRef.update(map => map + (record.metadata.topicPartition -> writer))
+              .map(_ => writer)
+          }
+      }
+      schema = record.value.schema()
+      latestWriter <- {
+        if (writer.shouldRollover(schema)) commit(writer).map(_.fold(writer)(_.newWriter))
+        else IO(writer)
+      }
+      _ <- IO(latestWriter.write(record))
+      _ <- if (latestWriter.shouldFlush) commit(latestWriter) else IO(None)
+    } yield ()
 
   /**
     * Extracts the current offset for a given topic partition.
@@ -114,8 +150,10 @@ class WriterManager(
     * @param currentOffsets - A sequence of topic-partition tuples and their offset information
     * @return
     */
-  def preCommit(currentOffsets: Map[TopicPartition, OffsetAndMetadata]): Map[TopicPartition, OffsetAndMetadata] =
-    currentOffsets.keys.flatMap { tp =>
+  def preCommit(currentOffsets: Map[TopicPartition, OffsetAndMetadata]): IO[Map[TopicPartition, OffsetAndMetadata]] =
+    for {
+      writers <- writersRef.get
+    } yield currentOffsets.keys.flatMap { tp =>
       writers.get(tp).flatMap { writer =>
         writer.state.committedOffset.map { offset =>
           val initialOffsetAndMeta = currentOffsets(tp)
@@ -128,11 +166,17 @@ class WriterManager(
 }
 
 object WriterManager extends LazyLogging {
-  def from(config: EmsSinkConfig, sinkName: String, uploader: Uploader): WriterManager =
+  def from(
+    config:   EmsSinkConfig,
+    sinkName: String,
+    uploader: Uploader,
+    writers:  Ref[IO, Map[TopicPartition, Writer]],
+  ): WriterManager =
     new WriterManager(
       sinkName,
       uploader,
       config.workingDir,
       new WriterBuilderImpl(config.workingDir, sinkName, config.commitPolicy),
+      writers,
     )
 }
