@@ -7,11 +7,10 @@ import com.celonis.kafka.connect.ems.model.Offset
 import com.celonis.kafka.connect.ems.model.Partition
 import com.celonis.kafka.connect.ems.model.Record
 import com.celonis.kafka.connect.ems.model.RecordMetadata
-import com.celonis.kafka.connect.ems.model.SinkData
-import com.celonis.kafka.connect.ems.model.StructSinkData
 import com.celonis.kafka.connect.ems.model.Topic
 import com.celonis.kafka.connect.ems.model.TopicPartition
 import com.celonis.kafka.connect.ems.storage.formats.FormatWriter
+import org.apache.kafka.connect.data.Struct
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatest.funsuite.AnyFunSuite
@@ -43,16 +42,10 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
                                   ),
     )
 
-    val struct = buildSimpleStruct()
-    val record1 = Record(None,
-                         StructSinkData(struct),
-                         RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(10)),
-    )
+    val struct  = buildSimpleStruct()
+    val record1 = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(10)))
 
-    val record2 = Record(None,
-                         StructSinkData(struct),
-                         RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(11)),
-    )
+    val record2 = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(11)))
 
     val firstSize = startingSize + 1002L
     when(formatWriter.size).thenReturn(firstSize)
@@ -86,13 +79,10 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     val emsWriter = new EmsWriter("sinkA", DefaultCommitPolicy(10000, 1000.minutes, 10000), formatWriter, expected)
 
     val struct = buildSimpleStruct()
-    val record = Record(None,
-                        StructSinkData(struct),
-                        RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(10)),
-    )
+    val record = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(10)))
 
     val ex = new RuntimeException("throwing")
-    when(formatWriter.write(any[SinkData])).thenThrow(ex)
+    when(formatWriter.write(any[Struct])).thenThrow(ex)
     val actualExceptions = the[RuntimeException] thrownBy emsWriter.write(record)
     actualExceptions shouldBe ex
     emsWriter.state shouldBe expected
@@ -118,11 +108,8 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
                                   ),
     )
 
-    val struct = buildSimpleStruct()
-    val record1 = Record(None,
-                         StructSinkData(struct),
-                         RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(10)),
-    )
+    val struct  = buildSimpleStruct()
+    val record1 = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(10)))
 
     val firstSize = startingSize + 1002L
     when(formatWriter.size).thenReturn(firstSize)
@@ -138,10 +125,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     currentState.records shouldBe startingRecords + 1
     currentState.fileSize shouldBe firstSize
 
-    val record2 = Record(None,
-                         StructSinkData(struct),
-                         RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(9)),
-    )
+    val record2 = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(9)))
 
     emsWriter.write(record2)
     currentState = emsWriter.state

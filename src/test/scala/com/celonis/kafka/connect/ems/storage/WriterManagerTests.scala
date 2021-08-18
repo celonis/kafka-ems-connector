@@ -10,7 +10,6 @@ import com.celonis.kafka.connect.ems.model.Offset
 import com.celonis.kafka.connect.ems.model.Partition
 import com.celonis.kafka.connect.ems.model.Record
 import com.celonis.kafka.connect.ems.model.RecordMetadata
-import com.celonis.kafka.connect.ems.model.StructSinkData
 import com.celonis.kafka.connect.ems.model.Topic
 import com.celonis.kafka.connect.ems.model.TopicPartition
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -60,9 +59,9 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val manager = new WriterManager(sink, uploader, dir, builder, Ref.unsafe(Map.empty))
 
       val struct  = buildSimpleStruct()
-      val record1 = Record(None, StructSinkData(struct), RecordMetadata(tp1, new Offset(10)))
-      val record2 = Record(None, StructSinkData(struct), RecordMetadata(tp1, new Offset(11)))
-      val record3 = Record(None, StructSinkData(struct), RecordMetadata(tp2, new Offset(24)))
+      val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
+      val record2 = Record(struct, RecordMetadata(tp1, new Offset(11)))
+      val record3 = Record(struct, RecordMetadata(tp2, new Offset(24)))
 
       (for {
         _ <- manager.write(record1)
@@ -89,8 +88,8 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val manager = new WriterManager(sink, uploader, dir, builder, Ref.unsafe(Map.empty))
 
       val struct  = buildSimpleStruct()
-      val record1 = Record(None, StructSinkData(struct), RecordMetadata(tp1, new Offset(10)))
-      val record2 = Record(None, StructSinkData(struct), RecordMetadata(tp2, new Offset(11)))
+      val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
+      val record2 = Record(struct, RecordMetadata(tp2, new Offset(11)))
 
       val writer1 = mock[Writer]
       when(builder.writerFrom(record1)).thenReturn(writer1)
@@ -129,9 +128,9 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val manager = new WriterManager(sink, uploader, dir, builder, Ref.unsafe(Map.empty))
 
       val struct  = buildSimpleStruct()
-      val record1 = Record(None, StructSinkData(struct), RecordMetadata(tp1, new Offset(10)))
-      val record2 = Record(None, StructSinkData(struct), RecordMetadata(tp2, new Offset(11)))
-      val record3 = Record(None, StructSinkData(struct), RecordMetadata(tp3, new Offset(91)))
+      val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
+      val record2 = Record(struct, RecordMetadata(tp2, new Offset(11)))
+      val record3 = Record(struct, RecordMetadata(tp3, new Offset(91)))
 
       val writer1 = mock[Writer]
       when(builder.writerFrom(record1)).thenReturn(writer1)
@@ -178,9 +177,9 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val manager = new WriterManager(sink, uploader, dir, builder, Ref.unsafe(Map.empty))
 
       val struct  = buildSimpleStruct()
-      val record1 = Record(None, StructSinkData(struct), RecordMetadata(tp1, new Offset(10)))
-      val record2 = Record(None, StructSinkData(struct), RecordMetadata(tp2, new Offset(11)))
-      val record3 = Record(None, StructSinkData(struct), RecordMetadata(tp3, new Offset(91)))
+      val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
+      val record2 = Record(struct, RecordMetadata(tp2, new Offset(11)))
+      val record3 = Record(struct, RecordMetadata(tp3, new Offset(91)))
 
       val writer1 = mock[Writer]
       when(builder.writerFrom(record1)).thenReturn(writer1)
@@ -256,9 +255,9 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val manager = new WriterManager(sink, uploader, dir, builder, Ref.unsafe(Map.empty))
 
       val struct  = buildSimpleStruct()
-      val record1 = Record(None, StructSinkData(struct), RecordMetadata(tp1, new Offset(10)))
-      val record2 = Record(None, StructSinkData(struct), RecordMetadata(tp2, new Offset(11)))
-      val record3 = Record(None, StructSinkData(struct), RecordMetadata(tp3, new Offset(91)))
+      val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
+      val record2 = Record(struct, RecordMetadata(tp2, new Offset(11)))
+      val record3 = Record(struct, RecordMetadata(tp3, new Offset(91)))
 
       val writer1 = mock[Writer]
       when(builder.writerFrom(record1)).thenReturn(writer1)
@@ -307,9 +306,9 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val manager = new WriterManager(sink, uploader, dir, builder, Ref.unsafe(Map.empty))
 
       val struct  = buildSimpleStruct()
-      val record1 = Record(None, StructSinkData(struct), RecordMetadata(tp1, new Offset(10)))
-      val record2 = Record(None, StructSinkData(struct), RecordMetadata(tp2, new Offset(11)))
-      val record3 = Record(None, StructSinkData(struct), RecordMetadata(tp3, new Offset(91)))
+      val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
+      val record2 = Record(struct, RecordMetadata(tp2, new Offset(11)))
+      val record3 = Record(struct, RecordMetadata(tp3, new Offset(91)))
 
       val writer1 = mock[Writer]
       when(builder.writerFrom(record1)).thenReturn(writer1)
@@ -363,9 +362,9 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val manager = new WriterManager(sink, uploader, dir, builder, Ref.unsafe(Map.empty))
 
       val struct  = buildSimpleStruct()
-      val record1 = Record(None, StructSinkData(struct), RecordMetadata(tp1, new Offset(10)))
-      val record2 = Record(None, StructSinkData(struct), RecordMetadata(tp2, new Offset(11)))
-      val record3 = Record(None, StructSinkData(struct), RecordMetadata(tp3, new Offset(91)))
+      val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
+      val record2 = Record(struct, RecordMetadata(tp2, new Offset(11)))
+      val record3 = Record(struct, RecordMetadata(tp3, new Offset(91)))
 
       val writer1 = mock[Writer]
       when(builder.writerFrom(record1)).thenReturn(writer1)

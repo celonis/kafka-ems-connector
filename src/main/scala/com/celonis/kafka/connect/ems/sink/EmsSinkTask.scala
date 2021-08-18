@@ -10,13 +10,12 @@ import cats.effect.unsafe.IORuntime
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigDef
-import com.celonis.kafka.connect.ems.conversion.ValueToSinkDataConverter
+import com.celonis.kafka.connect.ems.conversion.ValueConverter
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.Offset
 import com.celonis.kafka.connect.ems.model.Partition
 import com.celonis.kafka.connect.ems.model.Record
 import com.celonis.kafka.connect.ems.model.RecordMetadata
-import com.celonis.kafka.connect.ems.model.SinkData
 import com.celonis.kafka.connect.ems.model.Topic
 import com.celonis.kafka.connect.ems.model.TopicPartition
 import com.celonis.kafka.connect.ems.storage.EmsUploader
@@ -82,17 +81,12 @@ class EmsSinkTask extends SinkTask with StrictLogging {
       .filter(_.value() != null)
       .toList
       .traverse { record =>
-        writerManager.write(
-          Record(
-            Option(record.key()).fold(Option.empty[SinkData])(key =>
-              Option(ValueToSinkDataConverter(key, Option(record.keySchema()))),
-            ),
-            ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
-            RecordMetadata(TopicPartition(new Topic(record.topic()), new Partition(record.kafkaPartition())),
-                           new Offset(record.kafkaOffset()),
-            ),
-          ),
-        )
+        for {
+          value   <- IO.fromEither(ValueConverter.apply(record.value()))
+          tp       = TopicPartition(new Topic(record.topic()), new Partition(record.kafkaPartition()))
+          metadata = RecordMetadata(tp, new Offset(record.kafkaOffset()))
+          _       <- writerManager.write(Record(value, metadata))
+        } yield ()
       }
 
     io.unsafeRunSync()
