@@ -7,7 +7,8 @@ object EmsSinkConfigConstants {
   val CONNECTOR_PREFIX = "connect.ems"
 
   val AUTHORIZATION_KEY: String = s"$CONNECTOR_PREFIX.authorization.key"
-  val AUTHORIZATION_DOC = "Contains the EMS API Authorization header. It should be [AppKey <<app-key>>] or [Bearer <<api-key>>]."
+  val AUTHORIZATION_DOC =
+    "Contains the EMS API Authorization header. It should be [AppKey <<app-key>>] or [Bearer <<api-key>>]."
 
   val TARGET_TABLE_KEY: String = s"$CONNECTOR_PREFIX.target.table"
   val TARGET_TABLE_DOC: String = s"The table in EMS to store the data."
@@ -21,10 +22,12 @@ object EmsSinkConfigConstants {
     s"The folder to store the temporary files as it accumulates data. If not specified then [${System.getProperty("java.io.tmpdir")}] is being used."
 
   val COMMIT_SIZE_KEY: String = s"$CONNECTOR_PREFIX.commit.size.bytes"
-  val COMMIT_SIZE_DOC: String = "The accumulated file maximum size before it is uploaded to EMS. It cannot be less than 1MB."
+  val COMMIT_SIZE_DOC: String =
+    "The accumulated file maximum size before it is uploaded to EMS. It cannot be less than 1MB."
 
   val COMMIT_RECORDS_KEY: String = s"$CONNECTOR_PREFIX.commit.records"
-  val COMMIT_RECORDS_DOC: String = s"The maximum number of records in the accumulated file before it is uploaded to EMS."
+  val COMMIT_RECORDS_DOC: String =
+    s"The maximum number of records in the accumulated file before it is uploaded to EMS."
 
   val COMMIT_INTERVAL_KEY: String = s"$CONNECTOR_PREFIX.commit.interval.ms"
   val COMMIT_INTERVAL_DOC: String =

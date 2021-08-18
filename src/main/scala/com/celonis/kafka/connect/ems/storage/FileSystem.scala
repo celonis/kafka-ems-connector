@@ -18,6 +18,9 @@ object FileSystem {
     file.delete()
   }
 
+  def getDirFor(dir: Path, sinkName: String, tp: TopicPartition): Path =
+    Paths.get(dir.toString, sinkName, tp.topic.value, tp.partition.value.toString)
+
   def cleanup(dir: Path, sinkName: String, tp: TopicPartition): Unit = {
     //cleanup the file for the given topic and partition
     val topicPartitionDir =

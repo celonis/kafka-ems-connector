@@ -45,12 +45,13 @@ object Dependencies {
 
     val confluentVersion = "6.2.0"
 
+    val http4sVersion = "1.0.0-M24"
     val avroVersion   = "1.9.2"
     val avro4sVersion = "3.1.1"
 
     val catsVersion           = "2.6.1"
-    val catsEffectVersion     = "2.5.1"
-    val `cats-effect-testing` = "0.5.4"
+    val catsEffectVersion     = "3.2.2"
+    val `cats-effect-testing` = "1.2.0"
     val jacksonVersion        = "2.10.5"
 
     val circeVersion              = "0.14.1"
@@ -68,10 +69,10 @@ object Dependencies {
 
     val classGraphVersions    = "4.4.12"
     val scalaCollectionCompat = "2.4.2"
-    val quicklens             = "1.6.1"
 
-    val parquetVersion = "1.12.0"
-    val hadoopVersion  = "2.10.1"
+    val wiremockJre8Version = "2.25.1"
+    val parquetVersion      = "1.12.0"
+    val hadoopVersion       = "2.10.1"
   }
 
   val scalaCollectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % Versions.scalaCollectionCompat
@@ -105,11 +106,9 @@ object Dependencies {
   val scalaCheck      = "org.scalacheck"    %% "scalacheck"  % Versions.scalaCheckVersion
   val `mockito-scala` = "org.scalatestplus" %% "mockito-3-2" % Versions.scalaCheckPlusVersion
 
-  val randomDataGeneratorMagnolia =
-    "com.danielasfregola" %% "random-data-generator-magnolia" % Versions.randomDataGeneratorVersion
   lazy val pegDown = "org.pegdown" % "pegdown" % "1.6.0"
 
-  val catsEffectScalatest = "com.codecommit" %% "cats-effect-testing-scalatest" % Versions.`cats-effect-testing`
+  val catsEffectScalatest = "org.typelevel" %% "cats-effect-testing-scalatest" % Versions.`cats-effect-testing`
 
   val enumeratumCore  = "com.beachape" %% "enumeratum"       % Versions.enumeratumVersion
   val enumeratumCirce = "com.beachape" %% "enumeratum-circe" % Versions.enumeratumVersion
@@ -134,6 +133,12 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "io.swagger"))
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.core"))
 
+  val http4sDsl         = "org.http4s" %% "http4s-dsl"          % Versions.http4sVersion
+  val http4sBlazeServer = "org.http4s" %% "http4s-blaze-server" % Versions.http4sVersion
+  val http4sBlazeClient = "org.http4s" %% "http4s-blaze-client" % Versions.http4sVersion
+  val http4sCirce       = "org.http4s" %% "http4s-circe"        % Versions.http4sVersion
+  val http4s            = Seq(http4sDsl, http4sBlazeServer, http4sBlazeClient, http4sCirce)
+
   val jacksonCore          = "com.fasterxml.jackson.core"       % "jackson-core"           % Versions.jacksonVersion
   val jacksonAnnotations   = "com.fasterxml.jackson.core"       % "jackson-annotations"    % Versions.jacksonVersion
   val jacksonDatabind      = "com.fasterxml.jackson.core"       % "jackson-databind"       % Versions.jacksonVersion
@@ -144,12 +149,19 @@ object Dependencies {
   lazy val avro   = "org.apache.avro"      % "avro"        % Versions.avroVersion
   lazy val avro4s = "com.sksamuel.avro4s" %% "avro4s-core" % Versions.avro4sVersion
 
-  val quicklens = "com.softwaremill.quicklens" %% "quicklens" % Versions.quicklens
+  val `wiremock-jre8` = "com.github.tomakehurst" % "wiremock-jre8" % Versions.wiremockJre8Version
 
-  lazy val parquetAvro     = "org.apache.parquet" % "parquet-avro"                 % Versions.parquetVersion
-  lazy val parquetHadoop   = "org.apache.parquet" % "parquet-hadoop"               % Versions.parquetVersion
-  lazy val hadoopCommon    = "org.apache.hadoop"  % "hadoop-common"                % Versions.hadoopVersion
-  lazy val hadoopMapReduce = "org.apache.hadoop"  % "hadoop-mapreduce-client-core" % Versions.hadoopVersion
+  lazy val parquetAvro   = "org.apache.parquet" % "parquet-avro"   % Versions.parquetVersion
+  lazy val parquetHadoop = "org.apache.parquet" % "parquet-hadoop" % Versions.parquetVersion
+  lazy val hadoopCommon = ("org.apache.hadoop" % "hadoop-common" % Versions.hadoopVersion)
+    .excludeAll(ExclusionRule(organization = "javax.servlet"))
+    .excludeAll(ExclusionRule(organization = "javax.servlet.jsp"))
+    .excludeAll(ExclusionRule(organization = "org.mortbay.jetty"))
+
+  lazy val hadoopMapReduce = ("org.apache.hadoop" % "hadoop-mapreduce-client-core" % Versions.hadoopVersion)
+    .excludeAll(ExclusionRule(organization = "javax.servlet"))
+    .excludeAll(ExclusionRule(organization = "javax.servlet.jsp"))
+    .excludeAll(ExclusionRule(organization = "org.mortbay.jetty"))
   //compile("org.apache.hadoop:hadoop-mapreduce-client-core:$hadoopVersion")
 }
 
@@ -161,20 +173,24 @@ trait Dependencies {
 
   // resolvers
   val projectResolvers: Seq[MavenRepository] = commonResolvers
-
+  /*
   val mainDeps =
-    Seq(cats, catsEffect, logback, logbackCore)
+    Seq(cats, catsLaws, catsEffect, catsEffectLaws, logback, logbackCore)*/
 
   val baseTestDeps: Seq[ModuleID] = (Seq(
+    cats,
     catsLaws,
+    catsEffect,
     catsEffectLaws,
     scalatest,
     catsEffectScalatest,
     scalatestPlusScalaCheck,
     scalaCheck,
     `mockito-scala`,
-    randomDataGeneratorMagnolia,
-  ) ++ circe).map(_ exclude ("org.slf4j", "slf4j-log4j12")).map(_ % testConfigurationsMap.keys.mkString(","))
+    `wiremock-jre8`,
+  ) ++ enumeratum ++ circe ++ http4s).map(_ exclude ("org.slf4j", "slf4j-log4j12")).map(
+    _ % testConfigurationsMap.keys.mkString(","),
+  )
 
   //Specific modules dependencies
   val emsSinkDeps: Seq[ModuleID] = (Seq(
@@ -182,12 +198,18 @@ trait Dependencies {
     confluentAvroConverter,
     confluentSchemaRegistry,
     avro4s,
+    cats,
+    catsLaws,
+    catsEffect,
+    catsEffectLaws,
+    logback,
+    logbackCore,
     catsFree,
     parquetAvro,
     parquetHadoop,
     hadoopCommon,
-    hadoopMapReduce
-  ) ++ enumeratum).map(_.exclude("org.slf4j", "slf4j-log4j12"))
+    hadoopMapReduce,
+  ) ++ enumeratum ++ circe ++ http4s).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
 
