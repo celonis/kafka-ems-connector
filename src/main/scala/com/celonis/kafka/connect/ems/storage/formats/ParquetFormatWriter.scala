@@ -4,20 +4,18 @@
 package com.celonis.kafka.connect.ems.storage.formats
 
 import com.celonis.kafka.connect.ems.conversion.ToAvroDataConverter
-import com.celonis.kafka.connect.ems.model.SinkData
 import com.celonis.kafka.connect.ems.storage.FileAndStream
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
+import org.apache.kafka.connect.data.Struct
 import org.apache.parquet.avro.AvroParquetWriter
-import org.apache.parquet.column.ParquetProperties
 import org.apache.parquet.hadoop.ParquetWriter
 import org.apache.parquet.hadoop.ParquetWriter.DEFAULT_BLOCK_SIZE
 import org.apache.parquet.hadoop.ParquetWriter.DEFAULT_PAGE_SIZE
 import org.apache.parquet.hadoop.metadata.CompressionCodecName
-
 class ParquetFormatWriter(output: FileAndStream, writer: ParquetWriter[AnyRef]) extends FormatWriter with LazyLogging {
-  override def write(value: SinkData): Unit = {
+  override def write(value: Struct): Unit = {
     val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(value)
     writer.write(genericRecord)
   }
@@ -41,7 +39,7 @@ object ParquetFormatWriter {
       .builder[AnyRef](outputFile)
       .withRowGroupSize(DEFAULT_BLOCK_SIZE)
       .withPageSize(DEFAULT_PAGE_SIZE)
-      .withWriterVersion(ParquetProperties.WriterVersion.PARQUET_2_0)
+      //.withWriterVersion(ParquetProperties.WriterVersion.PARQUET_2_0)
       .withCompressionCodec(CompressionCodecName.SNAPPY)
       .withSchema(schema)
       .build()

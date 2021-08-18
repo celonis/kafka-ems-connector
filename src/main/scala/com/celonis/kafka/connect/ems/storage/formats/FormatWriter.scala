@@ -3,12 +3,12 @@
  */
 package com.celonis.kafka.connect.ems.storage.formats
 
-import com.celonis.kafka.connect.ems.model.SinkData
+import org.apache.kafka.connect.data.Struct
 
 trait FormatWriter extends AutoCloseable {
   def size: Long
 
   def rolloverFileOnSchemaChange(): Boolean
 
-  def write(value: SinkData): Unit
+  def write(value: Struct): Unit
 }
