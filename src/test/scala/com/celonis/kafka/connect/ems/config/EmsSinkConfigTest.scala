@@ -3,22 +3,26 @@
  */
 package com.celonis.kafka.connect.ems.config
 
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_KEY
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
@@ -46,6 +50,8 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         policy,
         RetryConfig(10, 1000),
         dir.toPath,
+        DEBUG_KEEP_TMP_FILES_DEFAULT,
+        PARQUET_FLUSH_DEFAULT,
       )
 
       val inputMap: Map[String, _] = Map(
@@ -110,7 +116,23 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     testMissingConfig(ERROR_POLICY_KEY, ERROR_POLICY_DOC)
   }
 
-  private def testMissingConfig(key: String, docs: String) = {
+  test(s"returns default if $PARQUET_FLUSH_KEY is missing") {
+    testMissingConfig(PARQUET_FLUSH_KEY) {
+      case Left(_) => fail("should not fail")
+      case Right(value) => value.parquetFlushRecords shouldBe PARQUET_FLUSH_DEFAULT
+        ()
+    }
+  }
+
+  test(s"returns default if $DEBUG_KEEP_TMP_FILES_KEY is missing") {
+    testMissingConfig(DEBUG_KEEP_TMP_FILES_KEY) {
+      case Left(_) => fail("should not fail")
+      case Right(value) => value.keepLocalFiles shouldBe DEBUG_KEEP_TMP_FILES_DEFAULT
+        ()
+    }
+  }
+
+  private def testMissingConfig(key: String)(fn: PartialFunction[Either[String, EmsSinkConfig], Unit]) = {
     val policy = DefaultCommitPolicy(1000000L, 10.seconds, 1000)
     val dir    = new File(UUID.randomUUID().toString)
     dir.mkdir() shouldBe true
@@ -124,36 +146,45 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         policy,
         RetryConfig(10, 1000),
         dir.toPath,
+        DEBUG_KEEP_TMP_FILES_DEFAULT,
+        PARQUET_FLUSH_DEFAULT,
       )
 
       val inputMap: Map[String, _] = Map(
-        ENDPOINT_KEY         -> sinkConfig.url.toString,
-        TARGET_TABLE_KEY     -> sinkConfig.target,
-        AUTHORIZATION_KEY    -> sinkConfig.authorizationKey,
-        ERROR_POLICY_KEY     -> sinkConfig.errorPolicy.entryName,
-        COMMIT_SIZE_KEY      -> policy.fileSize,
-        COMMIT_INTERVAL_KEY  -> policy.interval.toMillis,
-        COMMIT_RECORDS_KEY   -> policy.records,
-        ERROR_RETRY_INTERVAL -> sinkConfig.retries.interval,
-        NBR_OF_RETRIES_KEY   -> sinkConfig.retries.retries,
-        TMP_DIRECTORY_KEY    -> dir.toString,
+        ENDPOINT_KEY             -> sinkConfig.url.toString,
+        TARGET_TABLE_KEY         -> sinkConfig.target,
+        AUTHORIZATION_KEY        -> sinkConfig.authorizationKey,
+        ERROR_POLICY_KEY         -> sinkConfig.errorPolicy.entryName,
+        COMMIT_SIZE_KEY          -> policy.fileSize,
+        COMMIT_INTERVAL_KEY      -> policy.interval.toMillis,
+        COMMIT_RECORDS_KEY       -> policy.records,
+        ERROR_RETRY_INTERVAL     -> sinkConfig.retries.interval,
+        NBR_OF_RETRIES_KEY       -> sinkConfig.retries.retries,
+        TMP_DIRECTORY_KEY        -> dir.toString,
+        DEBUG_KEEP_TMP_FILES_KEY -> sinkConfig.keepLocalFiles,
+        PARQUET_FLUSH_KEY        -> sinkConfig.parquetFlushRecords,
       ) - key
-      val expected = s"Invalid [$key]. $docs"
-      EmsSinkConfig.from(
+
+      fn(EmsSinkConfig.from(
         sinkConfig.sinkName,
         inputMap,
-      ) shouldBe Left(expected)
+      ))
 
       val connectInputMap =
         EmsSinkConfigDef.config.parse(inputMap.view.mapValues(_.toString).toMap.asJava).asScala.toMap
 
-      EmsSinkConfig.from(
+      fn(EmsSinkConfig.from(
         sinkConfig.sinkName,
         connectInputMap,
-      ) shouldBe Left(expected)
+      ))
     } finally {
       dir.delete()
       ()
     }
   }
+  private def testMissingConfig(key: String, docs: String): Unit =
+    testMissingConfig(key) { e =>
+      e shouldBe Left(s"Invalid [$key]. $docs")
+      ()
+    }
 }

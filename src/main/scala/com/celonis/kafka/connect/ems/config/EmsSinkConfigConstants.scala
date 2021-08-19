@@ -33,6 +33,15 @@ object EmsSinkConfigConstants {
   val COMMIT_INTERVAL_DOC: String =
     s"The time interval in milliseconds to upload the data to EMS if the other two commit policies are not yet applicable."
 
+  val PARQUET_FLUSH_KEY:     String = s"$CONNECTOR_PREFIX.parquet.write.flush.records"
+  val PARQUET_FLUSH_DEFAULT: Long   = 1000L
+  val PARQUET_FLUSH_DOC: String =
+    s"""
+       |The number of records after which it should flush the parquet file, to ensure the file size policy.
+       | Default is $PARQUET_FLUSH_DEFAULT.
+       | Writing parquet allows to flush the buffer only when the file is closed. This results in a file closed and a file open sequence.
+       | This is not related to or impacts $COMMIT_RECORDS_KEY.""".stripMargin
+
   val PROGRESS_COUNTER_ENABLED: String = "connect.progress.enabled"
   val PROGRESS_COUNTER_ENABLED_DOC     = "Enables the output for how many records have been processed."
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
@@ -57,4 +66,9 @@ object EmsSinkConfigConstants {
   val NBR_OF_RETRIES_KEY = s"$CONNECTOR_PREFIX.max.retries"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT: Int = 20
+
+  val DEBUG_KEEP_TMP_FILES_KEY: String = s"$CONNECTOR_PREFIX.debug.keep.parquet.files"
+  val DEBUG_KEEP_TMP_FILES_DOC: String =
+    s"For debug purpose, set the setting to true for the connector to keep the local files after an upload. Default is false."
+  val DEBUG_KEEP_TMP_FILES_DEFAULT = false
 }
