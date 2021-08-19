@@ -36,9 +36,9 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val output1  = FileSystem.createOutput(dir, sink, tp1)
       val output2  = FileSystem.createOutput(dir, sink, tp2)
       val output3  = FileSystem.createOutput(dir, sink, tp3)
-      val uploader = mock[Uploader]
+      val uploader = mock[Uploader[IO]]
       val builder  = mock[WriterBuilder]
-      val manager  = new WriterManager(sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager  = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
       manager.open(Set(tp1, tp3)).unsafeRunSync()
       output1.outputFile().exists() shouldBe false
       output2.outputFile().exists() shouldBe true
@@ -51,12 +51,12 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val sink     = "sinkA"
       val tp1      = TopicPartition(new Topic("A"), new Partition(1))
       val tp2      = TopicPartition(new Topic("B"), new Partition(3))
-      val uploader = mock[Uploader]
+      val uploader = mock[Uploader[IO]]
       val builder  = mock[WriterBuilder]
       val writer   = mock[Writer]
       when(builder.writerFrom(any[Record])).thenReturn(writer)
 
-      val manager = new WriterManager(sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
 
       val struct  = buildSimpleStruct()
       val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
@@ -82,10 +82,10 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val sink     = "sinkA"
       val tp1      = TopicPartition(new Topic("A"), new Partition(1))
       val tp2      = TopicPartition(new Topic("B"), new Partition(3))
-      val uploader = mock[Uploader]
+      val uploader = mock[Uploader[IO]]
       val builder  = mock[WriterBuilder]
 
-      val manager = new WriterManager(sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
 
       val struct  = buildSimpleStruct()
       val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
@@ -122,10 +122,10 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val tp1      = TopicPartition(new Topic("A"), new Partition(1))
       val tp2      = TopicPartition(new Topic("B"), new Partition(3))
       val tp3      = TopicPartition(new Topic("C"), new Partition(0))
-      val uploader = mock[Uploader]
+      val uploader = mock[Uploader[IO]]
       val builder  = mock[WriterBuilder]
 
-      val manager = new WriterManager(sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
 
       val struct  = buildSimpleStruct()
       val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
@@ -171,10 +171,10 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val tp1      = TopicPartition(new Topic("A"), new Partition(1))
       val tp2      = TopicPartition(new Topic("B"), new Partition(3))
       val tp3      = TopicPartition(new Topic("C"), new Partition(0))
-      val uploader = mock[Uploader]
+      val uploader = mock[Uploader[IO]]
       val builder  = mock[WriterBuilder]
 
-      val manager = new WriterManager(sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
 
       val struct  = buildSimpleStruct()
       val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
@@ -249,10 +249,10 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val tp1      = TopicPartition(new Topic("A"), new Partition(1))
       val tp2      = TopicPartition(new Topic("B"), new Partition(3))
       val tp3      = TopicPartition(new Topic("C"), new Partition(0))
-      val uploader = mock[Uploader]
+      val uploader = mock[Uploader[IO]]
       val builder  = mock[WriterBuilder]
 
-      val manager = new WriterManager(sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
 
       val struct  = buildSimpleStruct()
       val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
@@ -300,10 +300,10 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val tp1      = TopicPartition(new Topic("A"), new Partition(1))
       val tp2      = TopicPartition(new Topic("B"), new Partition(3))
       val tp3      = TopicPartition(new Topic("C"), new Partition(0))
-      val uploader = mock[Uploader]
+      val uploader = mock[Uploader[IO]]
       val builder  = mock[WriterBuilder]
 
-      val manager = new WriterManager(sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
 
       val struct  = buildSimpleStruct()
       val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
@@ -356,10 +356,10 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val tp1      = TopicPartition(new Topic("A"), new Partition(1))
       val tp2      = TopicPartition(new Topic("B"), new Partition(3))
       val tp3      = TopicPartition(new Topic("C"), new Partition(0))
-      val uploader = mock[Uploader]
+      val uploader = mock[Uploader[IO]]
       val builder  = mock[WriterBuilder]
 
-      val manager = new WriterManager(sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
 
       val struct  = buildSimpleStruct()
       val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
