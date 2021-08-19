@@ -60,10 +60,10 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
     } yield (server, file)).use {
       case (_, file) =>
         for {
-          uploader <- IO(new EmsUploader(new URL(s"http://localhost:$port$path"),
-                                         auth,
-                                         targetTable,
-                                         ExecutionContext.global,
+          uploader <- IO(new EmsUploader[IO](new URL(s"http://localhost:$port$path"),
+                                             auth,
+                                             targetTable,
+                                             ExecutionContext.global,
           ))
           response <- uploader.upload(file)
           map      <- mapRef.get
@@ -101,10 +101,10 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
     } yield (server, file)).use {
       case (_, file) =>
         for {
-          uploader <- IO(new EmsUploader(new URL(s"http://localhost:$port$path"),
-                                         "invalid auth",
-                                         targetTable,
-                                         ExecutionContext.global,
+          uploader <- IO(new EmsUploader[IO](new URL(s"http://localhost:$port$path"),
+                                             "invalid auth",
+                                             targetTable,
+                                             ExecutionContext.global,
           ))
           e <- uploader.upload(file).attempt
         } yield {

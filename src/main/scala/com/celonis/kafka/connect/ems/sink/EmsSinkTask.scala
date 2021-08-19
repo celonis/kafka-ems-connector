@@ -10,6 +10,7 @@ import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigDef
 import com.celonis.kafka.connect.ems.conversion.ValueConverter
+import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.Offset
 import com.celonis.kafka.connect.ems.model.Partition
@@ -39,10 +40,13 @@ import scala.jdk.CollectionConverters._
 class EmsSinkTask extends SinkTask with StrictLogging {
 
   private var blockingExecutionContext: BlockingExecutionContext = _
-  private var writerManager:            WriterManager            = _
+  private var writerManager:            WriterManager[IO]        = _
 
   private var sinkName: String = _
 
+  private var maxRetries:  Int         = 0
+  private var retriesLeft: Int         = maxRetries
+  private var errorPolicy: ErrorPolicy = ErrorPolicy.Retry
   override def version(): String =
     JarManifest.from(getClass.getProtectionDomain.getCodeSource.getLocation)
       .version.getOrElse("unknown")
@@ -61,13 +65,20 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     val writers = Ref.unsafe[IO, Map[TopicPartition, Writer]](Map.empty)
     blockingExecutionContext = BlockingExecutionContext("io-http-blocking")
     writerManager =
-      WriterManager.from(
+      WriterManager.from[IO](
         config,
         sinkName,
-        new EmsUploader(config.url, config.authorizationKey, config.target, blockingExecutionContext.executionContext),
+        new EmsUploader[IO](config.url,
+                            config.authorizationKey,
+                            config.target,
+                            blockingExecutionContext.executionContext,
+        ),
         writers,
       )
 
+    maxRetries  = config.retries.retries
+    retriesLeft = maxRetries
+    errorPolicy = config.errorPolicy
   }
 
   private def getSinkName(props: util.Map[String, String]): Option[String] =
@@ -81,25 +92,32 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
-    logger.debug("[{}] EmsSinkTask:put records={}", sinkName, records.size())
+    val io = for {
+      _ <- IO(logger.info("[{}] EmsSinkTask:put records={}", sinkName, records.size()))
+      _ <- records.asScala
+        //filter our "deletes" for now
+        .filter(_.value() != null)
+        .toList
+        .traverse { record =>
+          for {
+            value   <- IO.fromEither(ValueConverter.apply(record.value()))
+            tp       = TopicPartition(new Topic(record.topic()), new Partition(record.kafkaPartition()))
+            metadata = RecordMetadata(tp, new Offset(record.kafkaOffset()))
+            _       <- writerManager.write(Record(value, metadata))
+          } yield ()
+        }
+      _ <- if (records.isEmpty)
+        writerManager.maybeUploadData()
+      else IO(())
+    } yield ()
 
-    val io = records.asScala
-      //filter our "deletes" for now
-      .filter(_.value() != null)
-      .toList
-      .traverse { record =>
-        for {
-          value   <- IO.fromEither(ValueConverter.apply(record.value()))
-          tp       = TopicPartition(new Topic(record.topic()), new Partition(record.kafkaPartition()))
-          metadata = RecordMetadata(tp, new Offset(record.kafkaOffset()))
-          _       <- writerManager.write(Record(value, metadata))
-        } yield ()
-      }
-
-    io.unsafeRunSync()
-    if (records.isEmpty)
-      writerManager.maybeUploadData().unsafeRunSync()
-    ()
+    io.attempt.unsafeRunSync() match {
+      case Left(value) =>
+        retriesLeft -= 0
+        errorPolicy.handle(value, retriesLeft)
+      case Right(_) =>
+        retriesLeft = maxRetries
+    }
   }
 
   override def preCommit(
@@ -126,17 +144,17 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         }
         .toMap
 
-    val actualOffsets = writerManager
-      .preCommit(topicPartitionOffsetTransformed)
-      .map { map =>
-        map.map {
-          case (topicPartition, offsetAndMetadata) =>
-            (topicPartition.toKafka, offsetAndMetadata)
-        }.asJava
-      }.unsafeRunSync()
-
-    logger.debug(s"[{}] Returning latest written offsets={}", sinkName: Any, getDebugInfo(actualOffsets): Any)
-    actualOffsets
+    (for {
+      offsets <- writerManager
+        .preCommit(topicPartitionOffsetTransformed)
+        .map { map =>
+          map.map {
+            case (topicPartition, offsetAndMetadata) =>
+              (topicPartition.toKafka, offsetAndMetadata)
+          }.asJava
+        }
+      _ <- IO(logger.debug(s"[{}] Returning latest written offsets={}", sinkName: Any, getDebugInfo(offsets): Any))
+    } yield offsets).unsafeRunSync()
   }
 
   override def open(partitions: util.Collection[KafkaTopicPartition]): Unit = {
@@ -156,20 +174,34 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     * may be changing, eg, in a re-balance. Therefore, we must commit our open files
     * for those (topic,partitions) to ensure no records are lost.
     */
-  override def close(partitions: util.Collection[KafkaTopicPartition]): Unit =
+  override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
+    val topicPartitions =
+      partitions.asScala.map(tp => TopicPartition(new Topic(tp.topic()), new Partition(tp.partition()))).toList
     (for {
       _ <- IO(logger.debug(s"[{}] EmsSinkTask.close with {} partitions", sinkName, partitions.size()))
-      _ <- writerManager.close(partitions.asScala.map(tp =>
-        TopicPartition(new Topic(tp.topic()), new Partition(tp.partition())),
-      ).toList)
-    } yield ()).unsafeRunSync()
+      _ <- Option(writerManager).fold(IO(())) {
+        _.close(topicPartitions)
+      }
+    } yield ()).attempt.unsafeRunSync() match {
+      case Left(value) =>
+        logger.warn(
+          s"[$sinkName]There was an error closing the partitions: ${topicPartitions.map(_.show).mkString(",")}]]",
+          value,
+        )
+      case Right(_) =>
+    }
+  }
 
   override def stop(): Unit = {
     (for {
       _ <- IO(logger.debug(s"[{}] EmsSinkTask.Stop", sinkName))
-      _ <- writerManager.close()
-      _ <- IO(blockingExecutionContext.close())
-    } yield ()).unsafeRunSync()
+      _ <- Option(writerManager).fold(IO(()))(_.close())
+      _ <- Option(blockingExecutionContext).fold(IO(()))(ec => IO(ec.close()))
+    } yield ()).attempt.unsafeRunSync() match {
+      case Left(value) =>
+        logger.warn(s"[$sinkName]There was an error stopping the EmsSinkTask", value)
+      case Right(_) =>
+    }
     blockingExecutionContext = null
     writerManager            = null
   }

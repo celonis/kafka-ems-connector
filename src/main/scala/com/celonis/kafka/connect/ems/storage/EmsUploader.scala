@@ -3,13 +3,15 @@
  */
 package com.celonis.kafka.connect.ems.storage
 
-import cats.effect.IO
+import cats.effect.kernel.Async
+import cats.implicits._
 import com.celonis.kafka.connect.ems.errors.UnexpectedUploadException
 import com.celonis.kafka.connect.ems.errors.UploadFailedException
 import com.celonis.kafka.connect.ems.errors.UploadInvalidResponseException
 import com.celonis.kafka.connect.ems.storage.EmsUploader.buildUri
 import org.http4s._
 import org.http4s.blaze.client.BlazeClientBuilder
+import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.client.UnexpectedStatus
@@ -21,21 +23,28 @@ import java.net.URL
 import javax.ws.rs.core.UriBuilder
 import scala.concurrent.ExecutionContext
 
-class EmsUploader(baseUrl: URL, authorization: String, targetTable: String, ec: ExecutionContext)
-    extends Uploader
-    with Http4sClientDsl[IO] {
+class EmsUploader[F[_]](
+  baseUrl:       URL,
+  authorization: String,
+  targetTable:   String,
+  ec:            ExecutionContext,
+)(
+  implicit
+  A: Async[F],
+) extends Uploader[F]
+    with Http4sClientDsl[F] {
 
-  override def upload(file: File): IO[EmsUploadResponse] = {
-    def uploadWithClient(client: Client[IO]): IO[EmsUploadResponse] = {
+  override def upload(file: File): F[EmsUploadResponse] = {
+    def uploadWithClient(client: Client[F]): F[EmsUploadResponse] = {
 
-      val multipart: Multipart[IO] = Multipart[IO](
+      val multipart: Multipart[F] = Multipart[F](
         Vector(
           Part.fileData(file.getName, file),
         ),
       )
 
       val uri = buildUri(baseUrl, targetTable)
-      val request: Request[IO] = Method.POST(
+      val request: Request[F] = Method.POST(
         multipart,
         uri,
         multipart.headers.headers :+ Header.Raw(CIString("Authorization"), authorization),
@@ -44,17 +53,17 @@ class EmsUploader(baseUrl: URL, authorization: String, targetTable: String, ec: 
       client.expect[EmsUploadResponse](request).redeemWith(
         {
           case s: UnexpectedStatus =>
-            IO.raiseError(UploadFailedException(s.status, s.getLocalizedMessage, s))
+            A.raiseError(UploadFailedException(s.status, s.getLocalizedMessage, s))
           case d: DecodeFailure =>
-            IO.raiseError(UploadInvalidResponseException(d))
+            A.raiseError(UploadInvalidResponseException(d))
           case t =>
-            IO.raiseError(UnexpectedUploadException(t.getLocalizedMessage, t))
+            A.raiseError(UnexpectedUploadException(t.getLocalizedMessage, t))
         },
-        IO(_),
+        A.delay(_),
       )
     }
 
-    BlazeClientBuilder[IO](ec).resource
+    BlazeClientBuilder[F](ec).resource
       .use(uploadWithClient)
   }
 }

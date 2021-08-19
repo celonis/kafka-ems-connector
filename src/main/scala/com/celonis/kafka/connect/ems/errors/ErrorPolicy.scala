@@ -41,7 +41,6 @@ object ErrorPolicy extends Enum[ErrorPolicy] {
   }
 
   case object Retry extends ErrorPolicy with StrictLogging {
-
     override def handle(error: Throwable, retries: Int): Unit =
       if (retries == 0) {
         throw new ConnectException(error)
