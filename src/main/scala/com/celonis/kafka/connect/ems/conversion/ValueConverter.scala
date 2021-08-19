@@ -3,21 +3,33 @@
  */
 package com.celonis.kafka.connect.ems.conversion
 import cats.syntax.either._
+import com.celonis.kafka.connect.ems.errors.InvalidInputException
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
-import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
 object ValueConverter {
-  def apply(value: AnyRef): Either[Throwable, Struct] = value match {
-    case struct: Struct              => StructValueConverter.convert(struct).asRight
-    case map:    Map[_, _]           => MapValueConverter.convert(map).asRight
-    case map:    java.util.Map[_, _] => MapValueConverter.convert(map.asScala.toMap).asRight
-    case other => new ConnectException(s"Writing Parquet files requires an Object at the top level. ${other.getClass.getCanonicalName} is not allowed.").asLeft
-  }
+  def apply(value: AnyRef): Either[Throwable, Struct] =
+    (value match {
+      case struct: Struct              => StructValueConverter.convert(struct).asRight
+      case map:    Map[_, _]           => MapValueConverter.convert(map).asRight
+      case map:    java.util.Map[_, _] => MapValueConverter.convert(map.asScala.toMap).asRight
+      case other =>
+        InvalidInputException(
+          s"Invalid input received. To write the data to Paraquet files the input needs to be an Object but found:${other.getClass.getCanonicalName}.",
+        ).asLeft
+    }).flatMap { struct =>
+      if (struct.schema().fields().isEmpty) {
+        InvalidInputException(
+          s"Invalid input received. The connector has received an empty input which cannot be written to Parquet. This can happen for empty JSON objects. ",
+        ).asLeft
+      } else {
+        struct.asRight
+      }
+    }
 }
 
 trait ValueConverter[T] {

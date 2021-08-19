@@ -55,17 +55,12 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
     }
   }
 
-  test("writes a JSON schemaless to the file") {
+  test("writes a schemaless JSON") {
     withDir { dir =>
       val sinkName       = "sA"
       val topicPartition = TopicPartition(new Topic("A"), new Partition(2))
       val output         = FileSystem.createOutput(dir, sinkName, topicPartition)
 
-      val converter = new org.apache.kafka.connect.json.JsonConverter()
-      converter.configure(Map(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG -> "true",
-                              "converter.type"                          -> "value",
-                              "schemas.enable"                          -> "false",
-      ).asJava)
       val entry =
         ComplexObject(8,
                       8,
@@ -86,9 +81,13 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
       val formatWriter = ParquetFormatWriter.from(output, struct.schema())
       formatWriter.write(struct)
       formatWriter.close()
-      println(formatWriter.size)
       formatWriter.size > 4 shouldBe true
     }
   }
 
+  private val converter = new org.apache.kafka.connect.json.JsonConverter()
+  converter.configure(Map(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG -> "true",
+                          "converter.type"                          -> "value",
+                          "schemas.enable"                          -> "false",
+  ).asJava)
 }

@@ -52,8 +52,8 @@ object Dependencies {
     val catsVersion           = "2.6.1"
     val catsEffectVersion     = "3.2.2"
     val `cats-effect-testing` = "1.2.0"
-    val jacksonVersion        = "2.10.5"
 
+    val urlValidatorVersion       = "1.6"
     val circeVersion              = "0.14.1"
     val circeGenericExtrasVersion = "0.14.1"
     val circeJsonSchemaVersion    = "0.2.0"
@@ -65,14 +65,16 @@ object Dependencies {
 
     val slf4jVersion = "1.7.25"
 
-    val logbackVersion = "1.2.3"
-
+    val logbackVersion        = "1.2.3"
+    val scalaLoggingVersion   = "3.9.2"
     val classGraphVersions    = "4.4.12"
     val scalaCollectionCompat = "2.4.2"
 
     val wiremockJre8Version = "2.25.1"
     val parquetVersion      = "1.12.0"
     val hadoopVersion       = "2.10.1"
+
+    val jerseyCommonVersion = "2.34"
   }
 
   val scalaCollectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % Versions.scalaCollectionCompat
@@ -90,14 +92,17 @@ object Dependencies {
   val catsEffectLaws = "org.typelevel" %% "cats-effect-laws" % Versions.catsEffectVersion
   lazy val catsFree  = "org.typelevel" %% "cats-free"        % Versions.catsVersion
 
+  val urlValidator = "commons-validator" % "commons-validator" % Versions.urlValidatorVersion
+
   val circeGeneric = "io.circe" %% "circe-generic" % Versions.circeVersion
   val circeParser  = "io.circe" %% "circe-parser"  % Versions.circeVersion
   val circeRefined = "io.circe" %% "circe-refined" % Versions.circeVersion
   val circe        = Seq(circeGeneric, circeParser, circeRefined)
 
   // logging
-  val logback          = "ch.qos.logback" % "logback-classic" % Versions.logbackVersion
-  lazy val logbackCore = "ch.qos.logback" % "logback-core"    % Versions.logbackVersion
+  val logback          = "ch.qos.logback"              % "logback-classic" % Versions.logbackVersion
+  lazy val logbackCore = "ch.qos.logback"              % "logback-core"    % Versions.logbackVersion
+  val scalaLogging     = "com.typesafe.scala-logging" %% "scala-logging"   % Versions.scalaLoggingVersion
 
   // testing
   val scalatest = "org.scalatest" %% "scalatest" % Versions.scalatestVersion
@@ -118,18 +123,14 @@ object Dependencies {
 
   lazy val slf4j = "org.slf4j" % "slf4j-api" % Versions.slf4jVersion
 
-  lazy val kafkaConnectJson = "org.apache.kafka" % "connect-json" % Versions.kafkaVersion
+  lazy val kafkaConnectJson = "org.apache.kafka" % "connect-json" % Versions.kafkaVersion % "provided"
+
   lazy val confluentAvroConverter = ("io.confluent" % "kafka-connect-avro-converter" % Versions.confluentVersion)
     .exclude("org.slf4j", "slf4j-log4j12")
     .exclude("org.apache.kafka", "kafka-clients")
     .exclude("javax.ws.rs", "javax.ws.rs-api")
-    .excludeAll(ExclusionRule(organization = "io.swagger"))
-    .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.core"))
-
-  lazy val confluentSchemaRegistry = ("io.confluent" % "kafka-schema-registry" % Versions.confluentVersion)
-    .exclude("org.slf4j", "slf4j-log4j12")
-    .exclude("com.google.guava", "guava")
-    .exclude("javax.ws.rs", "javax.ws.rs-api")
+    .exclude("io.confluent", "kafka-schema-registry-client")
+    .exclude("io.confluent", "kafka-schema-serializer")
     .excludeAll(ExclusionRule(organization = "io.swagger"))
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.core"))
 
@@ -139,17 +140,12 @@ object Dependencies {
   val http4sCirce       = "org.http4s" %% "http4s-circe"        % Versions.http4sVersion
   val http4s            = Seq(http4sDsl, http4sBlazeServer, http4sBlazeClient, http4sCirce)
 
-  val jacksonCore          = "com.fasterxml.jackson.core"       % "jackson-core"           % Versions.jacksonVersion
-  val jacksonAnnotations   = "com.fasterxml.jackson.core"       % "jackson-annotations"    % Versions.jacksonVersion
-  val jacksonDatabind      = "com.fasterxml.jackson.core"       % "jackson-databind"       % Versions.jacksonVersion
-  val jacksonModuleScala   = "com.fasterxml.jackson.module"    %% "jackson-module-scala"   % Versions.jacksonVersion
-  val jacksonDataformatXml = "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % Versions.jacksonVersion
-  val jackson              = Seq(jacksonCore, jacksonAnnotations, jacksonDatabind, jacksonModuleScala, jacksonDataformatXml)
-
-  lazy val avro   = "org.apache.avro"      % "avro"        % Versions.avroVersion
+  //lazy val avro   = "org.apache.avro"      % "avro"        % Versions.avroVersion
   lazy val avro4s = "com.sksamuel.avro4s" %% "avro4s-core" % Versions.avro4sVersion
 
   val `wiremock-jre8` = "com.github.tomakehurst" % "wiremock-jre8" % Versions.wiremockJre8Version
+
+  val jerseyCommon = "org.glassfish.jersey.core" % "jersey-common" % Versions.jerseyCommonVersion
 
   lazy val parquetAvro   = "org.apache.parquet" % "parquet-avro"   % Versions.parquetVersion
   lazy val parquetHadoop = "org.apache.parquet" % "parquet-hadoop" % Versions.parquetVersion
@@ -157,12 +153,15 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "javax.servlet"))
     .excludeAll(ExclusionRule(organization = "javax.servlet.jsp"))
     .excludeAll(ExclusionRule(organization = "org.mortbay.jetty"))
+    .exclude("org.apache.hadoop", "hadoop-annotations")
+    .exclude("org.apache.hadoop", "hadoop-auth")
 
   lazy val hadoopMapReduce = ("org.apache.hadoop" % "hadoop-mapreduce-client-core" % Versions.hadoopVersion)
     .excludeAll(ExclusionRule(organization = "javax.servlet"))
     .excludeAll(ExclusionRule(organization = "javax.servlet.jsp"))
     .excludeAll(ExclusionRule(organization = "org.mortbay.jetty"))
-  //compile("org.apache.hadoop:hadoop-mapreduce-client-core:$hadoopVersion")
+    .exclude("org.apache.hadoop", "hadoop-yarn-common")
+    .exclude("org.apache.hadoop", "hadoop-yarn-client")
 }
 
 trait Dependencies {
@@ -188,6 +187,7 @@ trait Dependencies {
     scalaCheck,
     `mockito-scala`,
     `wiremock-jre8`,
+    jerseyCommon,
   ) ++ enumeratum ++ circe ++ http4s).map(_ exclude ("org.slf4j", "slf4j-log4j12")).map(
     _ % testConfigurationsMap.keys.mkString(","),
   )
@@ -196,14 +196,14 @@ trait Dependencies {
   val emsSinkDeps: Seq[ModuleID] = (Seq(
     kafkaConnectJson,
     confluentAvroConverter,
-    confluentSchemaRegistry,
-    avro4s,
     cats,
     catsLaws,
     catsEffect,
     catsEffectLaws,
     logback,
     logbackCore,
+    scalaLogging,
+    urlValidator,
     catsFree,
     parquetAvro,
     parquetHadoop,

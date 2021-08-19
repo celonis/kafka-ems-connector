@@ -29,6 +29,7 @@ import com.celonis.kafka.connect.ems.model.CommitPolicy
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
 import org.apache.commons.validator.routines.UrlValidator
 
+import java.io.File
 import java.net.URL
 import java.nio.file.Path
 import scala.concurrent.duration._
@@ -135,16 +136,15 @@ object EmsSinkConfig {
   def extractWorkingDirectory(props: Map[String, _]): Either[String, Path] =
     nonEmptyStringOr(props, TMP_DIRECTORY_KEY, TMP_DIRECTORY_DOC)
       .flatMap { value =>
-        val path = Path.of(value)
-        val file = path.toFile
+        val file = new File(value)
         if (!file.exists()) {
           if (!file.mkdir()) {
-            error(TMP_DIRECTORY_KEY, s"Cannot create the folder:[$path].")
-          } else path.asRight[String]
+            error(TMP_DIRECTORY_KEY, s"Cannot create the folder:[$file].")
+          } else file.toPath.asRight[String]
         } else {
           if (!file.isDirectory)
-            error(TMP_DIRECTORY_KEY, s"Folder [$path] is pointing to a file.")
-          else path.asRight[String]
+            error(TMP_DIRECTORY_KEY, s"Folder [$file] is pointing to a file.")
+          else file.toPath.asRight[String]
         }
       }
 

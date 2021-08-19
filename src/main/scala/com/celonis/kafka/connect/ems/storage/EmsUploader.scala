@@ -44,11 +44,11 @@ class EmsUploader(baseUrl: URL, authorization: String, targetTable: String, ec: 
       client.expect[EmsUploadResponse](request).redeemWith(
         {
           case s: UnexpectedStatus =>
-            IO.raiseError(new UploadFailedException(s.status, s.getLocalizedMessage, s))
+            IO.raiseError(UploadFailedException(s.status, s.getLocalizedMessage, s))
           case d: DecodeFailure =>
-            IO.raiseError(new UploadInvalidResponseException(d))
+            IO.raiseError(UploadInvalidResponseException(d))
           case t =>
-            IO.raiseError(new UnexpectedUploadException(t.getLocalizedMessage, t))
+            IO.raiseError(UnexpectedUploadException(t.getLocalizedMessage, t))
         },
         IO(_),
       )

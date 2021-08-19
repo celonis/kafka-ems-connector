@@ -2,15 +2,18 @@
  * Copyright 2017-2021 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.errors
+import org.apache.kafka.connect.errors.ConnectException
 import org.http4s.DecodeFailure
 import org.http4s.Status
 
-class EmsSinkException(msg: String, throwable: Throwable) extends Exception(msg, throwable) {
-  def this(msg:       String)    = this(msg, null)
-  def this(throwable: Throwable) = this(throwable.getMessage, throwable)
-}
+sealed trait EmsSinkException
 
-class UploadFailedException(val status: Status, msg: String, throwable: Throwable)
-    extends EmsSinkException(msg, throwable)
-class UnexpectedUploadException(msg: String, throwable: Throwable) extends EmsSinkException(msg, throwable)
-class UploadInvalidResponseException(val failure: DecodeFailure) extends EmsSinkException(failure.getMessage(), failure)
+case class UploadFailedException(status: Status, msg: String, throwable: Throwable)
+    extends ConnectException(msg, throwable)
+    with EmsSinkException
+case class UnexpectedUploadException(msg: String, throwable: Throwable) extends ConnectException(msg, throwable)
+case class UploadInvalidResponseException(failure: DecodeFailure)
+    extends ConnectException(failure.getMessage(), failure)
+    with EmsSinkException
+
+case class InvalidInputException(msg: String) extends ConnectException(msg) with EmsSinkException
