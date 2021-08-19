@@ -6,7 +6,6 @@ package com.celonis.kafka.connect.ems.sink
 import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.unsafe.implicits.global
-import cats.effect.unsafe.IORuntime
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigDef
@@ -30,11 +29,17 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.Executors
+import java.util.concurrent.ExecutorService
+import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContextExecutor
 import scala.jdk.CollectionConverters._
 
 class EmsSinkTask extends SinkTask with StrictLogging {
 
-  private var writerManager: WriterManager = _
+  private var blockingExecutionContext: BlockingExecutionContext = _
+  private var writerManager:            WriterManager            = _
 
   private var sinkName: String = _
 
@@ -54,11 +59,13 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     maybeSetErrorInterval(config)
 
     val writers = Ref.unsafe[IO, Map[TopicPartition, Writer]](Map.empty)
+    blockingExecutionContext = BlockingExecutionContext("io-http-blocking")
     writerManager =
-      WriterManager.from(config,
-                         sinkName,
-                         new EmsUploader(config.url, config.authorizationKey, config.target, IORuntime.global.compute),
-                         writers,
+      WriterManager.from(
+        config,
+        sinkName,
+        new EmsUploader(config.url, config.authorizationKey, config.target, blockingExecutionContext.executionContext),
+        writers,
       )
 
   }
@@ -161,7 +168,26 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     (for {
       _ <- IO(logger.debug(s"[{}] EmsSinkTask.Stop", sinkName))
       _ <- writerManager.close()
+      _ <- IO(blockingExecutionContext.close())
     } yield ()).unsafeRunSync()
-    writerManager = null
+    blockingExecutionContext = null
+    writerManager            = null
+  }
+
+  class BlockingExecutionContext private (executor: ExecutorService) extends AutoCloseable {
+    val executionContext: ExecutionContextExecutor = ExecutionContext.fromExecutor(executor)
+    override def close(): Unit                     = executor.shutdown()
+  }
+  private object BlockingExecutionContext {
+    def apply(threadPrefix: String): BlockingExecutionContext = {
+      val threadCount = new AtomicInteger(0)
+      val executor: ExecutorService = Executors.newCachedThreadPool { (r: Runnable) =>
+        val t = new Thread(r)
+        t.setName(s"$threadPrefix-${threadCount.getAndIncrement()}")
+        t.setDaemon(true)
+        t
+      }
+      new BlockingExecutionContext(executor)
+    }
   }
 }
