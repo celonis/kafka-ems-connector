@@ -14,6 +14,7 @@ import org.apache.parquet.hadoop.ParquetWriter
 import org.apache.parquet.hadoop.ParquetWriter.DEFAULT_BLOCK_SIZE
 import org.apache.parquet.hadoop.ParquetWriter.DEFAULT_PAGE_SIZE
 import org.apache.parquet.hadoop.metadata.CompressionCodecName
+
 class ParquetFormatWriter(output: FileAndStream, writer: ParquetWriter[AnyRef]) extends FormatWriter with LazyLogging {
   override def write(value: Struct): Unit = {
     val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(value)

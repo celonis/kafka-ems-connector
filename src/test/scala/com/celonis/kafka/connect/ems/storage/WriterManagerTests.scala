@@ -25,6 +25,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 
 import java.io.File
+import java.nio.file.Paths
 
 class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory with MockitoSugar with SampleData {
   test("cleans up on topic partitions allocated") {
@@ -38,7 +39,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val output3  = FileSystem.createOutput(dir, sink, tp3)
       val uploader = mock[Uploader[IO]]
       val builder  = mock[WriterBuilder]
-      val manager  = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager  = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty), ParquetFileCleanupDelete)
       manager.open(Set(tp1, tp3)).unsafeRunSync()
       output1.outputFile().exists() shouldBe false
       output2.outputFile().exists() shouldBe true
@@ -56,7 +57,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val writer   = mock[Writer]
       when(builder.writerFrom(any[Record])).thenReturn(writer)
 
-      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty), ParquetFileCleanupDelete)
 
       val struct  = buildSimpleStruct()
       val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
@@ -85,7 +86,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val uploader = mock[Uploader[IO]]
       val builder  = mock[WriterBuilder]
 
-      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty), ParquetFileCleanupDelete)
 
       val struct  = buildSimpleStruct()
       val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
@@ -125,7 +126,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val uploader = mock[Uploader[IO]]
       val builder  = mock[WriterBuilder]
 
-      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty), ParquetFileCleanupDelete)
 
       val struct  = buildSimpleStruct()
       val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
@@ -174,7 +175,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val uploader = mock[Uploader[IO]]
       val builder  = mock[WriterBuilder]
 
-      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty), ParquetFileCleanupDelete)
 
       val struct  = buildSimpleStruct()
       val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
@@ -252,7 +253,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val uploader = mock[Uploader[IO]]
       val builder  = mock[WriterBuilder]
 
-      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty), ParquetFileCleanupDelete)
 
       val struct  = buildSimpleStruct()
       val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
@@ -294,6 +295,60 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
     }
   }
 
+  test("keep the file once it has been uploaded") {
+    withDir { dir =>
+      val sink     = "sinkA"
+      val tp1      = TopicPartition(new Topic("A"), new Partition(1))
+      val tp2      = TopicPartition(new Topic("B"), new Partition(3))
+      val tp3      = TopicPartition(new Topic("C"), new Partition(0))
+      val uploader = mock[Uploader[IO]]
+      val builder  = mock[WriterBuilder]
+
+      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty), ParquetFileCleanupRename)
+
+      val struct  = buildSimpleStruct()
+      val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
+      val record2 = Record(struct, RecordMetadata(tp2, new Offset(11)))
+      val record3 = Record(struct, RecordMetadata(tp3, new Offset(91)))
+
+      val writer1 = mock[Writer]
+      when(builder.writerFrom(record1)).thenReturn(writer1)
+      val writer2 = mock[Writer]
+      when(builder.writerFrom(record2)).thenReturn(writer2)
+      val writer3 = mock[Writer]
+      when(builder.writerFrom(record3)).thenReturn(writer3)
+
+      when(writer1.shouldFlush).thenReturn(false)
+      when(writer2.shouldFlush).thenReturn(false)
+      when(writer3.shouldFlush).thenReturn(false)
+
+      //open the writers
+      (for {
+        _ <- manager.write(record1)
+        _ <- manager.write(record2)
+        _ <- manager.write(record3)
+      } yield ()).unsafeRunSync()
+
+      val file1 = new File("abc1")
+      val file2 = Paths.get(dir.toString, "abc2").toFile
+      file2.createNewFile() shouldBe true
+      val file3 = new File("abc3")
+      when(writer1.state).thenReturn(WriterState(tp1, record1.metadata.offset, None, 0, 1, 1, simpleSchema, file1))
+      when(writer2.state).thenReturn(WriterState(tp2, record2.metadata.offset, None, 0, 1, 1, simpleSchema, file2))
+      when(writer3.state).thenReturn(WriterState(tp3, record3.metadata.offset, None, 0, 1, 1, simpleSchema, file3))
+
+      when(writer2.shouldFlush).thenReturn(true)
+      when(uploader.upload(file2)).thenReturn(IO.pure(EmsUploadResponse("1", file2.getName, "b1", "NEW", "c1")))
+      manager.write(record2).unsafeRunSync()
+
+      val retainedFile = ParquetFileCleanupRename.renamedFile(file2, record2.metadata.offset)
+      retainedFile.toFile.exists() shouldBe true
+      verify(uploader, times(1)).upload(file2)
+      verify(builder, times(1)).writerFrom(writer2)
+      verify(writer2, times(1)).close()
+    }
+  }
+
   test("commit data when there is a schema change") {
     withDir { dir =>
       val sink     = "sinkA"
@@ -303,7 +358,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val uploader = mock[Uploader[IO]]
       val builder  = mock[WriterBuilder]
 
-      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty), ParquetFileCleanupDelete)
 
       val struct  = buildSimpleStruct()
       val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
@@ -359,7 +414,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val uploader = mock[Uploader[IO]]
       val builder  = mock[WriterBuilder]
 
-      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty))
+      val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty), ParquetFileCleanupDelete)
 
       val struct  = buildSimpleStruct()
       val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))

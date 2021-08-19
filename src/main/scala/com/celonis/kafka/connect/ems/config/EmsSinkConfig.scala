@@ -4,26 +4,31 @@
 package com.celonis.kafka.connect.ems.config
 
 import cats.syntax.either._
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETIRES_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_KEY
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.model.CommitPolicy
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
@@ -35,14 +40,16 @@ import java.nio.file.Path
 import scala.concurrent.duration._
 
 case class EmsSinkConfig(
-  sinkName:         String,
-  url:              URL,
-  target:           String,
-  authorizationKey: String,
-  errorPolicy:      ErrorPolicy,
-  commitPolicy:     CommitPolicy,
-  retries:          RetryConfig,
-  workingDir:       Path,
+  sinkName:            String,
+  url:                 URL,
+  target:              String,
+  authorizationKey:    String,
+  errorPolicy:         ErrorPolicy,
+  commitPolicy:        CommitPolicy,
+  retries:             RetryConfig,
+  workingDir:          Path,
+  keepLocalFiles:      Boolean,
+  parquetFlushRecords: Long,
 )
 
 object EmsSinkConfig {
@@ -74,6 +81,9 @@ object EmsSinkConfig {
   private def longOr(props: Map[String, _], key: String, docs: String): Either[String, Long] =
     propertyOr(props, key, docs)(PropertiesHelper.getLong)
 
+  private def booleanOr(props: Map[String, _], key: String, docs: String): Either[String, Boolean] =
+    propertyOr(props, key, docs)(PropertiesHelper.getBoolean)
+
   def extractURL(props: Map[String, _]): Either[String, URL] =
     nonEmptyStringOr(props, ENDPOINT_KEY, ENDPOINT_DOC).flatMap { value =>
       if (!new UrlValidator(Array("https")).isValid(value)) error(ENDPOINT_KEY, ENDPOINT_DOC)
@@ -91,6 +101,14 @@ object EmsSinkConfig {
         else error(AUTHORIZATION_KEY, AUTHORIZATION_DOC)
       }
 
+  def extractParquetFlushRecords(props: Map[String, _]): Either[String, Long] =
+    PropertiesHelper.getLong(props, PARQUET_FLUSH_KEY) match {
+      case Some(value) =>
+        if (value < 1)
+          error(PARQUET_FLUSH_KEY, "The number of records to flush the parquet file needs to be greater or equal to 1.")
+        else value.asRight[String]
+      case None => PARQUET_FLUSH_DEFAULT.asRight
+    }
   def extractErrorPolicy(props: Map[String, _]): Either[String, ErrorPolicy] =
     nonEmptyStringOr(props, ERROR_POLICY_KEY, ERROR_POLICY_DOC)
       .flatMap { constant =>
@@ -150,13 +168,17 @@ object EmsSinkConfig {
 
   def from(sinkName: String, props: Map[String, _]): Either[String, EmsSinkConfig] =
     for {
-      url           <- extractURL(props)
-      table         <- extractTargetTable(props)
-      authorization <- extractAuthorizationHeader(props)
-      error         <- extractErrorPolicy(props)
-      commitPolicy  <- extractCommitPolicy(props)
-      retry         <- extractRetry(props)
-      tempDir       <- extractWorkingDirectory(props)
+      url                 <- extractURL(props)
+      table               <- extractTargetTable(props)
+      authorization       <- extractAuthorizationHeader(props)
+      error               <- extractErrorPolicy(props)
+      commitPolicy        <- extractCommitPolicy(props)
+      retry               <- extractRetry(props)
+      tempDir             <- extractWorkingDirectory(props)
+      parquetFlushRecords <- extractParquetFlushRecords(props)
+      keepParquetFiles = booleanOr(props, DEBUG_KEEP_TMP_FILES_KEY, DEBUG_KEEP_TMP_FILES_DOC).getOrElse(
+        DEBUG_KEEP_TMP_FILES_DEFAULT,
+      )
     } yield EmsSinkConfig(
       sinkName,
       url,
@@ -166,5 +188,7 @@ object EmsSinkConfig {
       commitPolicy,
       retry,
       tempDir,
+      keepParquetFiles,
+      parquetFlushRecords,
     )
 }

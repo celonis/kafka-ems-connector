@@ -33,6 +33,7 @@ class WriterManager[F[_]](
   workingDir:    Path,
   writerBuilder: WriterBuilder,
   writersRef:    Ref[F, Map[TopicPartition, Writer]],
+  fileCleanup:   ParquetFileCleanup,
 )(
   implicit
   A: Async[F],
@@ -71,7 +72,7 @@ class WriterManager[F[_]](
         )
         response <- uploader.upload(file)
         _        <- A.delay(logger.info(s"Received ${response.asJson.noSpaces} for uploading file:$file"))
-        _        <- A.delay(file.delete())
+        _        <- A.delay(fileCleanup.clean(file, state.offset))
         newWriter = writerBuilder.writerFrom(writer)
         _        <- writersRef.update(map => map + (writer.state.topicPartition -> newWriter))
       } yield CommitWriterResult(
@@ -180,5 +181,6 @@ object WriterManager extends LazyLogging {
       config.workingDir,
       new WriterBuilderImpl(config.workingDir, sinkName, config.commitPolicy),
       writers,
+      ParquetFileCleanupDelete,
     )
 }
