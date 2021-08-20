@@ -5,7 +5,6 @@ package com.celonis.kafka.connect.ems.storage
 import com.celonis.kafka.connect.ems.model.Partition
 import com.celonis.kafka.connect.ems.model.Topic
 import com.celonis.kafka.connect.ems.model.TopicPartition
-import com.celonis.kafka.connect.ems.storage.FileSystem
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 

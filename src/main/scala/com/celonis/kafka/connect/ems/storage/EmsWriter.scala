@@ -32,7 +32,7 @@ class EmsWriter(
         lastWriteTs = System.currentTimeMillis(),
       )
     } else {
-      logger.debug(
+      logger.info(
         "[{}] EmsWriter.write: ignoring record. Offset is already processed. current={} received={}",
         sinkName,
         internalState.offset.show,

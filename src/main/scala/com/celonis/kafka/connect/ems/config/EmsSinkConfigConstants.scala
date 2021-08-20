@@ -34,7 +34,7 @@ object EmsSinkConfigConstants {
     s"The time interval in milliseconds to upload the data to EMS if the other two commit policies are not yet applicable."
 
   val PARQUET_FLUSH_KEY:     String = s"$CONNECTOR_PREFIX.parquet.write.flush.records"
-  val PARQUET_FLUSH_DEFAULT: Long   = 1000L
+  val PARQUET_FLUSH_DEFAULT: Int    = 1000
   val PARQUET_FLUSH_DOC: String =
     s"""
        |The number of records after which it should flush the parquet file, to ensure the file size policy.

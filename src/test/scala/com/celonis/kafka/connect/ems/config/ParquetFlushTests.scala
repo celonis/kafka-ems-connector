@@ -14,8 +14,8 @@ class ParquetFlushTests extends AnyFunSuite with Matchers {
   }
 
   test(s"return the given value") {
-    val expected = 11111L
-    EmsSinkConfig.extractParquetFlushRecords(Map(PARQUET_FLUSH_KEY -> expected.toInt)) shouldBe Right(expected)
+    val expected = 11111
+    EmsSinkConfig.extractParquetFlushRecords(Map(PARQUET_FLUSH_KEY -> expected)) shouldBe Right(expected)
     EmsSinkConfig.extractParquetFlushRecords(Map(PARQUET_FLUSH_KEY -> expected)) shouldBe Right(expected)
   }
 

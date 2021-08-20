@@ -32,6 +32,8 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.model.CommitPolicy
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
+import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
+import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
 import org.apache.commons.validator.routines.UrlValidator
 
 import java.io.File
@@ -40,16 +42,15 @@ import java.nio.file.Path
 import scala.concurrent.duration._
 
 case class EmsSinkConfig(
-  sinkName:            String,
-  url:                 URL,
-  target:              String,
-  authorizationKey:    String,
-  errorPolicy:         ErrorPolicy,
-  commitPolicy:        CommitPolicy,
-  retries:             RetryConfig,
-  workingDir:          Path,
-  keepLocalFiles:      Boolean,
-  parquetFlushRecords: Long,
+  sinkName:         String,
+  url:              URL,
+  target:           String,
+  authorizationKey: String,
+  errorPolicy:      ErrorPolicy,
+  commitPolicy:     CommitPolicy,
+  retries:          RetryConfig,
+  workingDir:       Path,
+  parquet:          ParquetConfig,
 )
 
 object EmsSinkConfig {
@@ -101,8 +102,8 @@ object EmsSinkConfig {
         else error(AUTHORIZATION_KEY, AUTHORIZATION_DOC)
       }
 
-  def extractParquetFlushRecords(props: Map[String, _]): Either[String, Long] =
-    PropertiesHelper.getLong(props, PARQUET_FLUSH_KEY) match {
+  def extractParquetFlushRecords(props: Map[String, _]): Either[String, Int] =
+    PropertiesHelper.getInt(props, PARQUET_FLUSH_KEY) match {
       case Some(value) =>
         if (value < 1)
           error(PARQUET_FLUSH_KEY, "The number of records to flush the parquet file needs to be greater or equal to 1.")
@@ -188,7 +189,9 @@ object EmsSinkConfig {
       commitPolicy,
       retry,
       tempDir,
-      keepParquetFiles,
-      parquetFlushRecords,
+      ParquetConfig(parquetFlushRecords, buildCleanup(keepParquetFiles)),
     )
+
+  private def buildCleanup(keepParquetFiles: Boolean) =
+    if (keepParquetFiles) ParquetFileCleanupRename else ParquetFileCleanupDelete
 }

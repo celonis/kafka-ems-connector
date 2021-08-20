@@ -2,6 +2,7 @@
  * Copyright 2017-2021 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.storage
+import com.celonis.kafka.connect.ems.config.ParquetConfig
 import com.celonis.kafka.connect.ems.model.CommitPolicy
 import com.celonis.kafka.connect.ems.model.Offset
 import com.celonis.kafka.connect.ems.model.Record
@@ -26,7 +27,8 @@ trait WriterBuilder {
   def writerFrom(record: Record): Writer
 }
 
-class WriterBuilderImpl(tempDir: Path, sinkName: String, commitPolicy: CommitPolicy) extends WriterBuilder {
+class WriterBuilderImpl(tempDir: Path, sinkName: String, commitPolicy: CommitPolicy, parquet: ParquetConfig)
+    extends WriterBuilder {
 
   /**
     * Creates a new writer from an existing one. This happens only when the data(i.e. file) is committed
@@ -45,7 +47,7 @@ class WriterBuilderImpl(tempDir: Path, sinkName: String, commitPolicy: CommitPol
       file            = output.outputFile(),
     )
 
-    val formatWriter = ParquetFormatWriter.from(output, currentState.schema)
+    val formatWriter = ParquetFormatWriter.from(output, currentState.schema, parquet)
     new EmsWriter(sinkName, commitPolicy, formatWriter, newState)
   }
 
@@ -56,7 +58,7 @@ class WriterBuilderImpl(tempDir: Path, sinkName: String, commitPolicy: CommitPol
     */
   def writerFrom(record: Record): Writer = {
     val output       = FileSystem.createOutput(tempDir, sinkName, record.metadata.topicPartition)
-    val formatWriter = ParquetFormatWriter.from(output, record.value.schema())
+    val formatWriter = ParquetFormatWriter.from(output, record.value.schema(), parquet)
     val state = WriterState(
       record.metadata.topicPartition,
       //creates the state from the record. the data hasn't been yet written
