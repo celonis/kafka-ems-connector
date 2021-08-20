@@ -11,7 +11,6 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORD
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_KEY
@@ -27,6 +26,8 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_KEY
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
+import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
+import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -35,6 +36,7 @@ import java.net.URL
 import java.util.UUID
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
+
 class EmsSinkConfigTest extends AnyFunSuite with Matchers {
   test(s"returns the configuration") {
     val policy = DefaultCommitPolicy(1000000L, 10.seconds, 1000)
@@ -50,8 +52,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         policy,
         RetryConfig(10, 1000),
         dir.toPath,
-        DEBUG_KEEP_TMP_FILES_DEFAULT,
-        PARQUET_FLUSH_DEFAULT,
+        ParquetConfig.Default,
       )
 
       val inputMap: Map[String, _] = Map(
@@ -71,8 +72,10 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         inputMap,
       ) shouldBe Right(expected)
 
-      val connectInputMap =
+      val connectInputMap = {
+        import scala.collection.compat._
         EmsSinkConfigDef.config.parse(inputMap.view.mapValues(_.toString).toMap.asJava).asScala.toMap
+      }: @scala.annotation.nowarn("msg=Unused import")
 
       EmsSinkConfig.from(
         expected.sinkName,
@@ -117,22 +120,22 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
   }
 
   test(s"returns default if $PARQUET_FLUSH_KEY is missing") {
-    testMissingConfig(PARQUET_FLUSH_KEY) {
+    withMissingConfig(PARQUET_FLUSH_KEY) {
       case Left(_) => fail("should not fail")
-      case Right(value) => value.parquetFlushRecords shouldBe PARQUET_FLUSH_DEFAULT
+      case Right(value) => value.parquet.rowGroupSize shouldBe PARQUET_FLUSH_DEFAULT
         ()
     }
   }
 
   test(s"returns default if $DEBUG_KEEP_TMP_FILES_KEY is missing") {
-    testMissingConfig(DEBUG_KEEP_TMP_FILES_KEY) {
+    withMissingConfig(DEBUG_KEEP_TMP_FILES_KEY) {
       case Left(_) => fail("should not fail")
-      case Right(value) => value.keepLocalFiles shouldBe DEBUG_KEEP_TMP_FILES_DEFAULT
+      case Right(value) => value.parquet.cleanup shouldBe ParquetFileCleanupDelete
         ()
     }
   }
 
-  private def testMissingConfig(key: String)(fn: PartialFunction[Either[String, EmsSinkConfig], Unit]) = {
+  private def withMissingConfig(key: String)(fn: PartialFunction[Either[String, EmsSinkConfig], Unit]): Unit = {
     val policy = DefaultCommitPolicy(1000000L, 10.seconds, 1000)
     val dir    = new File(UUID.randomUUID().toString)
     dir.mkdir() shouldBe true
@@ -146,8 +149,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         policy,
         RetryConfig(10, 1000),
         dir.toPath,
-        DEBUG_KEEP_TMP_FILES_DEFAULT,
-        PARQUET_FLUSH_DEFAULT,
+        ParquetConfig.Default,
       )
 
       val inputMap: Map[String, _] = Map(
@@ -161,8 +163,8 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         ERROR_RETRY_INTERVAL     -> sinkConfig.retries.interval,
         NBR_OF_RETRIES_KEY       -> sinkConfig.retries.retries,
         TMP_DIRECTORY_KEY        -> dir.toString,
-        DEBUG_KEEP_TMP_FILES_KEY -> sinkConfig.keepLocalFiles,
-        PARQUET_FLUSH_KEY        -> sinkConfig.parquetFlushRecords,
+        DEBUG_KEEP_TMP_FILES_KEY -> (sinkConfig.parquet.cleanup == ParquetFileCleanupRename),
+        PARQUET_FLUSH_KEY        -> sinkConfig.parquet.rowGroupSize,
       ) - key
 
       fn(EmsSinkConfig.from(
@@ -170,8 +172,10 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         inputMap,
       ))
 
-      val connectInputMap =
+      val connectInputMap = {
+        import scala.collection.compat._
         EmsSinkConfigDef.config.parse(inputMap.view.mapValues(_.toString).toMap.asJava).asScala.toMap
+      }: @scala.annotation.nowarn("msg=Unused import")
 
       fn(EmsSinkConfig.from(
         sinkConfig.sinkName,
@@ -183,8 +187,9 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     }
   }
   private def testMissingConfig(key: String, docs: String): Unit =
-    testMissingConfig(key) { e =>
-      e shouldBe Left(s"Invalid [$key]. $docs")
-      ()
+    withMissingConfig(key) {
+      case e =>
+        e shouldBe Left(s"Invalid [$key]. $docs")
+        ()
     }
 }

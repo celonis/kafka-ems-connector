@@ -24,9 +24,7 @@ sealed trait ErrorPolicy extends EnumEntry with Uppercase {
 }
 
 object ErrorPolicy extends Enum[ErrorPolicy] {
-  override def values: IndexedSeq[
-    ErrorPolicy,
-  ] = findValues
+  val values = findValues
 
   def find(value: String): Option[ErrorPolicy] = values.find(_.entryName.toUpperCase() == value.toUpperCase())
 
