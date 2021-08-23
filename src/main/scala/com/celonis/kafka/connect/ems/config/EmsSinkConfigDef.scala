@@ -26,6 +26,9 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIE
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_DOC
@@ -85,6 +88,13 @@ object EmsSinkConfigDef {
       null,
       Importance.LOW,
       TMP_DIRECTORY_DOC,
+    )
+    .define(
+      PRIMARY_KEYS_KEY,
+      Type.STRING,
+      PRIMARY_KEYS_DEFAULT,
+      Importance.LOW,
+      PRIMARY_KEYS_DOC,
     )
     .define(
       ERROR_POLICY_KEY,
