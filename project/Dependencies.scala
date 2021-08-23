@@ -129,8 +129,8 @@ object Dependencies {
     .exclude("org.slf4j", "slf4j-log4j12")
     .exclude("org.apache.kafka", "kafka-clients")
     .exclude("javax.ws.rs", "javax.ws.rs-api")
-    .exclude("io.confluent", "kafka-schema-registry-client")
-    .exclude("io.confluent", "kafka-schema-serializer")
+    //.exclude("io.confluent", "kafka-schema-registry-client")
+    //.exclude("io.confluent", "kafka-schema-serializer")
     .excludeAll(ExclusionRule(organization = "io.swagger"))
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.core"))
 

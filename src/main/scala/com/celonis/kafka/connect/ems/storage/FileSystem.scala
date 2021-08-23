@@ -4,6 +4,7 @@
 package com.celonis.kafka.connect.ems.storage
 
 import com.celonis.kafka.connect.ems.model.TopicPartition
+import com.typesafe.scalalogging.StrictLogging
 
 import java.io.BufferedOutputStream
 import java.io.File
@@ -12,7 +13,7 @@ import java.io.OutputStream
 import java.nio.file.Path
 import java.nio.file.Paths
 
-object FileSystem {
+object FileSystem extends StrictLogging {
   def deleteDir(file: File): Boolean = {
     Option(file.listFiles()).foreach(_.foreach(deleteDir))
     file.delete()

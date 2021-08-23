@@ -102,7 +102,8 @@ object EmsSinkConfig {
     nonEmptyPasswordOr(props, AUTHORIZATION_KEY, AUTHORIZATION_DOC)
       .map(_.trim)
       .flatMap { auth =>
-        if (auth.startsWith("AppKey") || auth.startsWith("Bearer")) auth.asRight
+        val filtered = auth.filter(_ != '"')
+        if (filtered.startsWith("AppKey") || filtered.startsWith("Bearer")) filtered.asRight
         else error(AUTHORIZATION_KEY, AUTHORIZATION_DOC)
       }
 

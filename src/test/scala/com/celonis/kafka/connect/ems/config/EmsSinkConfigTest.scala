@@ -30,6 +30,7 @@ import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
+import org.apache.kafka.connect.errors.ConnectException
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -79,6 +80,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
       ) shouldBe Right(expected)
 
       val connectInputMap = {
+        import scala.collection.compat._
         EmsSinkConfigDef.config.parse(inputMap.view.mapValues(_.toString).toMap.asJava).asScala.toMap
       }: @scala.annotation.nowarn("msg=Unused import")
 
@@ -156,6 +158,36 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     }
   }
 
+  test("handles AppKey with quotation") {
+    val input = Map(
+      "connector.class"                         -> "com.celonis.kafka.connect.ems.sink.EmsSinkConnector",
+      "connect.ems.authorization.key"           -> "\"AppKey 123\"",
+      "connect.ems.retry.interval"              -> "60000",
+      "tasks.max"                               -> "1",
+      "topics"                                  -> "payments",
+      "connect.ems.endpoint"                    -> "https://api.bamboo.cloud/continuous-batch-processing/api/v1/poolis/items",
+      "connect.ems.connection.id"               -> "connectionId",
+      "connect.ems.max.retries"                 -> "20",
+      "connect.ems.parquet.write.flush.records" -> "5",
+      "connect.ems.error.policy"                -> "RETRY",
+      "value.converter.schema.registry.url"     -> "http://localhost:8081",
+      "connect.ems.commit.records"              -> "5",
+      "connect.ems.target.table"                -> "payments",
+      "connect.ems.commit.size.bytes"           -> "1000000",
+      "connect.ems.commit.interval.ms"          -> "30000",
+      "connect.ems.debug.keep.parquet.files"    -> "false",
+      "connect.ems.tmp.dir"                     -> "/tmp/ems",
+      "name"                                    -> "kafka2ems",
+      "value.converter"                         -> "io.confluent.connect.avro.AvroConverter",
+      "key.converter"                           -> "org.apache.kafka.connect.storage.StringConverter",
+    )
+    EmsSinkConfig.from("tst", EmsSinkConfigDef.config.parse(input.asJava).asScala.toMap) match {
+      case Left(value) => throw new ConnectException(value)
+      case Right(value) =>
+        value.authorizationKey shouldBe "AppKey 123"
+    }
+  }
+
   private def withMissingConfig(key: String)(fn: PartialFunction[Either[String, EmsSinkConfig], Unit]): Unit = {
     val policy = DefaultCommitPolicy(1000000L, 10.seconds, 1000)
     val dir    = new File(UUID.randomUUID().toString)
@@ -198,6 +230,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
       ))
 
       val connectInputMap = {
+        import scala.collection.compat._
         EmsSinkConfigDef.config.parse(inputMap.view.mapValues(_.toString).toMap.asJava).asScala.toMap
       }: @scala.annotation.nowarn("msg=Unused import")
 
