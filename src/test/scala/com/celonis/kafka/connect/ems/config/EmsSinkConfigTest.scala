@@ -53,6 +53,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         RetryConfig(10, 1000),
         dir.toPath,
         ParquetConfig.Default,
+        Nil,
       )
 
       val inputMap: Map[String, _] = Map(
@@ -150,6 +151,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         RetryConfig(10, 1000),
         dir.toPath,
         ParquetConfig.Default,
+        Nil,
       )
 
       val inputMap: Map[String, _] = Map(

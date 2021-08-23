@@ -19,6 +19,7 @@ import com.celonis.kafka.connect.ems.model.RecordMetadata
 import com.celonis.kafka.connect.ems.model.Topic
 import com.celonis.kafka.connect.ems.model.TopicPartition
 import com.celonis.kafka.connect.ems.storage.EmsUploader
+import com.celonis.kafka.connect.ems.storage.PrimaryKeysValidator
 import com.celonis.kafka.connect.ems.storage.Writer
 import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.JarManifest
@@ -41,8 +42,8 @@ class EmsSinkTask extends SinkTask with StrictLogging {
 
   private var blockingExecutionContext: BlockingExecutionContext = _
   private var writerManager:            WriterManager[IO]        = _
-
-  private var sinkName: String = _
+  private var pksValidator:             PrimaryKeysValidator     = _
+  private var sinkName:                 String                   = _
 
   private var maxRetries:  Int         = 0
   private var retriesLeft: Int         = maxRetries
@@ -76,9 +77,10 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         writers,
       )
 
-    maxRetries  = config.retries.retries
-    retriesLeft = maxRetries
-    errorPolicy = config.errorPolicy
+    maxRetries   = config.retries.retries
+    retriesLeft  = maxRetries
+    errorPolicy  = config.errorPolicy
+    pksValidator = new PrimaryKeysValidator(config.primaryKeys)
   }
 
   private def getSinkName(props: util.Map[String, String]): Option[String] =
@@ -101,6 +103,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         .traverse { record =>
           for {
             value   <- IO.fromEither(DataConverter.apply(record.value()))
+            _       <- IO.fromEither(pksValidator.validate(value))
             tp       = TopicPartition(new Topic(record.topic()), new Partition(record.kafkaPartition()))
             metadata = RecordMetadata(tp, new Offset(record.kafkaOffset()))
             _       <- writerManager.write(Record(value, metadata))
@@ -113,7 +116,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
 
     io.attempt.unsafeRunSync() match {
       case Left(value) =>
-        retriesLeft -= 0
+        retriesLeft -= 1
         errorPolicy.handle(value, retriesLeft)
       case Right(_) =>
         retriesLeft = maxRetries

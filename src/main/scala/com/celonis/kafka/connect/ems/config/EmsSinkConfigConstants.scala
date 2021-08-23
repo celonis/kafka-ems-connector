@@ -21,6 +21,11 @@ object EmsSinkConfigConstants {
   val TMP_DIRECTORY_DOC: String =
     s"The folder to store the temporary files as it accumulates data. If not specified then [${System.getProperty("java.io.tmpdir")}] is being used."
 
+  val PRIMARY_KEYS_KEY: String = s"$CONNECTOR_PREFIX.primary.key"
+  val PRIMARY_KEYS_DOC: String =
+    "Optional field containing comma separated fields values which should be made primary key for the table constructed in EMS."
+  val PRIMARY_KEYS_DEFAULT = null
+
   val COMMIT_SIZE_KEY: String = s"$CONNECTOR_PREFIX.commit.size.bytes"
   val COMMIT_SIZE_DOC: String =
     "The accumulated file maximum size before it is uploaded to EMS. It cannot be less than 1MB."

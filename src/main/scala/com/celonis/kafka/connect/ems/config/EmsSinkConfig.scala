@@ -3,7 +3,7 @@
  */
 package com.celonis.kafka.connect.ems.config
 
-import cats.syntax.either._
+import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_DOC
@@ -25,6 +25,7 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETIRE
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_DOC
@@ -51,6 +52,7 @@ case class EmsSinkConfig(
   retries:          RetryConfig,
   workingDir:       Path,
   parquet:          ParquetConfig,
+  primaryKeys:      List[String],
 )
 
 object EmsSinkConfig {
@@ -167,6 +169,15 @@ object EmsSinkConfig {
         }
       }
 
+  def extractPrimaryKeys(props: Map[String, _]): Either[String, List[String]] =
+    PropertiesHelper.getString(props, PRIMARY_KEYS_KEY) match {
+      case Some(value) =>
+        value.split(',').map(_.trim).filter(_.nonEmpty)
+          .toList
+          .traverse(AvroValidation.validateName)
+      case None => Nil.asRight
+    }
+
   def from(sinkName: String, props: Map[String, _]): Either[String, EmsSinkConfig] =
     for {
       url                 <- extractURL(props)
@@ -180,6 +191,7 @@ object EmsSinkConfig {
       keepParquetFiles = booleanOr(props, DEBUG_KEEP_TMP_FILES_KEY, DEBUG_KEEP_TMP_FILES_DOC).getOrElse(
         DEBUG_KEEP_TMP_FILES_DEFAULT,
       )
+      primaryKeys <- extractPrimaryKeys(props)
     } yield EmsSinkConfig(
       sinkName,
       url,
@@ -190,6 +202,7 @@ object EmsSinkConfig {
       retry,
       tempDir,
       ParquetConfig(parquetFlushRecords, buildCleanup(keepParquetFiles)),
+      primaryKeys,
     )
 
   private def buildCleanup(keepParquetFiles: Boolean) =

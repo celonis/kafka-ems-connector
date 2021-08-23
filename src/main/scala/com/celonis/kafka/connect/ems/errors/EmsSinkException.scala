@@ -6,7 +6,9 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.http4s.DecodeFailure
 import org.http4s.Status
 
-sealed trait EmsSinkException
+sealed trait EmsSinkException {
+  def getMessage: String
+}
 
 case class UploadFailedException(status: Status, msg: String, throwable: Throwable)
     extends ConnectException(msg, throwable)
