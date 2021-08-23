@@ -57,21 +57,25 @@ class EmsUploader[F[_]](
               { t =>
                 val error = UploadFailedException(
                   response.status,
-                  s"Failed to upload the file:${uploadRequest.file}. Status code:${response.status.show}. Cannot unmarshal the response",
+                  s"Failed to upload the file:${uploadRequest.file}. Status code:${response.status.show}. Cannot unmarshal the response.",
                   t,
                 )
-                A.delay(logger.error(
-                  s"Failed to upload the file:${uploadRequest.file}. Status code:${response.status.show}",
-                  error,
-                ))
+                A.delay(
+                  logger.error(
+                    s"Failed to upload the file:${uploadRequest.file}. Status code:${response.status.show}, Error:${error.msg}",
+                    error,
+                  ),
+                )
                   .flatMap(_ => A.raiseError(error))
               },
               { msg =>
                 val error = UploadFailedException(response.status, msg.errors.map(_.error).mkString(","), null)
-                A.delay(logger.error(
-                  s"Failed to upload the file:${uploadRequest.file}. Status code:${response.status.show}",
-                  error,
-                ))
+                A.delay(
+                  logger.error(
+                    s"Failed to upload the file:${uploadRequest.file}. Status code:${response.status.show}. Errors:${error.msg}",
+                    error,
+                  ),
+                )
                   .flatMap(_ => A.raiseError(error))
               },
             )
