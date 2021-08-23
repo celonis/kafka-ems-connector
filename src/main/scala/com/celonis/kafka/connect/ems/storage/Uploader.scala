@@ -2,10 +2,13 @@
  * Copyright 2017-2021 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.storage
+import com.celonis.kafka.connect.ems.model.Offset
+import com.celonis.kafka.connect.ems.model.Partition
+import com.celonis.kafka.connect.ems.model.Topic
+
 import java.io.File
-import java.nio.file.Path
+case class UploadRequest(file: File, topic: Topic, partition: Partition, offset: Offset)
 
 trait Uploader[F[_]] {
-  def upload(path: Path): F[EmsUploadResponse] = upload(path.toFile)
-  def upload(file: File): F[EmsUploadResponse]
+  def upload(request: UploadRequest): F[EmsUploadResponse]
 }

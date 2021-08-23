@@ -7,6 +7,9 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import cats.effect.Ref
 import com.celonis.kafka.connect.ems.errors.UploadFailedException
+import com.celonis.kafka.connect.ems.model.Offset
+import com.celonis.kafka.connect.ems.model.Partition
+import com.celonis.kafka.connect.ems.model.Topic
 import org.http4s.Status.Forbidden
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -58,7 +61,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                              Some("id2"),
                                              ExecutionContext.global,
           ))
-          response <- uploader.upload(file)
+          response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
           map      <- mapRef.get
         } yield {
           response shouldBe expectedResponse
@@ -106,7 +109,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                              None,
                                              ExecutionContext.global,
           ))
-          e <- uploader.upload(file).attempt
+          e <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100))).attempt
         } yield {
           e match {
             case Left(value) =>
