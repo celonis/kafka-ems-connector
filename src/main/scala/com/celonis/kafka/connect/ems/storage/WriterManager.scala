@@ -68,13 +68,16 @@ class WriterManager[F[_]](
         _   <- A.delay(writer.close())
         file = writer.state.file
         _ <- A.delay(
-          logger.info(s"Uploading file: $file for topic-partition:${TopicPartition.show.show(state.topicPartition)}"),
+          logger.info(
+            s"Uploading file: $file for topic-partition:${TopicPartition.show.show(state.topicPartition)} and offset: ${state.offset.show}",
+          ),
         )
-        response <- uploader.upload(file)
-        _        <- A.delay(logger.info(s"Received ${response.asJson.noSpaces} for uploading file:$file"))
-        _        <- A.delay(fileCleanup.clean(file, state.offset))
-        newWriter = writerBuilder.writerFrom(writer)
-        _        <- writersRef.update(map => map + (writer.state.topicPartition -> newWriter))
+        response  <- uploader.upload(file)
+        _         <- A.delay(logger.info(s"Received ${response.asJson.noSpaces} for uploading file:$file"))
+        _         <- A.delay(fileCleanup.clean(file, state.offset))
+        newWriter <- A.delay(writerBuilder.writerFrom(writer))
+        _         <- A.delay(logger.debug("Creating a new writer for [{}]", writer.state.show))
+        _         <- writersRef.update(map => map + (writer.state.topicPartition -> newWriter))
       } yield CommitWriterResult(
         newWriter,
         TopicPartitionOffset(writer.state.topicPartition.topic,
