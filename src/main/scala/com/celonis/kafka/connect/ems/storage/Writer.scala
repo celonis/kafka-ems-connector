@@ -8,7 +8,7 @@ import cats.implicits.toShow
 import com.celonis.kafka.connect.ems.model.Offset
 import com.celonis.kafka.connect.ems.model.Record
 import com.celonis.kafka.connect.ems.model.TopicPartition
-import org.apache.kafka.connect.data.Schema
+import org.apache.avro.Schema
 
 import java.io.File
 

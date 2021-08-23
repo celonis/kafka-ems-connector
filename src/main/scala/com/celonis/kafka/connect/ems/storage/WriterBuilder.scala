@@ -58,7 +58,7 @@ class WriterBuilderImpl(tempDir: Path, sinkName: String, commitPolicy: CommitPol
     */
   def writerFrom(record: Record): Writer = {
     val output       = FileSystem.createOutput(tempDir, sinkName, record.metadata.topicPartition)
-    val formatWriter = ParquetFormatWriter.from(output, record.value.schema(), parquet)
+    val formatWriter = ParquetFormatWriter.from(output, record.value.getSchema, parquet)
     val state = WriterState(
       record.metadata.topicPartition,
       //creates the state from the record. the data hasn't been yet written
@@ -68,7 +68,7 @@ class WriterBuilderImpl(tempDir: Path, sinkName: String, commitPolicy: CommitPol
       0L,
       0L,
       System.currentTimeMillis(),
-      record.value.schema(),
+      record.value.getSchema,
       output.outputFile(),
     )
     new EmsWriter(

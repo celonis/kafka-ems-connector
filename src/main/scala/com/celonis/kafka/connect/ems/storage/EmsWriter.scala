@@ -8,7 +8,7 @@ import com.celonis.kafka.connect.ems.model.CommitPolicy
 import com.celonis.kafka.connect.ems.model.Record
 import com.celonis.kafka.connect.ems.storage.formats.FormatWriter
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.kafka.connect.data.Schema
+import org.apache.avro.Schema
 
 class EmsWriter(
   sinkName:     String,

@@ -3,12 +3,12 @@
  */
 package com.celonis.kafka.connect.ems.storage.formats
 
-import org.apache.kafka.connect.data.Struct
+import org.apache.avro.generic.GenericRecord
 
 trait FormatWriter extends AutoCloseable {
   def size: Long
 
   def rolloverFileOnSchemaChange(): Boolean
 
-  def write(value: Struct): Unit
+  def write(value: GenericRecord): Unit
 }

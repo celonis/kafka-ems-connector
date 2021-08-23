@@ -135,7 +135,7 @@ class WriterManager[F[_]](
               .map(_ => writer)
           }
       }
-      schema = record.value.schema()
+      schema = record.value.getSchema
       latestWriter <- {
         if (writer.shouldRollover(schema)) commit(writer).map(_.fold(writer)(_.newWriter))
         else A.pure(writer)
