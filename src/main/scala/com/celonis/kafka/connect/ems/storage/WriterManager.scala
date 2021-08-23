@@ -69,7 +69,7 @@ class WriterManager[F[_]](
         file = writer.state.file
         _ <- A.delay(
           logger.info(
-            s"Uploading file: $file for topic-partition:${TopicPartition.show.show(state.topicPartition)} and offset: ${state.offset.show}",
+            s"Uploading file:$file size:${file.length()} for topic-partition:${TopicPartition.show.show(state.topicPartition)} and offset:${state.offset.show}",
           ),
         )
         response  <- uploader.upload(file)

@@ -15,8 +15,7 @@ lazy val root = project.root
         publish / skip := true,
         packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
         packGenerateMakefile := false,
-        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar", "kafka-schema.*\\.jar"),
-        //packMain := Map("ems-sink" -> "com.celonis.kafka.connect.Main")
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
       )
   )
   .configureTestsForProject(itTestsParallel = false)

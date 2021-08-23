@@ -10,7 +10,6 @@ import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.parquet.avro.AvroParquetWriter
 import org.apache.parquet.hadoop.ParquetWriter
-import org.apache.parquet.hadoop.ParquetWriter.DEFAULT_PAGE_SIZE
 import org.apache.parquet.hadoop.metadata.CompressionCodecName
 
 class ParquetFormatWriter(output: FileAndStream, writer: ParquetWriter[AnyRef]) extends FormatWriter with LazyLogging {
@@ -33,7 +32,7 @@ object ParquetFormatWriter {
 
     val writer: ParquetWriter[AnyRef] = AvroParquetWriter
       .builder[AnyRef](outputFile)
-      .withPageSize(DEFAULT_PAGE_SIZE)
+      //.withPageSize(DEFAULT_PAGE_SIZE)
       //.withWriterVersion(ParquetProperties.WriterVersion.PARQUET_2_0)
       .withCompressionCodec(CompressionCodecName.SNAPPY)
       .withRowGroupSize(config.rowGroupSize)

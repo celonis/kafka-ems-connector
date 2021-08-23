@@ -5,16 +5,14 @@ package com.celonis.kafka.connect.ems.storage
 
 import cats.effect.kernel.Async
 import cats.implicits._
-import com.celonis.kafka.connect.ems.errors.UnexpectedUploadException
 import com.celonis.kafka.connect.ems.errors.UploadFailedException
-import com.celonis.kafka.connect.ems.errors.UploadInvalidResponseException
 import com.celonis.kafka.connect.ems.storage.EmsUploader.buildUri
+import com.typesafe.scalalogging.StrictLogging
 import org.http4s._
 import org.http4s.blaze.client.BlazeClientBuilder
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
-import org.http4s.client.UnexpectedStatus
 import org.http4s.multipart._
 import org.typelevel.ci.CIString
 
@@ -33,11 +31,11 @@ class EmsUploader[F[_]](
   implicit
   A: Async[F],
 ) extends Uploader[F]
-    with Http4sClientDsl[F] {
+    with Http4sClientDsl[F]
+    with StrictLogging {
 
   override def upload(file: File): F[EmsUploadResponse] = {
     def uploadWithClient(client: Client[F]): F[EmsUploadResponse] = {
-
       val multipart: Multipart[F] = Multipart[F](
         Vector(
           Part.fileData(file.getName, file),
@@ -51,17 +49,28 @@ class EmsUploader[F[_]](
         multipart.headers.headers :+ Header.Raw(CIString("Authorization"), authorization),
       )
 
-      client.expect[EmsUploadResponse](request).redeemWith(
-        {
-          case s: UnexpectedStatus =>
-            A.raiseError(UploadFailedException(s.status, s.getLocalizedMessage, s))
-          case d: DecodeFailure =>
-            A.raiseError(UploadInvalidResponseException(d))
-          case t =>
-            A.raiseError(UnexpectedUploadException(t.getLocalizedMessage, t))
-        },
-        A.delay(_),
-      )
+      for {
+        response <- client.expectOr[EmsUploadResponse](request) { response =>
+          response.as[EmsUploadErrorResponse]
+            .redeemWith(
+              { t =>
+                val error = UploadFailedException(
+                  response.status,
+                  s"Failed to upload the file:$file. Status code:${response.status.show}. Cannot unmarshal the response",
+                  t,
+                )
+                A.delay(logger.error(s"Failed to upload the file:$file. Status code:${response.status.show}", error))
+                  .flatMap(_ => A.raiseError(error))
+              },
+              { msg =>
+                val error = UploadFailedException(response.status, msg.errors.map(_.error).mkString(","), null)
+                A.delay(logger.error(s"Failed to upload the file:$file. Status code:${response.status.show}", error))
+                  .flatMap(_ => A.raiseError(error))
+              },
+            )
+        }
+      } yield response
+
     }
 
     BlazeClientBuilder[F](ec).resource

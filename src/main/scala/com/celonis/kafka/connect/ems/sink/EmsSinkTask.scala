@@ -56,7 +56,6 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     sinkName = getSinkName(props).getOrElse("MissingSinkName")
 
     logger.debug(s"[{}] EmsSinkTask.start", sinkName)
-
     val config = EmsSinkConfig.from(sinkName, EmsSinkConfigDef.config.parse(props).asScala.toMap) match {
       case Left(value)  => throw new ConnectException(value)
       case Right(value) => value
