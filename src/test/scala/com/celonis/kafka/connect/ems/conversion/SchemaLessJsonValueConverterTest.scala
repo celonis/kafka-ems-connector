@@ -4,13 +4,15 @@
 package com.celonis.kafka.connect.ems.conversion
 import cats.syntax.either._
 import com.celonis.kafka.connect.ems.errors.InvalidInputException
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.Struct
+import org.apache.avro.Schema
+import org.apache.avro.SchemaBuilder
+import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.json.JsonConverterConfig
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.jdk.CollectionConverters._
+import SchemaExtensions._
 
 class SchemaLessJsonValueConverterTest extends AnyFunSuite with Matchers {
   private val converter = new org.apache.kafka.connect.json.JsonConverter()
@@ -23,7 +25,7 @@ class SchemaLessJsonValueConverterTest extends AnyFunSuite with Matchers {
     val json           = """{}"""
     val schemaAndValue = converter.toConnectData("topic", json.getBytes)
 
-    ValueConverter.apply(schemaAndValue.value()) shouldBe InvalidInputException(
+    DataConverter.apply(schemaAndValue.value()) shouldBe InvalidInputException(
       s"Invalid input received. The connector has received an empty input which cannot be written to Parquet. This can happen for empty JSON objects. ",
     ).asLeft
   }
@@ -36,7 +38,7 @@ class SchemaLessJsonValueConverterTest extends AnyFunSuite with Matchers {
         |  "colorDepth": "",
         |  "threshold" : 45.77,
         |  "evars": {
-        |    "evars": {
+        |    "evarsa": {
         |      "eVar1": "Tue Aug 27 2019 12:08:10",
         |      "eVar2": 156692207943934897
         |    }
@@ -53,65 +55,66 @@ class SchemaLessJsonValueConverterTest extends AnyFunSuite with Matchers {
 
     val schemaAndValue = converter.toConnectData("topic", json.getBytes)
 
-    val struct = ValueConverter.apply(schemaAndValue.value()).getOrElse(fail("Should convert the map"))
+    val record = DataConverter.apply(schemaAndValue.value())
+      .getOrElse(fail("Should convert the map"))
 
     //Jackson transforming the json to Map the fields order is not retained
-    struct.schema().fields().asScala.map(_.name()).sorted shouldBe List("idType",
-                                                                        "colorDepth",
-                                                                        "threshold",
-                                                                        "evars",
-                                                                        "exclude",
-                                                                        "cars",
-                                                                        "nums",
+    record.getSchema.getFields.asScala.map(_.name()).toList.sorted shouldBe List("idType",
+                                                                                 "colorDepth",
+                                                                                 "threshold",
+                                                                                 "evars",
+                                                                                 "exclude",
+                                                                                 "cars",
+                                                                                 "nums",
     ).sorted
 
-    struct.schema().field("idType").schema() shouldBe Schema.OPTIONAL_INT64_SCHEMA
+    record.getSchema.getField("idType").schema() shouldBe SchemaBuilder.builder().nullable().longType()
+    record.getSchema.getField("colorDepth").schema() shouldBe SchemaBuilder.builder().nullable().stringType()
 
-    struct.schema().field("colorDepth").schema() shouldBe Schema.OPTIONAL_STRING_SCHEMA
+    record.getSchema.getField("threshold").schema() shouldBe SchemaBuilder.builder().nullable().doubleType()
 
-    struct.schema().field("threshold").schema() shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA
+    record.getSchema.getField("exclude").schema().isNullable shouldBe true
+    record.getSchema.getField("exclude").schema().getTypes.asScala.exists(_.getType == Schema.Type.RECORD) shouldBe true
 
-    struct.schema().field("exclude").schema().`type`() shouldBe Schema.Type.STRUCT
-    struct.schema().field("exclude").schema().isOptional shouldBe true
+    record.getSchema.getField("evars").schema().getTypes.asScala.exists(_.getType == Schema.Type.RECORD) shouldBe true
+    record.getSchema.getField("evars").schema().isNullable shouldBe true
 
-    struct.schema().field("evars").schema().`type`() shouldBe Schema.Type.STRUCT
-    struct.schema().field("evars").schema().isOptional shouldBe true
+    val evarsSchema = record.getSchema.getField("evars").schema().nonNullableSchema.get
+    evarsSchema.getFields.asScala.map(_.name()).toList shouldBe List("evarsa")
 
-    struct.schema().field("evars").schema().fields().asScala.map(_.name()) shouldBe List("evars")
-    val evarsInner = struct.schema().field("evars").schema().field("evars")
-    evarsInner.schema().`type`() shouldBe Schema.Type.STRUCT
-    evarsInner.schema().isOptional shouldBe true
-    evarsInner.schema().fields().asScala.map(_.name()).sorted shouldBe List("eVar1", "eVar2").sorted
-    evarsInner.schema().field("eVar1").schema() shouldBe Schema.OPTIONAL_STRING_SCHEMA
-    evarsInner.schema().field("eVar2").schema() shouldBe Schema.OPTIONAL_INT64_SCHEMA
+    val evarsInner = evarsSchema.getField("evarsa").schema().nonNullableSchema.get
+    evarsInner.isRecord shouldBe true
+    evarsInner.getFields.asScala.map(_.name()).toList.sorted shouldBe List("eVar1", "eVar2").sorted
+    evarsInner.getField("eVar1").schema() shouldBe SchemaBuilder.builder().nullable().stringType()
+    evarsInner.getField("eVar2").schema() shouldBe SchemaBuilder.builder().nullable().longType()
 
-    val exclude = struct.schema().field("exclude").schema()
-    exclude.schema().`type`() shouldBe Schema.Type.STRUCT
-    exclude.schema().isOptional shouldBe true
-    exclude.schema().fields().asScala.map(_.name()).sorted shouldBe List("id", "value").sorted
-    exclude.schema().field("id").schema() shouldBe Schema.OPTIONAL_INT64_SCHEMA
-    exclude.schema().field("value").schema() shouldBe Schema.OPTIONAL_BOOLEAN_SCHEMA
+    val exclude = record.getSchema.getField("exclude").schema().nonNullableSchema.get
+    exclude.isRecord shouldBe true
+    record.getSchema.getField("exclude").schema().isNullable shouldBe true
+    exclude.getFields.asScala.map(_.name()).toList.sorted shouldBe List("id", "value").sorted
+    exclude.getField("id").schema() shouldBe SchemaBuilder.builder().nullable().longType()
+    exclude.getField("value").schema() shouldBe SchemaBuilder.builder().nullable().booleanType()
 
-    struct.get("idType") shouldBe 3L
-    struct.get("colorDepth") shouldBe ""
-    struct.get("threshold") shouldBe 45.77d
+    record.get("idType") shouldBe 3L
+    record.get("colorDepth") shouldBe ""
+    record.get("threshold") shouldBe 45.77d
 
-    val evarsStruct = struct.get("evars").asInstanceOf[Struct].get("evars").asInstanceOf[Struct]
+    val evarsStruct = record.get("evars").asInstanceOf[GenericRecord].get("evarsa").asInstanceOf[GenericRecord]
     evarsStruct.get("eVar1") shouldBe "Tue Aug 27 2019 12:08:10"
     evarsStruct.get("eVar2") shouldBe 156692207943934897L
 
-    val excludeStruct = struct.get("exclude").asInstanceOf[Struct]
+    val excludeStruct = record.get("exclude").asInstanceOf[GenericRecord]
     excludeStruct.get("id") shouldBe 0L
     excludeStruct.get("value") shouldBe false
 
-    val carsSchema = struct.schema().field("cars").schema()
-    carsSchema.`type`() shouldBe Schema.Type.ARRAY
-    carsSchema.valueSchema() shouldBe Schema.STRING_SCHEMA
-    struct.get("cars").toString shouldBe "[Ford, BMW, Fiat]"
+    val carsSchema = record.getSchema.getField("cars").schema().nonNullableSchema.get
+    carsSchema.getType shouldBe Schema.Type.ARRAY
+    carsSchema.getElementType shouldBe SchemaBuilder.builder().stringType()
+    record.get("cars").toString shouldBe "[Ford, BMW, Fiat]"
 
-    val numsSchema = struct.schema().field("nums").schema()
-    numsSchema.`type`() shouldBe Schema.Type.ARRAY
-    numsSchema.valueSchema() shouldBe Schema.INT64_SCHEMA
-    struct.get("nums").toString shouldBe "[1, 3, 4]"
+    val numsSchema = record.getSchema.getField("nums").schema().nonNullableSchema.get
+    numsSchema.getType shouldBe Schema.Type.ARRAY
+    numsSchema.getElementType shouldBe SchemaBuilder.builder().longType()
+    record.get("nums").toString shouldBe "[1, 3, 4]"
   }
 }

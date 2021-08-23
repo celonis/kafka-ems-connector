@@ -3,11 +3,11 @@
  */
 package com.celonis.kafka.connect.ems.conversion
 
-import org.apache.kafka.connect.data.Schema
+import org.apache.avro.SchemaBuilder
 import org.apache.kafka.connect.json.JsonConverterConfig
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-
+import SchemaExtensions._
 import scala.jdk.CollectionConverters._
 
 class JsonWithSchemaValueConverterTest extends AnyFunSuite with Matchers {
@@ -41,11 +41,11 @@ class JsonWithSchemaValueConverterTest extends AnyFunSuite with Matchers {
         |}""".stripMargin
 
     val schemaAndValue = converter.toConnectData("topic", json.getBytes)
-    val struct         = ValueConverter.apply(schemaAndValue.value()).getOrElse(fail("Should convert the map"))
-    struct.schema().fields().asScala.map(_.name()).sorted shouldBe List("field1", "field2").sorted
+    val struct         = DataConverter.apply(schemaAndValue.value()).getOrElse(fail("Should convert the map"))
+    struct.getSchema.getFields.asScala.map(_.name()).toList.sorted shouldBe List("field1", "field2").sorted
 
-    struct.schema().field("field1").schema() shouldBe Schema.BOOLEAN_SCHEMA
-    struct.schema().field("field2").schema() shouldBe Schema.STRING_SCHEMA
+    struct.getSchema.getField("field1").schema() shouldBe SchemaBuilder.builder().booleanType()
+    struct.getSchema.getField("field2").schema() shouldBe SchemaBuilder.builder().stringType()
 
     struct.get("field1") shouldBe true
     struct.get("field2") shouldBe "string"
@@ -75,11 +75,12 @@ class JsonWithSchemaValueConverterTest extends AnyFunSuite with Matchers {
         |}""".stripMargin
 
     val schemaAndValue = converter.toConnectData("topic", json.getBytes)
-    val struct         = ValueConverter.apply(schemaAndValue.value()).getOrElse(fail("Should convert the map"))
-    struct.schema().fields().asScala.map(_.name()).sorted shouldBe List("optional", "required").sorted
+    val struct         = DataConverter.apply(schemaAndValue.value()).getOrElse(fail("Should convert the map"))
+    struct.getSchema.getFields.asScala.map(_.name()).toList.sorted shouldBe List("optional", "required").sorted
 
-    struct.schema().field("optional").schema() shouldBe Schema.OPTIONAL_STRING_SCHEMA
-    struct.schema().field("required").schema() shouldBe Schema.STRING_SCHEMA
+    struct.getSchema.getField("optional").schema().isNullable shouldBe true
+    struct.getSchema.getField("optional").schema().nonNullableSchema.get shouldBe SchemaBuilder.builder().stringType()
+    struct.getSchema.getField("required").schema() shouldBe SchemaBuilder.builder().stringType()
 
     struct.get("optional") shouldBe null
     struct.get("required") shouldBe "required"
@@ -109,11 +110,11 @@ class JsonWithSchemaValueConverterTest extends AnyFunSuite with Matchers {
         |}""".stripMargin
 
     val schemaAndValue = converter.toConnectData("topic", json.getBytes)
-    val struct         = ValueConverter.apply(schemaAndValue.value()).getOrElse(fail("Should convert the map"))
-    struct.schema().fields().asScala.map(_.name()).sorted shouldBe List("field1", "field2").sorted
+    val struct         = DataConverter.apply(schemaAndValue.value()).getOrElse(fail("Should convert the map"))
+    struct.getSchema.getFields.asScala.map(_.name()).toList.sorted shouldBe List("field1", "field2").sorted
 
-    struct.schema().field("field1").schema() shouldBe Schema.BOOLEAN_SCHEMA
-    struct.schema().field("field2").schema() shouldBe Schema.STRING_SCHEMA
+    struct.getSchema.getField("field1").schema() shouldBe SchemaBuilder.builder().booleanType()
+    struct.getSchema.getField("field2").schema() shouldBe SchemaBuilder.builder().stringType()
 
     struct.get("field1") shouldBe true
     struct.get("field2") shouldBe "string"

@@ -10,7 +10,7 @@ import com.celonis.kafka.connect.ems.model.RecordMetadata
 import com.celonis.kafka.connect.ems.model.Topic
 import com.celonis.kafka.connect.ems.model.TopicPartition
 import com.celonis.kafka.connect.ems.storage.formats.FormatWriter
-import org.apache.kafka.connect.data.Struct
+import org.apache.avro.generic.GenericRecord
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatest.funsuite.AnyFunSuite
@@ -82,7 +82,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     val record = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(10)))
 
     val ex = new RuntimeException("throwing")
-    when(formatWriter.write(any[Struct])).thenThrow(ex)
+    when(formatWriter.write(any[GenericRecord])).thenThrow(ex)
     val actualExceptions = the[RuntimeException] thrownBy emsWriter.write(record)
     actualExceptions shouldBe ex
     emsWriter.state shouldBe expected

@@ -9,7 +9,7 @@ import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigDef
-import com.celonis.kafka.connect.ems.conversion.ValueConverter
+import com.celonis.kafka.connect.ems.conversion.DataConverter
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.Offset
@@ -100,7 +100,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         .toList
         .traverse { record =>
           for {
-            value   <- IO.fromEither(ValueConverter.apply(record.value()))
+            value   <- IO.fromEither(DataConverter.apply(record.value()))
             tp       = TopicPartition(new Topic(record.topic()), new Partition(record.kafkaPartition()))
             metadata = RecordMetadata(tp, new Offset(record.kafkaOffset()))
             _       <- writerManager.write(Record(value, metadata))

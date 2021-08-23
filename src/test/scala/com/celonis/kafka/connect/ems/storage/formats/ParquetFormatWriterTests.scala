@@ -3,7 +3,7 @@
  */
 package com.celonis.kafka.connect.ems.storage.formats
 import com.celonis.kafka.connect.ems.config.ParquetConfig
-import com.celonis.kafka.connect.ems.conversion.ValueConverter
+import com.celonis.kafka.connect.ems.conversion.DataConverter
 import com.celonis.kafka.connect.ems.data.ComplexObject
 import com.celonis.kafka.connect.ems.model.Partition
 import com.celonis.kafka.connect.ems.model.Topic
@@ -79,8 +79,8 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
         )
       val schemaAndValue = converter.toConnectData("topic", entry.asJson.noSpaces.getBytes)
 
-      val struct       = ValueConverter.apply(schemaAndValue.value()).getOrElse(fail("Should convert the map"))
-      val formatWriter = ParquetFormatWriter.from(output, struct.schema(), ParquetConfig.Default)
+      val struct       = DataConverter.apply(schemaAndValue.value()).getOrElse(fail("Should convert the map"))
+      val formatWriter = ParquetFormatWriter.from(output, struct.getSchema, ParquetConfig.Default)
       formatWriter.write(struct)
       formatWriter.close()
       formatWriter.size > 4 shouldBe true

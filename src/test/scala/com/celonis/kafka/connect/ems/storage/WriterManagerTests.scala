@@ -12,8 +12,8 @@ import com.celonis.kafka.connect.ems.model.Record
 import com.celonis.kafka.connect.ems.model.RecordMetadata
 import com.celonis.kafka.connect.ems.model.Topic
 import com.celonis.kafka.connect.ems.model.TopicPartition
+import org.apache.avro.Schema
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
-import org.apache.kafka.connect.data.Schema
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.reset
 import org.mockito.Mockito.times
