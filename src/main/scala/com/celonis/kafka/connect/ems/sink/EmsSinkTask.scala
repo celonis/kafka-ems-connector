@@ -72,6 +72,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         new EmsUploader[IO](config.url,
                             config.authorizationKey,
                             config.target,
+                            config.connectionId,
                             blockingExecutionContext.executionContext,
         ),
         writers,

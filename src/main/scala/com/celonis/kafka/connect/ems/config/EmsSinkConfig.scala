@@ -12,6 +12,7 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORD
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_ID_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_KEY
@@ -46,6 +47,7 @@ case class EmsSinkConfig(
   sinkName:         String,
   url:              URL,
   target:           String,
+  connectionId:     Option[String],
   authorizationKey: String,
   errorPolicy:      ErrorPolicy,
   commitPolicy:     CommitPolicy,
@@ -192,10 +194,12 @@ object EmsSinkConfig {
         DEBUG_KEEP_TMP_FILES_DEFAULT,
       )
       primaryKeys <- extractPrimaryKeys(props)
+      connectionId = PropertiesHelper.getString(props, CONNECTION_ID_KEY).map(_.trim).filter(_.nonEmpty)
     } yield EmsSinkConfig(
       sinkName,
       url,
       table,
+      connectionId,
       authorization,
       error,
       commitPolicy,

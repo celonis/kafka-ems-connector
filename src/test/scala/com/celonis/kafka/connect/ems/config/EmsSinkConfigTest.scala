@@ -11,6 +11,7 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORD
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_ID_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_KEY
@@ -20,6 +21,7 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_I
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_DOC
@@ -47,13 +49,14 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         "sink1",
         new URL("https://teamA.realmB.celonis.cloud/continuous-batch-processing/api/v1/abc-pool/items"),
         "tableA",
+        Some("id222"),
         "AppKey 123",
         Retry,
         policy,
         RetryConfig(10, 1000),
         dir.toPath,
         ParquetConfig.Default,
-        Nil,
+        List("a", "b"),
       )
 
       val inputMap: Map[String, _] = Map(
@@ -67,6 +70,8 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         ERROR_RETRY_INTERVAL -> expected.retries.interval,
         NBR_OF_RETRIES_KEY   -> expected.retries.retries,
         TMP_DIRECTORY_KEY    -> dir.toString,
+        PRIMARY_KEYS_KEY     -> expected.primaryKeys.mkString(","),
+        CONNECTION_ID_KEY    -> expected.connectionId.get,
       )
       EmsSinkConfig.from(
         expected.sinkName,
@@ -74,7 +79,6 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
       ) shouldBe Right(expected)
 
       val connectInputMap = {
-        import scala.collection.compat._
         EmsSinkConfigDef.config.parse(inputMap.view.mapValues(_.toString).toMap.asJava).asScala.toMap
       }: @scala.annotation.nowarn("msg=Unused import")
 
@@ -136,6 +140,22 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     }
   }
 
+  test(s"returns default if $PRIMARY_KEYS_KEY is missing") {
+    withMissingConfig(PRIMARY_KEYS_KEY) {
+      case Left(_) => fail("should not fail")
+      case Right(value) => value.primaryKeys shouldBe Nil
+        ()
+    }
+  }
+
+  test(s"returns default if $CONNECTION_ID_KEY is missing") {
+    withMissingConfig(CONNECTION_ID_KEY) {
+      case Left(_) => fail("should not fail")
+      case Right(value) => value.connectionId shouldBe None
+        ()
+    }
+  }
+
   private def withMissingConfig(key: String)(fn: PartialFunction[Either[String, EmsSinkConfig], Unit]): Unit = {
     val policy = DefaultCommitPolicy(1000000L, 10.seconds, 1000)
     val dir    = new File(UUID.randomUUID().toString)
@@ -145,13 +165,14 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         "sink1",
         new URL("https://teamA.realmB.celonis.cloud/continuous-batch-processing/api/v1/abc-pool/items"),
         "tableA",
+        Some("id11111"),
         "AppKey 123",
         Retry,
         policy,
         RetryConfig(10, 1000),
         dir.toPath,
         ParquetConfig.Default,
-        Nil,
+        List("a", "b"),
       )
 
       val inputMap: Map[String, _] = Map(
@@ -167,6 +188,8 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         TMP_DIRECTORY_KEY        -> dir.toString,
         DEBUG_KEEP_TMP_FILES_KEY -> (sinkConfig.parquet.cleanup == ParquetFileCleanupRename),
         PARQUET_FLUSH_KEY        -> sinkConfig.parquet.rowGroupSize,
+        PRIMARY_KEYS_KEY         -> sinkConfig.primaryKeys.mkString(","),
+        CONNECTION_ID_KEY        -> sinkConfig.connectionId.get,
       ) - key
 
       fn(EmsSinkConfig.from(
@@ -175,7 +198,6 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
       ))
 
       val connectInputMap = {
-        import scala.collection.compat._
         EmsSinkConfigDef.config.parse(inputMap.view.mapValues(_.toString).toMap.asJava).asScala.toMap
       }: @scala.annotation.nowarn("msg=Unused import")
 

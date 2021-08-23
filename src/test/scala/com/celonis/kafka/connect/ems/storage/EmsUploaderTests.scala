@@ -63,6 +63,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
           uploader <- IO(new EmsUploader[IO](new URL(s"http://localhost:$port$path"),
                                              auth,
                                              targetTable,
+                                             Some("id2"),
                                              ExecutionContext.global,
           ))
           response <- uploader.upload(file)
@@ -104,6 +105,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
           uploader <- IO(new EmsUploader[IO](new URL(s"http://localhost:$port$path"),
                                              "invalid auth",
                                              targetTable,
+                                             None,
                                              ExecutionContext.global,
           ))
           e <- uploader.upload(file).attempt

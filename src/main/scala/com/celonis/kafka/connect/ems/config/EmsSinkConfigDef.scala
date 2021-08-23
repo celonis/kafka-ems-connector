@@ -10,6 +10,9 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORD
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_ID_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_ID_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_ID_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_KEY
@@ -60,6 +63,13 @@ object EmsSinkConfigDef {
       null,
       Importance.HIGH,
       TARGET_TABLE_DOC,
+    )
+    .define(
+      CONNECTION_ID_KEY,
+      Type.STRING,
+      CONNECTION_ID_DEFAULT,
+      Importance.HIGH,
+      CONNECTION_ID_DOC,
     )
     .define(
       COMMIT_SIZE_KEY,

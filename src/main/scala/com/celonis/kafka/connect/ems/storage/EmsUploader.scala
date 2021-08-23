@@ -27,6 +27,7 @@ class EmsUploader[F[_]](
   baseUrl:       URL,
   authorization: String,
   targetTable:   String,
+  connectionId:  Option[String],
   ec:            ExecutionContext,
 )(
   implicit
@@ -43,7 +44,7 @@ class EmsUploader[F[_]](
         ),
       )
 
-      val uri = buildUri(baseUrl, targetTable)
+      val uri = buildUri(baseUrl, targetTable, connectionId)
       val request: Request[F] = Method.POST(
         multipart,
         uri,
@@ -69,11 +70,12 @@ class EmsUploader[F[_]](
 }
 
 object EmsUploader {
-  val TargetTable = "targetName"
-
-  def buildUri(base: URL, targetTable: String): Uri = {
-    val uri = UriBuilder.fromUri(base.toURI).queryParam("targetName", targetTable)
-      .build()
+  val TargetTable  = "targetName"
+  val ConnectionId = "connectionId"
+  def buildUri(base: URL, targetTable: String, connectionId: Option[String]): Uri = {
+    val uri = connectionId.foldLeft(UriBuilder.fromUri(base.toURI).queryParam(TargetTable, targetTable)) {
+      case (builder, connection) => builder.queryParam(ConnectionId, connection)
+    }.build()
 
     Uri.fromString(uri.toString).asInstanceOf[Right[ParseFailure, Uri]].value
   }

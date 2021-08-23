@@ -13,6 +13,11 @@ object EmsSinkConfigConstants {
   val TARGET_TABLE_KEY: String = s"$CONNECTOR_PREFIX.target.table"
   val TARGET_TABLE_DOC: String = s"The table in EMS to store the data."
 
+  val CONNECTION_ID_KEY: String = s"$CONNECTOR_PREFIX.connection.id"
+  val CONNECTION_ID_DOC: String =
+    s"Optional parameter. It represents the unique EMS connection identifier."
+  val CONNECTION_ID_DEFAULT: String = null
+
   val ENDPOINT_KEY: String = s"$CONNECTOR_PREFIX.endpoint"
   val ENDPOINT_DOC: String =
     s"Contains the EMS API endpoint in the form of:https://<<team>>.<<realm>>.celonis.cloud/continuous-batch-processing/api/v1/<<pool-id>>/items."
@@ -24,7 +29,7 @@ object EmsSinkConfigConstants {
   val PRIMARY_KEYS_KEY: String = s"$CONNECTOR_PREFIX.primary.key"
   val PRIMARY_KEYS_DOC: String =
     "Optional field containing comma separated fields values which should be made primary key for the table constructed in EMS."
-  val PRIMARY_KEYS_DEFAULT = null
+  val PRIMARY_KEYS_DEFAULT: String = null
 
   val COMMIT_SIZE_KEY: String = s"$CONNECTOR_PREFIX.commit.size.bytes"
   val COMMIT_SIZE_DOC: String =
