@@ -72,7 +72,11 @@ class WriterManager[F[_]](
             s"Uploading file:$file size:${file.length()} for topic-partition:${TopicPartition.show.show(state.topicPartition)} and offset:${state.offset.show}",
           ),
         )
-        response  <- uploader.upload(file)
+        response <- uploader.upload(UploadRequest(file,
+                                                  state.topicPartition.topic,
+                                                  state.topicPartition.partition,
+                                                  state.offset,
+        ))
         _         <- A.delay(logger.info(s"Received ${response.asJson.noSpaces} for uploading file:$file"))
         _         <- A.delay(fileCleanup.clean(file, state.offset))
         newWriter <- A.delay(writerBuilder.writerFrom(writer))

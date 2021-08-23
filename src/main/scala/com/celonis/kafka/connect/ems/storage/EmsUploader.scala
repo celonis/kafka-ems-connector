@@ -16,7 +16,6 @@ import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.multipart._
 import org.typelevel.ci.CIString
 
-import java.io.File
 import java.net.URL
 import javax.ws.rs.core.UriBuilder
 import scala.concurrent.ExecutionContext
@@ -34,11 +33,13 @@ class EmsUploader[F[_]](
     with Http4sClientDsl[F]
     with StrictLogging {
 
-  override def upload(file: File): F[EmsUploadResponse] = {
+  override def upload(uploadRequest: UploadRequest): F[EmsUploadResponse] = {
     def uploadWithClient(client: Client[F]): F[EmsUploadResponse] = {
       val multipart: Multipart[F] = Multipart[F](
         Vector(
-          Part.fileData(file.getName, file),
+          Part.fileData(s"${uploadRequest.topic.value}_${uploadRequest.partition.value}_${uploadRequest.offset.value}",
+                        uploadRequest.file,
+          ),
         ),
       )
 
@@ -56,15 +57,21 @@ class EmsUploader[F[_]](
               { t =>
                 val error = UploadFailedException(
                   response.status,
-                  s"Failed to upload the file:$file. Status code:${response.status.show}. Cannot unmarshal the response",
+                  s"Failed to upload the file:${uploadRequest.file}. Status code:${response.status.show}. Cannot unmarshal the response",
                   t,
                 )
-                A.delay(logger.error(s"Failed to upload the file:$file. Status code:${response.status.show}", error))
+                A.delay(logger.error(
+                  s"Failed to upload the file:${uploadRequest.file}. Status code:${response.status.show}",
+                  error,
+                ))
                   .flatMap(_ => A.raiseError(error))
               },
               { msg =>
                 val error = UploadFailedException(response.status, msg.errors.map(_.error).mkString(","), null)
-                A.delay(logger.error(s"Failed to upload the file:$file. Status code:${response.status.show}", error))
+                A.delay(logger.error(
+                  s"Failed to upload the file:${uploadRequest.file}. Status code:${response.status.show}",
+                  error,
+                ))
                   .flatMap(_ => A.raiseError(error))
               },
             )

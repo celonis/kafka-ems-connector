@@ -286,10 +286,21 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       when(writer3.state).thenReturn(WriterState(tp3, record3.metadata.offset, None, 0, 1, 1, simpleSchema, file3))
 
       when(writer2.shouldFlush).thenReturn(true)
-      when(uploader.upload(file2)).thenReturn(IO.pure(EmsUploadResponse("1", file2.getName, "b1", "NEW", "c1")))
+      when(
+        uploader.upload(UploadRequest(file2,
+                                      writer2.state.topicPartition.topic,
+                                      writer2.state.topicPartition.partition,
+                                      writer2.state.offset,
+        )),
+      ).thenReturn(IO.pure(EmsUploadResponse("1", file2.getName, "b1", "NEW", "c1")))
       manager.write(record2).unsafeRunSync()
 
-      verify(uploader, times(1)).upload(file2)
+      verify(uploader, times(1))
+        .upload(UploadRequest(file2,
+                              writer2.state.topicPartition.topic,
+                              writer2.state.topicPartition.partition,
+                              writer2.state.offset,
+        ))
       verify(builder, times(1)).writerFrom(writer2)
       verify(writer2, times(1)).close()
     }
@@ -338,12 +349,22 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       when(writer3.state).thenReturn(WriterState(tp3, record3.metadata.offset, None, 0, 1, 1, simpleSchema, file3))
 
       when(writer2.shouldFlush).thenReturn(true)
-      when(uploader.upload(file2)).thenReturn(IO.pure(EmsUploadResponse("1", file2.getName, "b1", "NEW", "c1")))
+      when(
+        uploader.upload(UploadRequest(file2,
+                                      writer2.state.topicPartition.topic,
+                                      writer2.state.topicPartition.partition,
+                                      writer2.state.offset,
+        )),
+      ).thenReturn(IO.pure(EmsUploadResponse("1", file2.getName, "b1", "NEW", "c1")))
       manager.write(record2).unsafeRunSync()
 
       val retainedFile = ParquetFileCleanupRename.renamedFile(file2, record2.metadata.offset)
       retainedFile.toFile.exists() shouldBe true
-      verify(uploader, times(1)).upload(file2)
+      verify(uploader, times(1)).upload(UploadRequest(file2,
+                                                      writer2.state.topicPartition.topic,
+                                                      writer2.state.topicPartition.partition,
+                                                      writer2.state.offset,
+      ))
       verify(builder, times(1)).writerFrom(writer2)
       verify(writer2, times(1)).close()
     }
@@ -395,10 +416,20 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       when(writer2.shouldRollover(any[Schema])).thenReturn(true)
       val writer2Next = mock[Writer]
       when(builder.writerFrom(writer2)).thenReturn(writer2Next)
-      when(uploader.upload(file2)).thenReturn(IO(EmsUploadResponse("1", file2.getName, "b", "NEW", "c1")))
+      when(
+        uploader.upload(UploadRequest(file2,
+                                      writer2.state.topicPartition.topic,
+                                      writer2.state.topicPartition.partition,
+                                      writer2.state.offset,
+        )),
+      ).thenReturn(IO(EmsUploadResponse("1", file2.getName, "b", "NEW", "c1")))
       manager.write(record2).unsafeRunSync()
 
-      verify(uploader, times(1)).upload(file2)
+      verify(uploader, times(1)).upload(UploadRequest(file2,
+                                                      writer2.state.topicPartition.topic,
+                                                      writer2.state.topicPartition.partition,
+                                                      writer2.state.offset,
+      ))
       verify(builder, times(1)).writerFrom(writer2)
       verify(writer2, times(0)).write(record2)
       verify(writer2Next, times(1)).write(record2)
@@ -448,17 +479,33 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
 
       when(writer2.shouldFlush).thenReturn(true)
       val exception = new RuntimeException("Just throwing")
-      when(uploader.upload(file2)).thenReturn(IO.raiseError(exception))
+      when(
+        uploader.upload(UploadRequest(file2,
+                                      writer2.state.topicPartition.topic,
+                                      writer2.state.topicPartition.partition,
+                                      writer2.state.offset,
+        )),
+      ).thenReturn(IO.raiseError(exception))
       val ex = the[RuntimeException] thrownBy manager.write(record2).unsafeRunSync()
       ex shouldBe exception
       verify(builder, times(0)).writerFrom(writer2)
       reset(uploader)
-      when(uploader.upload(file2)).thenReturn(IO(EmsUploadResponse("1", file2.getName, "b", "NEW", "c1")))
+      when(
+        uploader.upload(UploadRequest(file2,
+                                      writer2.state.topicPartition.topic,
+                                      writer2.state.topicPartition.partition,
+                                      writer2.state.offset,
+        )),
+      ).thenReturn(IO(EmsUploadResponse("1", file2.getName, "b", "NEW", "c1")))
       val writer2Next = mock[Writer]
       when(builder.writerFrom(writer2)).thenReturn(writer2Next)
       manager.write(record2).unsafeRunSync()
 
-      verify(uploader, times(1)).upload(file2)
+      verify(uploader, times(1)).upload(UploadRequest(file2,
+                                                      writer2.state.topicPartition.topic,
+                                                      writer2.state.topicPartition.partition,
+                                                      writer2.state.offset,
+      ))
       verify(builder, times(1)).writerFrom(writer2)
       verify(writer2Next, times(0)).write(record2)
     }
