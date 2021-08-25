@@ -6,6 +6,7 @@ package com.celonis.kafka.connect.ems.config
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLIENT_ID_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_DOC
@@ -22,6 +23,8 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETIRES_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DEFAULT
@@ -41,20 +44,21 @@ import org.apache.commons.validator.routines.UrlValidator
 import java.io.File
 import java.net.URL
 import java.nio.file.Path
-import scala.concurrent.duration._
 
 case class EmsSinkConfig(
-  sinkName:         String,
-  url:              URL,
-  target:           String,
-  connectionId:     Option[String],
-  authorizationKey: String,
-  errorPolicy:      ErrorPolicy,
-  commitPolicy:     CommitPolicy,
-  retries:          RetryConfig,
-  workingDir:       Path,
-  parquet:          ParquetConfig,
-  primaryKeys:      List[String],
+  sinkName:               String,
+  url:                    URL,
+  target:                 String,
+  connectionId:           Option[String],
+  clientId:               Option[String],
+  authorizationKey:       String,
+  errorPolicy:            ErrorPolicy,
+  commitPolicy:           CommitPolicy,
+  retries:                RetryConfig,
+  workingDir:             Path,
+  parquet:                ParquetConfig,
+  primaryKeys:            List[String],
+  fallbackVarCharLengths: Option[Int],
 )
 
 object EmsSinkConfig {
@@ -93,6 +97,14 @@ object EmsSinkConfig {
     nonEmptyStringOr(props, ENDPOINT_KEY, ENDPOINT_DOC).flatMap { value =>
       if (!new UrlValidator(Array("https")).isValid(value)) error(ENDPOINT_KEY, ENDPOINT_DOC)
       else new URL(value).asRight[String]
+    }
+
+  def extractFallbackVarcharLength(props: Map[String, _]): Either[String, Option[Int]] =
+    PropertiesHelper.getInt(props, FALLBACK_VARCHAR_LENGTH_KEY) match {
+      case Some(value) =>
+        if (value <= 0) error(FALLBACK_VARCHAR_LENGTH_KEY, FALLBACK_VARCHAR_LENGTH_DOC)
+        else value.some.asRight[String]
+      case None => None.asRight
     }
 
   def extractTargetTable(props: Map[String, _]): Either[String, String] =
@@ -155,7 +167,7 @@ object EmsSinkConfig {
           error(COMMIT_INTERVAL_KEY, "The stop gap interval for uploading the data cannot be smaller than 1000 (1s).")
         else l.asRight[String]
       }
-    } yield DefaultCommitPolicy(size, interval.millis, records)
+    } yield DefaultCommitPolicy(size, interval, records)
 
   def extractWorkingDirectory(props: Map[String, _]): Either[String, Path] =
     nonEmptyStringOr(props, TMP_DIRECTORY_KEY, TMP_DIRECTORY_DOC)
@@ -194,13 +206,16 @@ object EmsSinkConfig {
       keepParquetFiles = booleanOr(props, DEBUG_KEEP_TMP_FILES_KEY, DEBUG_KEEP_TMP_FILES_DOC).getOrElse(
         DEBUG_KEEP_TMP_FILES_DEFAULT,
       )
-      primaryKeys <- extractPrimaryKeys(props)
-      connectionId = PropertiesHelper.getString(props, CONNECTION_ID_KEY).map(_.trim).filter(_.nonEmpty)
+      primaryKeys           <- extractPrimaryKeys(props)
+      connectionId           = PropertiesHelper.getString(props, CONNECTION_ID_KEY).map(_.trim).filter(_.nonEmpty)
+      clientId               = PropertiesHelper.getString(props, CLIENT_ID_KEY).map(_.trim).filter(_.nonEmpty)
+      fallbackVarCharLength <- extractFallbackVarcharLength(props)
     } yield EmsSinkConfig(
       sinkName,
       url,
       table,
       connectionId,
+      clientId,
       authorization,
       error,
       commitPolicy,
@@ -208,6 +223,7 @@ object EmsSinkConfig {
       tempDir,
       ParquetConfig(parquetFlushRecords, buildCleanup(keepParquetFiles)),
       primaryKeys,
+      fallbackVarCharLength,
     )
 
   private def buildCleanup(keepParquetFiles: Boolean) =

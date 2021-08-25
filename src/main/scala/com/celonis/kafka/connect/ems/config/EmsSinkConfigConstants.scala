@@ -26,7 +26,7 @@ object EmsSinkConfigConstants {
   val TMP_DIRECTORY_DOC: String =
     s"The folder to store the temporary files as it accumulates data. If not specified then [${System.getProperty("java.io.tmpdir")}] is being used."
 
-  val PRIMARY_KEYS_KEY: String = s"$CONNECTOR_PREFIX.primary.key"
+  val PRIMARY_KEYS_KEY: String = s"$CONNECTOR_PREFIX.data.primary.key"
   val PRIMARY_KEYS_DOC: String =
     "Optional field containing comma separated fields values which should be made primary key for the table constructed in EMS."
   val PRIMARY_KEYS_DEFAULT: String = null
@@ -49,23 +49,27 @@ object EmsSinkConfigConstants {
     s"""
        |The number of records after which it should flush the parquet file, to ensure the file size policy.
        | Default is $PARQUET_FLUSH_DEFAULT.
-       | Writing parquet allows to flush the buffer only when the file is closed. This results in a file closed and a file open sequence.
-       | This is not related to or impacts $COMMIT_RECORDS_KEY.""".stripMargin
+       | """.stripMargin
 
-  val PROGRESS_COUNTER_ENABLED: String = "connect.progress.enabled"
-  val PROGRESS_COUNTER_ENABLED_DOC     = "Enables the output for how many records have been processed."
-  val PROGRESS_COUNTER_ENABLED_DEFAULT = false
-  val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
+  val NBR_OF_RETRIES_KEY = s"$CONNECTOR_PREFIX.max.retries"
+  val NBR_OF_RETRIES_DOC =
+    "The maximum number of times to re-attempt to write the records before the task is marked as failed."
+  val NBR_OF_RETIRES_DEFAULT: Int = 10
+
+  val CLIENT_ID_KEY = s"$CONNECTOR_PREFIX.client.id"
+  val CLIENT_ID_DOC =
+    "Optional parameter representing the client unique identifier"
+  val CLIENT_ID_DEFAULT: String = null
 
   val ERROR_POLICY_KEY = s"$CONNECTOR_PREFIX.error.policy"
   val ERROR_POLICY_DOC: String =
-    """
-      |Specifies the action to be taken if an error occurs while inserting the data.
-      | There are three available options:
-      |    CONTINUE - the error is swallowed
-      |    THROW - the error is allowed to propagate.
-      |    RETRY - The exception causes the Connect framework to retry the message. The number of retries is set by connect.s3.max.retries.
-      |All errors will be logged automatically, even if the code swallows them.
+    s"""
+       |Specifies the action to be taken if an error occurs while inserting the data.
+       | There are three available options:
+       |    CONTINUE - the error is swallowed
+       |    THROW - the error is allowed to propagate.
+       |    RETRY - The exception causes the Connect framework to retry the message. The number of retries is set by $NBR_OF_RETRIES_KEY.
+       |All errors will be logged automatically, even if the code swallows them.
     """.stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
 
@@ -73,9 +77,10 @@ object EmsSinkConfigConstants {
   val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT: Long = 60000L
 
-  val NBR_OF_RETRIES_KEY = s"$CONNECTOR_PREFIX.max.retries"
-  val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
-  val NBR_OF_RETIRES_DEFAULT: Int = 20
+  val FALLBACK_VARCHAR_LENGTH_KEY = s"$CONNECTOR_PREFIX.data.fallback.varchar.length"
+  val FALLBACK_VARCHAR_LENGTH_DOC =
+    "Optional parameter representing the STRING (VARCHAR) length when the schema is created in EMS"
+  val FALLBACK_VARCHAR_LENGTH_DEFAULT: String = null
 
   val DEBUG_KEEP_TMP_FILES_KEY: String = s"$CONNECTOR_PREFIX.debug.keep.parquet.files"
   val DEBUG_KEEP_TMP_FILES_DOC: String =

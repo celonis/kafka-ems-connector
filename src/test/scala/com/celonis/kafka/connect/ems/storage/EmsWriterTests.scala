@@ -28,7 +28,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     val startingRecords = 3L
     val startingSize    = 1000000L
     val emsWriter = new EmsWriter("sinkA",
-                                  DefaultCommitPolicy(10000, 1000.minutes, 10000),
+                                  DefaultCommitPolicy(10000, 1000.minutes.toMillis, 10000),
                                   formatWriter,
                                   WriterState(
                                     TopicPartition(new Topic("A"), new Partition(0)),
@@ -76,7 +76,8 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
       simpleSchema,
       new File("abc"),
     )
-    val emsWriter = new EmsWriter("sinkA", DefaultCommitPolicy(10000, 1000.minutes, 10000), formatWriter, expected)
+    val emsWriter =
+      new EmsWriter("sinkA", DefaultCommitPolicy(10000, 1000.minutes.toMillis, 10000), formatWriter, expected)
 
     val struct = buildSimpleStruct()
     val record = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(10)))
@@ -94,7 +95,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     val startingRecords = 3L
     val startingSize    = 1000000L
     val emsWriter = new EmsWriter("sinkA",
-                                  DefaultCommitPolicy(10000, 1000.minutes, 10000),
+                                  DefaultCommitPolicy(10000, 1000.minutes.toMillis, 10000),
                                   formatWriter,
                                   WriterState(
                                     TopicPartition(new Topic("A"), new Partition(0)),

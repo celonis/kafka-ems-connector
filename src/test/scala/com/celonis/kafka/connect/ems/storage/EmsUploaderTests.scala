@@ -20,6 +20,7 @@ import java.net.URL
 import java.util.UUID
 import scala.collection.immutable.Queue
 import scala.concurrent.ExecutionContext
+import cats.syntax.option._
 
 class EmsUploaderTests extends AnyFunSuite with Matchers {
   test("uploads the file") {
@@ -30,7 +31,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
     val filePath         = UUID.randomUUID().toString + ".parquet"
     val fileContent      = Array[Byte](1, 2, 3, 4)
     val mapRef           = Ref.unsafe[IO, Map[String, Array[Byte]]](Map.empty)
-    val expectedResponse = EmsUploadResponse("id1", filePath, "b1", "new", "c1")
+    val expectedResponse = EmsUploadResponse("id1", filePath, "b1", "new", "c1".some, None, None)
     val responseQueueRef: Ref[IO, Queue[() => EmsUploadResponse]] =
       Ref.unsafe[IO, Queue[() => EmsUploadResponse]](Queue(() => expectedResponse))
     val serverResource =
@@ -55,17 +56,21 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
     } yield (server, file)).use {
       case (_, file) =>
         for {
-          uploader <- IO(new EmsUploader[IO](new URL(s"http://localhost:$port$path"),
-                                             auth,
-                                             targetTable,
-                                             Some("id2"),
-                                             ExecutionContext.global,
-          ))
+          uploader <- IO(
+            new EmsUploader[IO](new URL(s"http://localhost:$port$path"),
+                                auth,
+                                targetTable,
+                                Some("id2"),
+                                None,
+                                None,
+                                ExecutionContext.global,
+            ),
+          )
           response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
           map      <- mapRef.get
         } yield {
           response shouldBe expectedResponse
-          map(file.getName) shouldBe fileContent
+          map("a_0_100.parquet") shouldBe fileContent
         }
     }.unsafeRunSync()
   }
@@ -78,7 +83,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
     val filePath         = UUID.randomUUID().toString + ".parquet"
     val fileContent      = Array[Byte](1, 2, 3, 4)
     val mapRef           = Ref.unsafe[IO, Map[String, Array[Byte]]](Map.empty)
-    val expectedResponse = EmsUploadResponse("id1", filePath, "b1", "new", "c1")
+    val expectedResponse = EmsUploadResponse("id1", filePath, "b1", "new", "c1".some, None, None)
     val responseQueueRef: Ref[IO, Queue[() => EmsUploadResponse]] =
       Ref.unsafe[IO, Queue[() => EmsUploadResponse]](Queue(() => expectedResponse))
     val serverResource =
@@ -103,12 +108,16 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
     } yield (server, file)).use {
       case (_, file) =>
         for {
-          uploader <- IO(new EmsUploader[IO](new URL(s"http://localhost:$port$path"),
-                                             "invalid auth",
-                                             targetTable,
-                                             None,
-                                             ExecutionContext.global,
-          ))
+          uploader <- IO(
+            new EmsUploader[IO](new URL(s"http://localhost:$port$path"),
+                                "invalid auth",
+                                targetTable,
+                                None,
+                                None,
+                                None,
+                                ExecutionContext.global,
+            ),
+          )
           e <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100))).attempt
         } yield {
           e match {

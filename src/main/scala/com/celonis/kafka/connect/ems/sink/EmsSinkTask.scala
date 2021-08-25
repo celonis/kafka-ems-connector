@@ -72,6 +72,8 @@ class EmsSinkTask extends SinkTask with StrictLogging {
                             config.authorizationKey,
                             config.target,
                             config.connectionId,
+                            config.clientId,
+                            config.fallbackVarCharLengths,
                             blockingExecutionContext.executionContext,
         ),
         writers,

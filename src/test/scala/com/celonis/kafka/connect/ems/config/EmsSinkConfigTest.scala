@@ -3,8 +3,10 @@
  */
 package com.celonis.kafka.connect.ems.config
 
+import cats.syntax.either._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLIENT_ID_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_DOC
@@ -15,9 +17,9 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_ID
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_KEY
@@ -26,6 +28,7 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_KEY
+import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
@@ -39,10 +42,11 @@ import java.net.URL
 import java.util.UUID
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
+import scala.util.Try
 
 class EmsSinkConfigTest extends AnyFunSuite with Matchers {
   test(s"returns the configuration") {
-    val policy = DefaultCommitPolicy(1000000L, 10.seconds, 1000)
+    val policy = DefaultCommitPolicy(1000000L, 10.seconds.toMillis, 1000)
     val dir    = new File(UUID.randomUUID().toString)
     dir.mkdir() shouldBe true
     try {
@@ -51,6 +55,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         new URL("https://teamA.realmB.celonis.cloud/continuous-batch-processing/api/v1/abc-pool/items"),
         "tableA",
         Some("id222"),
+        Some("client123"),
         "AppKey 123",
         Retry,
         policy,
@@ -58,21 +63,24 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         dir.toPath,
         ParquetConfig.Default,
         List("a", "b"),
+        Some(512),
       )
 
       val inputMap: Map[String, _] = Map(
-        ENDPOINT_KEY         -> expected.url.toString,
-        TARGET_TABLE_KEY     -> expected.target,
-        AUTHORIZATION_KEY    -> expected.authorizationKey,
-        ERROR_POLICY_KEY     -> expected.errorPolicy.entryName,
-        COMMIT_SIZE_KEY      -> policy.fileSize,
-        COMMIT_INTERVAL_KEY  -> policy.interval.toMillis,
-        COMMIT_RECORDS_KEY   -> policy.records,
-        ERROR_RETRY_INTERVAL -> expected.retries.interval,
-        NBR_OF_RETRIES_KEY   -> expected.retries.retries,
-        TMP_DIRECTORY_KEY    -> dir.toString,
-        PRIMARY_KEYS_KEY     -> expected.primaryKeys.mkString(","),
-        CONNECTION_ID_KEY    -> expected.connectionId.get,
+        ENDPOINT_KEY                -> expected.url.toString,
+        TARGET_TABLE_KEY            -> expected.target,
+        AUTHORIZATION_KEY           -> expected.authorizationKey,
+        ERROR_POLICY_KEY            -> expected.errorPolicy.entryName,
+        COMMIT_SIZE_KEY             -> policy.fileSize,
+        COMMIT_INTERVAL_KEY         -> policy.interval,
+        COMMIT_RECORDS_KEY          -> policy.records,
+        ERROR_RETRY_INTERVAL        -> expected.retries.interval,
+        NBR_OF_RETRIES_KEY          -> expected.retries.retries,
+        TMP_DIRECTORY_KEY           -> dir.toString,
+        PRIMARY_KEYS_KEY            -> expected.primaryKeys.mkString(","),
+        CONNECTION_ID_KEY           -> expected.connectionId.get,
+        FALLBACK_VARCHAR_LENGTH_KEY -> expected.fallbackVarCharLengths.orNull,
+        CLIENT_ID_KEY               -> expected.clientId.orNull,
       )
       EmsSinkConfig.from(
         expected.sinkName,
@@ -122,8 +130,13 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     testMissingConfig(COMMIT_INTERVAL_KEY, COMMIT_INTERVAL_DOC)
   }
 
-  test(s"returns an error if $ERROR_POLICY_KEY is missing") {
-    testMissingConfig(ERROR_POLICY_KEY, ERROR_POLICY_DOC)
+  test(s"returns THROW if $ERROR_POLICY_KEY is missing") {
+    withMissingConfig(ERROR_POLICY_KEY)({
+      case Left(_) => fail(s"Should not fail ")
+      case Right(value) =>
+        value.errorPolicy shouldBe ErrorPolicy.Throw
+        ()
+    })
   }
 
   test(s"returns default if $PARQUET_FLUSH_KEY is missing") {
@@ -154,6 +167,22 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     withMissingConfig(CONNECTION_ID_KEY) {
       case Left(_) => fail("should not fail")
       case Right(value) => value.connectionId shouldBe None
+        ()
+    }
+  }
+
+  test(s"returns default if $FALLBACK_VARCHAR_LENGTH_KEY is missing") {
+    withMissingConfig(FALLBACK_VARCHAR_LENGTH_KEY) {
+      case Left(_) => fail("should not fail")
+      case Right(value) => value.fallbackVarCharLengths shouldBe None
+        ()
+    }
+  }
+
+  test(s"returns default if $CLIENT_ID_KEY is missing") {
+    withMissingConfig(CLIENT_ID_KEY) {
+      case Left(_) => fail("should not fail")
+      case Right(value) => value.clientId shouldBe None
         ()
     }
   }
@@ -189,7 +218,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
   }
 
   private def withMissingConfig(key: String)(fn: PartialFunction[Either[String, EmsSinkConfig], Unit]): Unit = {
-    val policy = DefaultCommitPolicy(1000000L, 10.seconds, 1000)
+    val policy = DefaultCommitPolicy(1000000L, 10.seconds.toMillis, 1000)
     val dir    = new File(UUID.randomUUID().toString)
     dir.mkdir() shouldBe true
     try {
@@ -198,6 +227,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         new URL("https://teamA.realmB.celonis.cloud/continuous-batch-processing/api/v1/abc-pool/items"),
         "tableA",
         Some("id11111"),
+        Some("client1212"),
         "AppKey 123",
         Retry,
         policy,
@@ -205,39 +235,43 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         dir.toPath,
         ParquetConfig.Default,
         List("a", "b"),
+        Some(512),
       )
 
       val inputMap: Map[String, _] = Map(
-        ENDPOINT_KEY             -> sinkConfig.url.toString,
-        TARGET_TABLE_KEY         -> sinkConfig.target,
-        AUTHORIZATION_KEY        -> sinkConfig.authorizationKey,
-        ERROR_POLICY_KEY         -> sinkConfig.errorPolicy.entryName,
-        COMMIT_SIZE_KEY          -> policy.fileSize,
-        COMMIT_INTERVAL_KEY      -> policy.interval.toMillis,
-        COMMIT_RECORDS_KEY       -> policy.records,
-        ERROR_RETRY_INTERVAL     -> sinkConfig.retries.interval,
-        NBR_OF_RETRIES_KEY       -> sinkConfig.retries.retries,
-        TMP_DIRECTORY_KEY        -> dir.toString,
-        DEBUG_KEEP_TMP_FILES_KEY -> (sinkConfig.parquet.cleanup == ParquetFileCleanupRename),
-        PARQUET_FLUSH_KEY        -> sinkConfig.parquet.rowGroupSize,
-        PRIMARY_KEYS_KEY         -> sinkConfig.primaryKeys.mkString(","),
-        CONNECTION_ID_KEY        -> sinkConfig.connectionId.get,
+        ENDPOINT_KEY                -> sinkConfig.url.toString,
+        TARGET_TABLE_KEY            -> sinkConfig.target,
+        AUTHORIZATION_KEY           -> sinkConfig.authorizationKey,
+        ERROR_POLICY_KEY            -> sinkConfig.errorPolicy.entryName,
+        COMMIT_SIZE_KEY             -> policy.fileSize,
+        COMMIT_INTERVAL_KEY         -> policy.interval,
+        COMMIT_RECORDS_KEY          -> policy.records,
+        ERROR_RETRY_INTERVAL        -> sinkConfig.retries.interval,
+        NBR_OF_RETRIES_KEY          -> sinkConfig.retries.retries,
+        TMP_DIRECTORY_KEY           -> dir.toString,
+        DEBUG_KEEP_TMP_FILES_KEY    -> (sinkConfig.parquet.cleanup == ParquetFileCleanupRename),
+        PARQUET_FLUSH_KEY           -> sinkConfig.parquet.rowGroupSize,
+        PRIMARY_KEYS_KEY            -> sinkConfig.primaryKeys.mkString(","),
+        CONNECTION_ID_KEY           -> sinkConfig.connectionId.get,
+        FALLBACK_VARCHAR_LENGTH_KEY -> sinkConfig.fallbackVarCharLengths.map(_.toString).orNull,
+        CLIENT_ID_KEY               -> sinkConfig.clientId.orNull,
       ) - key
 
-      fn(EmsSinkConfig.from(
+      /* fn(EmsSinkConfig.from(
         sinkConfig.sinkName,
         inputMap,
-      ))
+      ))*/
 
-      val connectInputMap = {
+      (Try {
         import scala.collection.compat._
         EmsSinkConfigDef.config.parse(inputMap.view.mapValues(_.toString).toMap.asJava).asScala.toMap
-      }: @scala.annotation.nowarn("msg=Unused import")
-
-      fn(EmsSinkConfig.from(
-        sinkConfig.sinkName,
-        connectInputMap,
-      ))
+      }: @scala.annotation.nowarn("msg=Unused import")).toEither.leftMap(_.getMessage)
+        .foreach { connectInputMap =>
+          fn(EmsSinkConfig.from(
+            sinkConfig.sinkName,
+            connectInputMap,
+          ))
+        }
     } finally {
       dir.delete()
       ()

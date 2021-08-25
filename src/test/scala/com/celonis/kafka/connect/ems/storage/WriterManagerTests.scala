@@ -292,7 +292,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
                                       writer2.state.topicPartition.partition,
                                       writer2.state.offset,
         )),
-      ).thenReturn(IO.pure(EmsUploadResponse("1", file2.getName, "b1", "NEW", "c1")))
+      ).thenReturn(IO.pure(EmsUploadResponse("1", file2.getName, "b1", "NEW", "c1".some, None, None)))
       manager.write(record2).unsafeRunSync()
 
       verify(uploader, times(1))
@@ -355,7 +355,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
                                       writer2.state.topicPartition.partition,
                                       writer2.state.offset,
         )),
-      ).thenReturn(IO.pure(EmsUploadResponse("1", file2.getName, "b1", "NEW", "c1")))
+      ).thenReturn(IO.pure(EmsUploadResponse("1", file2.getName, "b1", "NEW", "c1".some, None, None)))
       manager.write(record2).unsafeRunSync()
 
       val retainedFile = ParquetFileCleanupRename.renamedFile(file2, record2.metadata.offset)
@@ -422,7 +422,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
                                       writer2.state.topicPartition.partition,
                                       writer2.state.offset,
         )),
-      ).thenReturn(IO(EmsUploadResponse("1", file2.getName, "b", "NEW", "c1")))
+      ).thenReturn(IO(EmsUploadResponse("1", file2.getName, "b", "NEW", "c1".some, None, None)))
       manager.write(record2).unsafeRunSync()
 
       verify(uploader, times(1)).upload(UploadRequest(file2,
@@ -496,7 +496,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
                                       writer2.state.topicPartition.partition,
                                       writer2.state.offset,
         )),
-      ).thenReturn(IO(EmsUploadResponse("1", file2.getName, "b", "NEW", "c1")))
+      ).thenReturn(IO(EmsUploadResponse("1", file2.getName, "b", "NEW", "c1".some, None, None)))
       val writer2Next = mock[Writer]
       when(builder.writerFrom(writer2)).thenReturn(writer2Next)
       manager.write(record2).unsafeRunSync()
