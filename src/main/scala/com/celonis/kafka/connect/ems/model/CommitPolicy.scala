@@ -5,8 +5,6 @@ package com.celonis.kafka.connect.ems.model
 
 import org.slf4j.Logger
 
-import scala.concurrent.duration.FiniteDuration
-
 /**
   * The [[CommitPolicy]] is responsible for determining when
   * a file should be flushed (closed on disk, and moved to be visible).
@@ -47,13 +45,13 @@ case class CommitContext(
   *
   * @param interval in millis
   */
-case class DefaultCommitPolicy(fileSize: Long, interval: FiniteDuration, records: Long) extends CommitPolicy {
+case class DefaultCommitPolicy(fileSize: Long, interval: Long, records: Long) extends CommitPolicy {
   val logger: Logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
   override def shouldFlush(context: CommitContext): Boolean = {
     val timeSinceLastWrite = System.currentTimeMillis() - context.lastWrite
     val flushDueToFileSize = fileSize <= context.fileSize
-    val flushDueToInterval = interval.toMillis <= timeSinceLastWrite
+    val flushDueToInterval = interval <= timeSinceLastWrite
     val flushDueToCount    = records <= context.count
 
     val flush = flushDueToFileSize || flushDueToInterval || flushDueToCount

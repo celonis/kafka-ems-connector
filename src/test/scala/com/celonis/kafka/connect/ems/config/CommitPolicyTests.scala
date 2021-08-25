@@ -13,8 +13,6 @@ import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.duration._
-
 class CommitPolicyTests extends AnyFunSuite with Matchers {
   test(s"return an error if commit policy keys are missing") {
     val expectedMessage =
@@ -91,7 +89,7 @@ class CommitPolicyTests extends AnyFunSuite with Matchers {
                                           COMMIT_SIZE_KEY     -> size,
                                           COMMIT_INTERVAL_KEY -> interval,
     )) shouldBe Right(
-      DefaultCommitPolicy(size, interval.millis, records.toLong),
+      DefaultCommitPolicy(size, interval, records.toLong),
     )
   }
 }

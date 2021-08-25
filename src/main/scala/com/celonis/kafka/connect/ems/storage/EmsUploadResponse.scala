@@ -9,7 +9,15 @@ import io.circe.generic.semiauto.deriveCodec
 import org.http4s.circe.jsonOf
 import org.http4s.EntityDecoder
 
-case class EmsUploadResponse(id: String, fileName: String, bucketId: String, flushStatus: String, clientId: String)
+case class EmsUploadResponse(
+  id:                    String,
+  fileName:              String,
+  bucketId:              String,
+  flushStatus:           String,
+  clientId:              Option[String],
+  fallbackVarcharLength: Option[String],
+  upsertStrategy:        Option[String],
+)
 
 object EmsUploadResponse {
   implicit val codec: Codec[EmsUploadResponse] = deriveCodec

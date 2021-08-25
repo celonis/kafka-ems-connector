@@ -13,7 +13,7 @@ import fs2.io.file.Path
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.implicits.http4sKleisliResponseSyntaxOptionT
 import org.http4s.multipart.Part
-
+import cats.syntax.option._
 import java.io.File
 import java.util.UUID
 import scala.concurrent.ExecutionContext
@@ -28,7 +28,7 @@ object UploadServer extends IOApp {
       table  <- Stream.eval(IO.fromTry(Try(args(3))))
       responseProvider = new EmsUploadResponseProvider[IO] {
         override def get: IO[EmsUploadResponse] =
-          IO(EmsUploadResponse(UUID.randomUUID().toString, "fn", "b1", "new", "c1"))
+          IO(EmsUploadResponse(UUID.randomUUID().toString, "fn", "b1", "new", "c1".some, None, None))
       }
       fileService = new StoredFileService[IO](Path.fromNioPath(new File(folder).toPath))
       routes      = new MultipartHttpEndpoint[IO](fileService, responseProvider, auth, table).service.orNotFound

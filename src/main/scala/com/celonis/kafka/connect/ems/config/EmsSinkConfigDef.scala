@@ -4,6 +4,9 @@
 package com.celonis.kafka.connect.ems.config
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLIENT_ID_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLIENT_ID_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLIENT_ID_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_DOC
@@ -18,11 +21,15 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TM
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETIRES_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
@@ -44,25 +51,34 @@ import org.apache.kafka.common.config.ConfigDef.Type
 object EmsSinkConfigDef {
   val config: ConfigDef = new EmsSinkConfigDef()
     .define(
-      AUTHORIZATION_KEY,
-      Type.PASSWORD,
-      null,
-      Importance.HIGH,
-      AUTHORIZATION_DOC,
-    )
-    .define(
       ENDPOINT_KEY,
       Type.STRING,
-      null,
       Importance.HIGH,
       ENDPOINT_DOC,
+      "Connection",
+      1,
+      ConfigDef.Width.LONG,
+      "Endpoint",
+    )
+    .define(
+      AUTHORIZATION_KEY,
+      Type.PASSWORD,
+      Importance.HIGH,
+      AUTHORIZATION_DOC,
+      "Connection",
+      2,
+      ConfigDef.Width.MEDIUM,
+      "Authorization Key",
     )
     .define(
       TARGET_TABLE_KEY,
       Type.STRING,
-      null,
       Importance.HIGH,
       TARGET_TABLE_DOC,
+      "Connection",
+      3,
+      ConfigDef.Width.MEDIUM,
+      "Table",
     )
     .define(
       CONNECTION_ID_KEY,
@@ -70,32 +86,55 @@ object EmsSinkConfigDef {
       CONNECTION_ID_DEFAULT,
       Importance.HIGH,
       CONNECTION_ID_DOC,
+      "Connection",
+      4,
+      ConfigDef.Width.MEDIUM,
+      "Connection Id",
+    )
+    .define(
+      CLIENT_ID_KEY,
+      Type.STRING,
+      CLIENT_ID_DEFAULT,
+      Importance.HIGH,
+      CLIENT_ID_DOC,
+      "Connection",
+      5,
+      ConfigDef.Width.MEDIUM,
+      "Client Id",
     )
     .define(
       COMMIT_SIZE_KEY,
       Type.LONG,
-      null,
       Importance.HIGH,
       COMMIT_SIZE_DOC,
+      "Commit",
+      1,
+      ConfigDef.Width.MEDIUM,
+      "File Size",
     )
     .define(
       COMMIT_RECORDS_KEY,
       Type.INT,
-      null,
       Importance.HIGH,
       COMMIT_RECORDS_DOC,
+      "Commit",
+      2,
+      ConfigDef.Width.MEDIUM,
+      "Max records",
     )
     .define(
       COMMIT_INTERVAL_KEY,
       Type.LONG,
-      null,
       Importance.HIGH,
       COMMIT_INTERVAL_DOC,
+      "Commit",
+      3,
+      ConfigDef.Width.MEDIUM,
+      "Time window",
     )
     .define(
       TMP_DIRECTORY_KEY,
       Type.STRING,
-      null,
       Importance.LOW,
       TMP_DIRECTORY_DOC,
     )
@@ -105,11 +144,26 @@ object EmsSinkConfigDef {
       PRIMARY_KEYS_DEFAULT,
       Importance.LOW,
       PRIMARY_KEYS_DOC,
+      "Data",
+      1,
+      ConfigDef.Width.MEDIUM,
+      "Primary Keys",
+    )
+    .define(
+      FALLBACK_VARCHAR_LENGTH_KEY,
+      Type.INT,
+      FALLBACK_VARCHAR_LENGTH_DEFAULT,
+      Importance.LOW,
+      FALLBACK_VARCHAR_LENGTH_DOC,
+      "Data",
+      2,
+      ConfigDef.Width.MEDIUM,
+      "String(VARCHAR) type size",
     )
     .define(
       ERROR_POLICY_KEY,
       Type.STRING,
-      null,
+      ERROR_POLICY_DEFAULT,
       Importance.HIGH,
       ERROR_POLICY_DOC,
       "Error",
