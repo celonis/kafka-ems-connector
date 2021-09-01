@@ -80,7 +80,7 @@ object EmsSinkConfigConstants {
   val FALLBACK_VARCHAR_LENGTH_KEY = s"$CONNECTOR_PREFIX.data.fallback.varchar.length"
   val FALLBACK_VARCHAR_LENGTH_DOC =
     "Optional parameter representing the STRING (VARCHAR) length when the schema is created in EMS"
-  val FALLBACK_VARCHAR_LENGTH_DEFAULT: String = null
+  val FALLBACK_VARCHAR_LENGTH_DEFAULT: Integer = null
 
   val DEBUG_KEEP_TMP_FILES_KEY: String = s"$CONNECTOR_PREFIX.debug.keep.parquet.files"
   val DEBUG_KEEP_TMP_FILES_DOC: String =
