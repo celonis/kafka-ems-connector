@@ -48,7 +48,7 @@ class EmsUploader[F[_]](
     def uploadWithClient(client: Client[F]): F[EmsUploadResponse] = {
       val multipart = Multipart[F](
         Vector(
-          Part.fileData[F]("file",
+          Part.fileData[F](EmsUploader.FileName,
                            fileName,
                            Files[F].readAll(Path.fromNioPath(uploadRequest.file.toPath), ChunkSize, Flags.Read),
           ),

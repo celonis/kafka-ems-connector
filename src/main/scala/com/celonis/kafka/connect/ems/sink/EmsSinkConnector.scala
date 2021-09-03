@@ -26,14 +26,14 @@ class EmsSinkConnector extends SinkConnector {
   override def config(): ConfigDef = EmsSinkConfigDef.config
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Creating S3 sink connector")
+    logger.info(s"Creating EMS sink connector")
     this.props = props
   }
 
   override def stop(): Unit = ()
 
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
-    logger.info(s"Creating $maxTasks tasks config")
+    logger.debug(s"Creating $maxTasks tasks config")
     List.fill(maxTasks)(props).asJava
   }
 }
