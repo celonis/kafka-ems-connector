@@ -3,39 +3,15 @@
  */
 package com.celonis.kafka.connect.ems.config
 
+import cats.data.NonEmptyList
 import cats.implicits._
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLIENT_ID_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_ID_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETIRES_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
+import com.celonis.kafka.connect.ems.model.DataObfuscation.SHA1
+import com.celonis.kafka.connect.ems.model.DataObfuscation.SHA512WithSalt
+import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
 import com.celonis.kafka.connect.ems.model.CommitPolicy
+import com.celonis.kafka.connect.ems.model.DataObfuscation
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
@@ -43,7 +19,15 @@ import org.apache.commons.validator.routines.UrlValidator
 
 import java.io.File
 import java.net.URL
+import java.nio.charset.StandardCharsets
 import java.nio.file.Path
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
+
+case class ObfuscatedField(path: NonEmptyList[String])
+
+case class ObfuscationConfig(obfuscation: DataObfuscation, fields: NonEmptyList[ObfuscatedField])
 
 case class EmsSinkConfig(
   sinkName:               String,
@@ -59,6 +43,7 @@ case class EmsSinkConfig(
   parquet:                ParquetConfig,
   primaryKeys:            List[String],
   fallbackVarCharLengths: Option[Int],
+  obfuscation:            Option[ObfuscationConfig],
 )
 
 object EmsSinkConfig {
@@ -127,6 +112,7 @@ object EmsSinkConfig {
         else value.asRight[String]
       case None => PARQUET_FLUSH_DEFAULT.asRight
     }
+
   def extractErrorPolicy(props: Map[String, _]): Either[String, ErrorPolicy] =
     nonEmptyStringOr(props, ERROR_POLICY_KEY, ERROR_POLICY_DOC)
       .flatMap { constant =>
@@ -193,6 +179,61 @@ object EmsSinkConfig {
       case None => Nil.asRight
     }
 
+  def extractSHA512(props: Map[String, _]): Either[String, SHA512WithSalt] =
+    PropertiesHelper.getString(props, SHA512_SALT_KEY) match {
+      case Some(value) =>
+        Try(SHA512WithSalt(value.getBytes(StandardCharsets.UTF_8))) match {
+          case Failure(exception) => error(SHA512_SALT_KEY, s"Invalid salt provided. ${exception.getMessage}")
+          case Success(value)     => value.asRight
+        }
+      case None => error(SHA512_SALT_KEY, "Required field.")
+    }
+
+  def extractObfuscationMethod(props: Map[String, _]): Either[String, DataObfuscation] =
+    PropertiesHelper.getString(props, OBFUSCATION_TYPE_KEY) match {
+      case Some(value) =>
+        value.toLowerCase() match {
+          case "fix"    => FixObfuscation(5, '*').asRight[String]
+          case "sha1"   => SHA1.asRight[String]
+          case "sha512" => extractSHA512(props)
+          case _        => error(OBFUSCATION_TYPE_KEY, "Expected obfuscation methods are: *, sha1 or sha512.")
+        }
+      case None => error(OBFUSCATION_TYPE_KEY, "Obfuscation method is required.")
+    }
+
+  def extractObfuscation(props: Map[String, _]): Either[String, Option[ObfuscationConfig]] =
+    props.get(OBFUSCATED_FIELDS_KEY) match {
+      case Some(value: String) =>
+        val fields = value.split(',').map(_.trim).filter(_.nonEmpty).distinct
+        if (fields.isEmpty) error(OBFUSCATED_FIELDS_KEY, "Empty list of fields has been provided.")
+        else {
+          val invalidFields = fields.map(f => f -> fields.count(_ == f)).filter(_._2 > 1)
+          if (invalidFields.nonEmpty)
+            error(
+              OBFUSCATED_FIELDS_KEY,
+              s"Invalid obfuscation fields. There are overlapping fields:${invalidFields.map(_._1).mkString("m,")}.",
+            )
+          else
+            extractObfuscationMethod(props).map { dataObfuscation =>
+              ObfuscationConfig(
+                dataObfuscation,
+                NonEmptyList.fromListUnsafe(
+                  fields.map(f => NonEmptyList.fromListUnsafe(f.split('.').toList)).map(ObfuscatedField.apply).toList,
+                ),
+              ).some
+            }
+
+        }
+      case Some(other) =>
+        Option(other).fold(Option.empty[ObfuscationConfig].asRight[String]) { o =>
+          error[Option[ObfuscationConfig]](
+            OBFUSCATED_FIELDS_KEY,
+            s"Invalid value provided. Expected a list of obfuscated fields but found:${o.getClass.getName}.",
+          )
+        }
+      case None => None.asRight
+    }
+
   def from(sinkName: String, props: Map[String, _]): Either[String, EmsSinkConfig] =
     for {
       url                 <- extractURL(props)
@@ -210,6 +251,7 @@ object EmsSinkConfig {
       connectionId           = PropertiesHelper.getString(props, CONNECTION_ID_KEY).map(_.trim).filter(_.nonEmpty)
       clientId               = PropertiesHelper.getString(props, CLIENT_ID_KEY).map(_.trim).filter(_.nonEmpty)
       fallbackVarCharLength <- extractFallbackVarcharLength(props)
+      obfuscation           <- extractObfuscation(props)
     } yield EmsSinkConfig(
       sinkName,
       url,
@@ -224,6 +266,7 @@ object EmsSinkConfig {
       ParquetConfig(parquetFlushRecords, buildCleanup(keepParquetFiles)),
       primaryKeys,
       fallbackVarCharLength,
+      obfuscation,
     )
 
   private def buildCleanup(keepParquetFiles: Boolean) =
