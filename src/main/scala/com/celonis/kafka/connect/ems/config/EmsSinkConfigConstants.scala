@@ -86,4 +86,15 @@ object EmsSinkConfigConstants {
   val DEBUG_KEEP_TMP_FILES_DOC: String =
     s"For debug purpose, set the setting to true for the connector to keep the local files after an upload. Default is false."
   val DEBUG_KEEP_TMP_FILES_DEFAULT = false
+
+  val OBFUSCATED_FIELDS_KEY = s"$CONNECTOR_PREFIX.obfuscation.fields"
+  val OBFUSCATED_FIELDS_DOC =
+    s"Comma separated list of fields to be obfuscated. Example: a, a.b, a.array_field.nested_field, a.array_field."
+
+  val SHA512_SALT_KEY = s"$CONNECTOR_PREFIX.obfuscation.sha512.salt"
+  val SHA512_SALT_DOC = s"The required salt value when using SHA512 obfuscation."
+
+  val OBFUSCATION_TYPE_KEY = s"$CONNECTOR_PREFIX.obfuscation.method"
+  val OBFUSCATION_TYPE_DOC =
+    s"The obfuscation type. Only required if obfuscation fields are provided. Available values are: FIX,SHA1 and SHA512. For SHA512 a salt is required via $SHA512_SALT_KEY configuration."
 }

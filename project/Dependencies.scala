@@ -47,7 +47,7 @@ object Dependencies {
 
     val http4sVersion = "1.0.0-M24"
     val avroVersion   = "1.9.2"
-    val avro4sVersion = "3.1.1"
+    val avro4sVersion = "4.0.11"
 
     val catsVersion           = "2.6.1"
     val catsEffectVersion     = "3.2.2"
@@ -188,6 +188,7 @@ trait Dependencies {
     `mockito-scala`,
     `wiremock-jre8`,
     jerseyCommon,
+    avro4s,
   ) ++ enumeratum ++ circe ++ http4s).map(_ exclude ("org.slf4j", "slf4j-log4j12")).map(
     _ % testConfigurationsMap.keys.mkString(","),
   )

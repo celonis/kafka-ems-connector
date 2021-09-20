@@ -9,8 +9,10 @@ import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigDef
+import com.celonis.kafka.connect.ems.config.ObfuscationConfig
 import com.celonis.kafka.connect.ems.conversion.DataConverter
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
+import com.celonis.kafka.connect.ems.errors.FailedObfuscationException
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.Offset
 import com.celonis.kafka.connect.ems.model.Partition
@@ -18,6 +20,7 @@ import com.celonis.kafka.connect.ems.model.Record
 import com.celonis.kafka.connect.ems.model.RecordMetadata
 import com.celonis.kafka.connect.ems.model.Topic
 import com.celonis.kafka.connect.ems.model.TopicPartition
+import com.celonis.kafka.connect.ems.obfuscation.ObfuscationUtils.GenericRecordObfuscation
 import com.celonis.kafka.connect.ems.storage.EmsUploader
 import com.celonis.kafka.connect.ems.storage.PrimaryKeysValidator
 import com.celonis.kafka.connect.ems.storage.Writer
@@ -45,9 +48,10 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private var pksValidator:             PrimaryKeysValidator     = _
   private var sinkName:                 String                   = _
 
-  private var maxRetries:  Int         = 0
-  private var retriesLeft: Int         = maxRetries
-  private var errorPolicy: ErrorPolicy = ErrorPolicy.Retry
+  private var maxRetries:  Int                       = 0
+  private var retriesLeft: Int                       = maxRetries
+  private var errorPolicy: ErrorPolicy               = ErrorPolicy.Retry
+  private var obfuscation: Option[ObfuscationConfig] = None
   override def version(): String =
     JarManifest.from(getClass.getProtectionDomain.getCodeSource.getLocation)
       .version.getOrElse("unknown")
@@ -83,6 +87,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     retriesLeft  = maxRetries
     errorPolicy  = config.errorPolicy
     pksValidator = new PrimaryKeysValidator(config.primaryKeys)
+    obfuscation  = config.obfuscation
   }
 
   private def getSinkName(props: util.Map[String, String]): Option[String] =
@@ -91,7 +96,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private def maybeSetErrorInterval(config: EmsSinkConfig): Unit =
     //if error policy is retry set retry interval
     config.errorPolicy match {
-      case Retry => context.timeout(config.retries.interval)
+      case Retry => Option(context).foreach(_.timeout(config.retries.interval))
       case _     =>
     }
 
@@ -104,7 +109,11 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         .toList
         .traverse { record =>
           for {
-            value   <- IO.fromEither(DataConverter.apply(record.value()))
+            v <- IO.fromEither(DataConverter.apply(record.value()))
+            _ <- IO(logger.info("[{}] EmsSinkTask:put obfuscation={}", sinkName, obfuscation))
+            value <- obfuscation.fold(IO.pure(v)) { o =>
+              IO.fromEither(v.obfuscate(o).leftMap(FailedObfuscationException))
+            }
             _       <- IO.fromEither(pksValidator.validate(value))
             tp       = TopicPartition(new Topic(record.topic()), new Partition(record.kafkaPartition()))
             metadata = RecordMetadata(tp, new Offset(record.kafkaOffset()))
