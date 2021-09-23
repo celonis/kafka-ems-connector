@@ -33,12 +33,18 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETIRES_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.OBFUSCATED_FIELDS_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.OBFUSCATED_FIELDS_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.OBFUSCATION_TYPE_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.OBFUSCATION_TYPE_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.SHA512_SALT_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.SHA512_SALT_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_DOC
@@ -214,6 +220,39 @@ object EmsSinkConfigDef {
       2,
       ConfigDef.Width.SHORT,
       DEBUG_KEEP_TMP_FILES_KEY,
+    )
+    .define(
+      OBFUSCATED_FIELDS_KEY,
+      Type.STRING,
+      null,
+      Importance.LOW,
+      OBFUSCATED_FIELDS_DOC,
+      "Obfuscation",
+      1,
+      ConfigDef.Width.LONG,
+      OBFUSCATED_FIELDS_DOC,
+    )
+    .define(
+      OBFUSCATION_TYPE_KEY,
+      Type.STRING,
+      "FIX",
+      Importance.LOW,
+      OBFUSCATION_TYPE_DOC,
+      "Obfuscation",
+      2,
+      ConfigDef.Width.SHORT,
+      OBFUSCATION_TYPE_KEY,
+    )
+    .define(
+      SHA512_SALT_KEY,
+      Type.STRING,
+      null,
+      Importance.LOW,
+      SHA512_SALT_DOC,
+      "Obfuscation",
+      3,
+      ConfigDef.Width.MEDIUM,
+      SHA512_SALT_DOC,
     )
 
 }

@@ -3,33 +3,12 @@
  */
 package com.celonis.kafka.connect.ems.config
 
+import cats.data.NonEmptyList
 import cats.syntax.either._
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLIENT_ID_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_ID_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
+import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
@@ -64,6 +43,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         ParquetConfig.Default,
         List("a", "b"),
         Some(512),
+        None,
       )
 
       val inputMap: Map[String, _] = Map(
@@ -187,6 +167,18 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     }
   }
 
+  test(
+    s"returns an default * obfuscation when $OBFUSCATION_TYPE_KEY is missing and $OBFUSCATED_FIELDS_KEY is present",
+  ) {
+    withMissingConfig(OBFUSCATION_TYPE_KEY) {
+      case Right(value) =>
+        value.obfuscation.isDefined shouldBe true
+        value.obfuscation.get.obfuscation shouldBe FixObfuscation(5, '*')
+        ()
+      case Left(_) => fail("should not fail")
+    }
+  }
+
   test("handles AppKey with quotation") {
     val input = Map(
       "connector.class"                         -> "com.celonis.kafka.connect.ems.sink.EmsSinkConnector",
@@ -236,6 +228,9 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         ParquetConfig.Default,
         List("a", "b"),
         Some(512),
+        Some(ObfuscationConfig(FixObfuscation(5, '*'),
+                               NonEmptyList.of(ObfuscatedField(NonEmptyList.fromListUnsafe(List("a", "b")))),
+        )),
       )
 
       val inputMap: Map[String, _] = Map(
@@ -255,12 +250,9 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         CONNECTION_ID_KEY           -> sinkConfig.connectionId.get,
         FALLBACK_VARCHAR_LENGTH_KEY -> sinkConfig.fallbackVarCharLengths.map(_.toString).orNull,
         CLIENT_ID_KEY               -> sinkConfig.clientId.orNull,
+        OBFUSCATION_TYPE_KEY        -> "fix",
+        OBFUSCATED_FIELDS_KEY       -> "a.b",
       ) - key
-
-      /* fn(EmsSinkConfig.from(
-        sinkConfig.sinkName,
-        inputMap,
-      ))*/
 
       (Try {
         import scala.collection.compat._
@@ -277,6 +269,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
       ()
     }
   }
+
   private def testMissingConfig(key: String, docs: String): Unit =
     withMissingConfig(key) {
       case e =>
