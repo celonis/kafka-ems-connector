@@ -33,4 +33,5 @@ object PropertiesHelper {
       case b: Boolean                              => b
       case s: String if Try(s.toBoolean).isSuccess => s.toBoolean
     }
+
 }
