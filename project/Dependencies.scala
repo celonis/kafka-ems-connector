@@ -45,7 +45,7 @@ object Dependencies {
 
     val confluentVersion = "6.2.0"
 
-    val http4sVersion = "1.0.0-M24"
+    val http4sVersion = "1.0.0-M27"
     val avroVersion   = "1.9.2"
     val avro4sVersion = "4.0.11"
 
@@ -153,6 +153,7 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "javax.servlet"))
     .excludeAll(ExclusionRule(organization = "javax.servlet.jsp"))
     .excludeAll(ExclusionRule(organization = "org.mortbay.jetty"))
+    .excludeAll(ExclusionRule(organization = "org.codehaus.jackson"))
     .exclude("org.apache.hadoop", "hadoop-annotations")
     .exclude("org.apache.hadoop", "hadoop-auth")
 
