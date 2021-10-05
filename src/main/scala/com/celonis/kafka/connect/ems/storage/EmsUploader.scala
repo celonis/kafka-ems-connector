@@ -3,6 +3,7 @@
  */
 package com.celonis.kafka.connect.ems.storage
 
+import cats.data.NonEmptyList
 import cats.effect.kernel.Async
 import cats.implicits._
 import com.celonis.kafka.connect.ems.errors.UploadFailedException
@@ -33,6 +34,7 @@ class EmsUploader[F[_]](
   connectionId:          Option[String],
   clientId:              Option[String],
   fallbackVarcharLength: Option[Int],
+  primaryKeys:           Option[NonEmptyList[String]],
   ec:                    ExecutionContext,
 )(
   implicit

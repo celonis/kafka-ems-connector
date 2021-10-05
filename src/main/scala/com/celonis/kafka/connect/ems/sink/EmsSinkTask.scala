@@ -3,6 +3,7 @@
  */
 package com.celonis.kafka.connect.ems.sink
 
+import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.unsafe.implicits.global
@@ -78,6 +79,9 @@ class EmsSinkTask extends SinkTask with StrictLogging {
                             config.connectionId,
                             config.clientId,
                             config.fallbackVarCharLengths,
+                            if (config.primaryKeys.exists(_.trim.nonEmpty))
+                              Some(NonEmptyList.fromListUnsafe(config.primaryKeys.map(_.trim).filter(_.nonEmpty)))
+                            else None,
                             blockingExecutionContext.executionContext,
         ),
         writers,
