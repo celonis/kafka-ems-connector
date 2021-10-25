@@ -63,6 +63,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 Some("id2"),
                                 None,
                                 None,
+                                None,
                                 ExecutionContext.global,
             ),
           )
@@ -112,6 +113,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
             new EmsUploader[IO](new URL(s"http://localhost:$port$path"),
                                 "invalid auth",
                                 targetTable,
+                                None,
                                 None,
                                 None,
                                 None,
