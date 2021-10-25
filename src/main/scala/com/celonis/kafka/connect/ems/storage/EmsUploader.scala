@@ -13,6 +13,7 @@ import com.typesafe.scalalogging.StrictLogging
 import fs2.io.file.Files
 import fs2.io.file.Flags
 import fs2.io.file.Path
+import io.circe.syntax.EncoderOps
 import org.http4s._
 import org.http4s.blaze.client.BlazeClientBuilder
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
@@ -48,15 +49,15 @@ class EmsUploader[F[_]](
       s"${uploadRequest.topic.value}_${uploadRequest.partition.value}_${uploadRequest.offset.value}.parquet"
 
     def uploadWithClient(client: Client[F]): F[EmsUploadResponse] = {
-      val multipart = Multipart[F](
-        Vector(
-          Part.fileData[F](EmsUploader.FileName,
-                           fileName,
-                           Files[F].readAll(Path.fromNioPath(uploadRequest.file.toPath), ChunkSize, Flags.Read),
-          ),
+      val attributes = Vector(
+        Part.fileData[F](EmsUploader.FileName,
+                         fileName,
+                         Files[F].readAll(Path.fromNioPath(uploadRequest.file.toPath), ChunkSize, Flags.Read),
         ),
       )
-      val uri = buildUri(baseUrl, targetTable, connectionId, clientId, fallbackVarcharLength)
+      val pks       = primaryKeys.map(nel => nel.toList.asJson.noSpaces)
+      val multipart = Multipart[F](attributes)
+      val uri       = buildUri(baseUrl, targetTable, connectionId, clientId, fallbackVarcharLength, pks)
 
       val request: Request[F] = Method.POST.apply(
         multipart,
@@ -103,6 +104,7 @@ class EmsUploader[F[_]](
             },
           )
     }
+
   private def genericError(throwable: Throwable, file: File, msg: String, response: Response[F]): F[Throwable] = {
     val error = UploadFailedException(
       response.status,
@@ -116,6 +118,7 @@ class EmsUploader[F[_]](
       ),
     ).flatMap(_ => A.raiseError(error))
   }
+
   private def unmarshalError(throwable: Throwable, file: File, response: Response[F]): F[Throwable] = {
     val error = UploadFailedException(
       response.status,
@@ -138,13 +141,16 @@ object EmsUploader {
   val FileName              = "file"
   val ClientId              = "clientId"
   val FallbackVarcharLength = "fallbackVarcharLength"
+  val PrimaryKeys           = "primaryKeys"
   val ChunkSize             = 8192
+
   def buildUri(
     base:                  URL,
     targetTable:           String,
     connectionId:          Option[String],
     clientId:              Option[String],
     fallbackVarcharLength: Option[Int],
+    pks:                   Option[String],
   ): Uri = {
     val builder = connectionId.foldLeft(UriBuilder.fromUri(base.toURI)
       .queryParam(TargetTable, targetTable)) {
@@ -153,6 +159,7 @@ object EmsUploader {
 
     clientId.foreach(builder.queryParam(ClientId, _))
     fallbackVarcharLength.foreach(v => builder.queryParam(FallbackVarcharLength, v.toString))
+    pks.foreach(value => builder.queryParam(PrimaryKeys, value))
     val uri = builder.build()
 
     Uri.fromString(uri.toString).asInstanceOf[Right[ParseFailure, Uri]].value
