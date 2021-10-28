@@ -13,7 +13,6 @@ import com.typesafe.scalalogging.StrictLogging
 import fs2.io.file.Files
 import fs2.io.file.Flags
 import fs2.io.file.Path
-import io.circe.syntax.EncoderOps
 import org.http4s._
 import org.http4s.blaze.client.BlazeClientBuilder
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
@@ -55,7 +54,7 @@ class EmsUploader[F[_]](
                          Files[F].readAll(Path.fromNioPath(uploadRequest.file.toPath), ChunkSize, Flags.Read),
         ),
       )
-      val pks       = primaryKeys.map(nel => nel.toList.asJson.noSpaces)
+      val pks       = primaryKeys.map(nel => nel.mkString_(","))
       val multipart = Multipart[F](attributes)
       val uri       = buildUri(baseUrl, targetTable, connectionId, clientId, fallbackVarcharLength, pks)
 
@@ -65,7 +64,10 @@ class EmsUploader[F[_]](
         multipart.headers.headers :+ Header.Raw(CIString("Authorization"), authorization),
       )
 
-      client.expectOr[EmsUploadResponse](request)(handleUploadError(_, uploadRequest))
+      for {
+        _        <- A.delay(logger.info(s"Uploading URL:$uri"))
+        response <- client.expectOr[EmsUploadResponse](request)(handleUploadError(_, uploadRequest))
+      } yield response
     }
 
     BlazeClientBuilder[F](ec).resource
