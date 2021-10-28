@@ -48,7 +48,7 @@ class EmsUploaderUriTests extends AnyFunSuite with Matchers {
   }
 
   test("creates the URI with the pks") {
-    val pks = """["a"]"""
+    val pks = "a"
     val actual =
       EmsUploader.buildUri(new URL("https://foo.panda.com/api"), "tableA", None, Some("clientA"), None, Some(pks))
 
@@ -71,7 +71,7 @@ class EmsUploaderUriTests extends AnyFunSuite with Matchers {
   }
 
   test("creates the URI with all params") {
-    val pks = """["k1","k2"]"""
+    val pks = """k1,k2"""
     EmsUploader.buildUri(new URL("https://foo.panda.com/api"),
                          "tableA",
                          Some("connection1"),
