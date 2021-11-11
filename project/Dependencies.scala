@@ -1,7 +1,5 @@
-import Dependencies.commonResolvers
-import Dependencies.testConfigurationsMap
-import sbt._
 import Dependencies._
+import sbt._
 
 import scala.collection.immutable
 
@@ -134,11 +132,12 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "io.swagger"))
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.core"))
 
-  val http4sDsl         = "org.http4s" %% "http4s-dsl"          % Versions.http4sVersion
-  val http4sBlazeServer = "org.http4s" %% "http4s-blaze-server" % Versions.http4sVersion
-  val http4sBlazeClient = "org.http4s" %% "http4s-blaze-client" % Versions.http4sVersion
-  val http4sCirce       = "org.http4s" %% "http4s-circe"        % Versions.http4sVersion
-  val http4s            = Seq(http4sDsl, http4sBlazeServer, http4sBlazeClient, http4sCirce)
+  val http4sDsl         = "org.http4s" %% "http4s-dsl"               % Versions.http4sVersion
+  val http4sAsyncClient = "org.http4s" %% "http4s-async-http-client" % Versions.http4sVersion
+  val http4sBlazeServer = "org.http4s" %% "http4s-blaze-server"      % Versions.http4sVersion
+  val http4sBlazeClient = "org.http4s" %% "http4s-blaze-client"      % Versions.http4sVersion
+  val http4sCirce       = "org.http4s" %% "http4s-circe"             % Versions.http4sVersion
+  val http4s            = Seq(http4sDsl, http4sAsyncClient, http4sBlazeServer, http4sCirce)
 
   //lazy val avro   = "org.apache.avro"      % "avro"        % Versions.avroVersion
   lazy val avro4s = "com.sksamuel.avro4s" %% "avro4s-core" % Versions.avro4sVersion

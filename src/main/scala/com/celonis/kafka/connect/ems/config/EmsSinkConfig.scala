@@ -7,11 +7,11 @@ import cats.data.NonEmptyList
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
-import com.celonis.kafka.connect.ems.model.DataObfuscation.SHA1
-import com.celonis.kafka.connect.ems.model.DataObfuscation.SHA512WithSalt
-import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
 import com.celonis.kafka.connect.ems.model.CommitPolicy
 import com.celonis.kafka.connect.ems.model.DataObfuscation
+import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
+import com.celonis.kafka.connect.ems.model.DataObfuscation.SHA1
+import com.celonis.kafka.connect.ems.model.DataObfuscation.SHA512WithSalt
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
@@ -44,6 +44,7 @@ case class EmsSinkConfig(
   primaryKeys:            List[String],
   fallbackVarCharLengths: Option[Int],
   obfuscation:            Option[ObfuscationConfig],
+  proxy:                  Option[ProxyConfig],
 )
 
 object EmsSinkConfig {
@@ -234,6 +235,32 @@ object EmsSinkConfig {
       case None => None.asRight
     }
 
+  def extractProxyAuth(props: Map[String, _]): Either[String, Option[BasicAuthentication]] =
+    PropertiesHelper.getString(props, PROXY_AUTHENTICATION_KEY) match {
+      case Some("BASIC") => {
+          for {
+            user <- PropertiesHelper.getString(props, PROXY_AUTHBASIC_USERNAME_KEY)
+            pass <- PropertiesHelper.getString(props, PROXY_AUTHBASIC_PASSWORD_KEY)
+          } yield BasicAuthentication(user, pass)
+        }.asRight
+      case Some(other) => s"Proxy authentication type not currently supported: ($other). Supported values: BASIC".asLeft
+      case None        => None.asRight
+    }
+
+  def extractProxy(props: Map[String, _]): Either[String, Option[ProxyConfig]] = {
+    for {
+      host <- PropertiesHelper.getString(props, PROXY_HOST_KEY)
+      port <- PropertiesHelper.getInt(props, PROXY_PORT_KEY)
+    } yield {
+      (host, port)
+    }
+  }
+    .map {
+      case (host, port) => extractProxyAuth(props)
+          .map(maybeAuth => Some(ProxyConfig(host, port, maybeAuth)))
+    }
+    .getOrElse(None.asRight)
+
   def from(sinkName: String, props: Map[String, _]): Either[String, EmsSinkConfig] =
     for {
       url                 <- extractURL(props)
@@ -252,6 +279,7 @@ object EmsSinkConfig {
       clientId               = PropertiesHelper.getString(props, CLIENT_ID_KEY).map(_.trim).filter(_.nonEmpty)
       fallbackVarCharLength <- extractFallbackVarcharLength(props)
       obfuscation           <- extractObfuscation(props)
+      proxyConfig           <- extractProxy(props)
     } yield EmsSinkConfig(
       sinkName,
       url,
@@ -267,6 +295,7 @@ object EmsSinkConfig {
       primaryKeys,
       fallbackVarCharLength,
       obfuscation,
+      proxyConfig,
     )
 
   private def buildCleanup(keepParquetFiles: Boolean) =

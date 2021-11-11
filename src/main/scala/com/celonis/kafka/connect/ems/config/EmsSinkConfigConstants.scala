@@ -97,4 +97,25 @@ object EmsSinkConfigConstants {
   val OBFUSCATION_TYPE_KEY = s"$CONNECTOR_PREFIX.obfuscation.method"
   val OBFUSCATION_TYPE_DOC =
     s"The obfuscation type. Only required if obfuscation fields are provided. Available values are: FIX,SHA1 and SHA512. For SHA512 a salt is required via $SHA512_SALT_KEY configuration."
+
+  val PROXY_HOST_KEY = s"$CONNECTOR_PREFIX.proxy.host"
+  val PROXY_HOST_DOC =
+    s"Proxy host excluding port, eg my-proxy.com"
+
+  val PROXY_PORT_KEY = s"$CONNECTOR_PREFIX.proxy.port"
+  val PROXY_PORT_DOC =
+    s"The port number for the proxy server"
+
+  val PROXY_AUTHENTICATION_KEY = s"$CONNECTOR_PREFIX.proxy.auth.type"
+  val PROXY_AUTHENTICATION_DOC =
+    s"Proxy authentication type.  Only one option at present, BASIC"
+
+  val PROXY_AUTHBASIC_USERNAME_KEY = s"$CONNECTOR_PREFIX.proxy.auth.username"
+  val PROXY_AUTHBASIC_USERNAME_DOC =
+    s"Proxy BASIC auth username"
+
+  val PROXY_AUTHBASIC_PASSWORD_KEY = s"$CONNECTOR_PREFIX.proxy.auth.password"
+  val PROXY_AUTHBASIC_PASSWORD_DOC =
+    s"Proxy BASIC auth password"
+
 }

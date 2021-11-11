@@ -13,8 +13,8 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigDef
 import com.celonis.kafka.connect.ems.config.ObfuscationConfig
 import com.celonis.kafka.connect.ems.conversion.DataConverter
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
-import com.celonis.kafka.connect.ems.errors.FailedObfuscationException
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
+import com.celonis.kafka.connect.ems.errors.FailedObfuscationException
 import com.celonis.kafka.connect.ems.model.Offset
 import com.celonis.kafka.connect.ems.model.Partition
 import com.celonis.kafka.connect.ems.model.Record
@@ -35,9 +35,9 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.Executors
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContextExecutor
 import scala.jdk.CollectionConverters._
@@ -83,6 +83,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
                               Some(NonEmptyList.fromListUnsafe(config.primaryKeys.map(_.trim).filter(_.nonEmpty)))
                             else None,
                             blockingExecutionContext.executionContext,
+                            config.proxy,
         ),
         writers,
       )

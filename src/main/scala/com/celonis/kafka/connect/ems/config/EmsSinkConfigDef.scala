@@ -43,6 +43,14 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHBASIC_PASSWORD_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHBASIC_PASSWORD_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHBASIC_USERNAME_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHBASIC_USERNAME_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_HOST_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_HOST_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_PORT_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_PORT_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.SHA512_SALT_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.SHA512_SALT_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_DOC
@@ -254,7 +262,50 @@ object EmsSinkConfigDef {
       ConfigDef.Width.MEDIUM,
       SHA512_SALT_DOC,
     )
-
+    .define(
+      PROXY_HOST_KEY,
+      Type.STRING,
+      null,
+      Importance.LOW,
+      PROXY_HOST_DOC,
+      "Proxy",
+      1,
+      ConfigDef.Width.MEDIUM,
+      PROXY_HOST_DOC,
+    )
+    .define(
+      PROXY_PORT_KEY,
+      Type.INT,
+      null,
+      Importance.LOW,
+      PROXY_PORT_DOC,
+      "Proxy",
+      2,
+      ConfigDef.Width.MEDIUM,
+      PROXY_PORT_DOC,
+    )
+    .define(
+      PROXY_AUTHBASIC_USERNAME_KEY,
+      Type.STRING,
+      null,
+      Importance.LOW,
+      PROXY_AUTHBASIC_USERNAME_DOC,
+      "Proxy",
+      3,
+      ConfigDef.Width.MEDIUM,
+      PROXY_AUTHBASIC_USERNAME_DOC,
+    )
+    .define(
+      PROXY_AUTHBASIC_PASSWORD_KEY,
+      Type.PASSWORD,
+      null,
+      Importance.LOW,
+      PROXY_AUTHBASIC_PASSWORD_DOC,
+      "Proxy",
+      4,
+      ConfigDef.Width.MEDIUM,
+      PROXY_AUTHBASIC_PASSWORD_DOC,
+    )
 }
 
 class EmsSinkConfigDef() extends ConfigDef with LazyLogging

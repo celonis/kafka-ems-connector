@@ -6,6 +6,8 @@ package com.celonis.kafka.connect.ems.storage
 import cats.data.NonEmptyList
 import cats.effect.kernel.Async
 import cats.implicits._
+import com.celonis.kafka.connect.ems.config.BasicAuthentication
+import com.celonis.kafka.connect.ems.config.ProxyConfig
 import com.celonis.kafka.connect.ems.errors.UploadFailedException
 import com.celonis.kafka.connect.ems.storage.EmsUploader.ChunkSize
 import com.celonis.kafka.connect.ems.storage.EmsUploader.buildUri
@@ -13,8 +15,13 @@ import com.typesafe.scalalogging.StrictLogging
 import fs2.io.file.Files
 import fs2.io.file.Flags
 import fs2.io.file.Path
+import org.asynchttpclient.proxy.ProxyServer
+import org.asynchttpclient.DefaultAsyncHttpClient
+import org.asynchttpclient.DefaultAsyncHttpClientConfig
+import org.asynchttpclient.Realm
+import org.asynchttpclient.{ AsyncHttpClient => RawAsyncHttpClient }
 import org.http4s._
-import org.http4s.blaze.client.BlazeClientBuilder
+import org.http4s.asynchttpclient.client.AsyncHttpClient
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
@@ -36,12 +43,32 @@ class EmsUploader[F[_]](
   fallbackVarcharLength: Option[Int],
   primaryKeys:           Option[NonEmptyList[String]],
   ec:                    ExecutionContext,
+  maybeProxyConfig:      Option[ProxyConfig],
 )(
   implicit
   A: Async[F],
 ) extends Uploader[F]
     with Http4sClientDsl[F]
     with StrictLogging {
+
+  def createHttpClient(): RawAsyncHttpClient = {
+    def createRealm(proxy: ProxyConfig): Option[Realm] =
+      proxy.authentication.map((auth: BasicAuthentication) =>
+        new Realm.Builder(auth.username, auth.password)
+          .setUsePreemptiveAuth(true)
+          .setScheme(Realm.AuthScheme.BASIC)
+          .build(),
+      )
+
+    def createProxyServer: Option[ProxyServer] =
+      maybeProxyConfig.map(proxy =>
+        new ProxyServer.Builder(proxy.host, proxy.port).setRealm(createRealm(proxy).orNull).build(),
+      )
+
+    val asyncHttpClientConfig =
+      new DefaultAsyncHttpClientConfig.Builder().setProxyServer(createProxyServer.orNull).build()
+    new DefaultAsyncHttpClient(asyncHttpClientConfig)
+  }
 
   override def upload(uploadRequest: UploadRequest): F[EmsUploadResponse] = {
     val fileName =
@@ -70,8 +97,7 @@ class EmsUploader[F[_]](
       } yield response
     }
 
-    BlazeClientBuilder[F](ec).resource
-      .use(uploadWithClient)
+    AsyncHttpClient.fromClient(createHttpClient()).use(uploadWithClient)
   }
 
   private def handleUploadError(response: Response[F], request: UploadRequest): F[Throwable] =

@@ -2,10 +2,13 @@
  * Copyright 2017-2021 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.storage
-import cats.effect.kernel.Resource
 import cats.effect.IO
-import cats.effect.unsafe.implicits.global
 import cats.effect.Ref
+import cats.effect.kernel.Resource
+import cats.effect.unsafe.implicits.global
+import cats.syntax.option._
+import com.celonis.kafka.connect.ems.config.BasicAuthentication
+import com.celonis.kafka.connect.ems.config.ProxyConfig
 import com.celonis.kafka.connect.ems.errors.UploadFailedException
 import com.celonis.kafka.connect.ems.model.Offset
 import com.celonis.kafka.connect.ems.model.Partition
@@ -20,7 +23,6 @@ import java.net.URL
 import java.util.UUID
 import scala.collection.immutable.Queue
 import scala.concurrent.ExecutionContext
-import cats.syntax.option._
 
 class EmsUploaderTests extends AnyFunSuite with Matchers {
   test("uploads the file") {
@@ -65,6 +67,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 None,
                                 None,
                                 ExecutionContext.global,
+                                None,
             ),
           )
           response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
@@ -118,6 +121,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 None,
                                 None,
                                 ExecutionContext.global,
+                                None,
             ),
           )
           e <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100))).attempt
@@ -133,4 +137,123 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
         }
     }
   }
+
+  test("uploads the file through an unauthenticated proxy") {
+    val proxyPort        = 21214
+    val serverPort       = 21215
+    val proxyAuth        = None
+    val auth             = "this is auth"
+    val targetTable      = "tableA"
+    val path             = "/api/push"
+    val filePath         = UUID.randomUUID().toString + ".parquet"
+    val fileContent      = Array[Byte](1, 2, 3, 4)
+    val mapRef           = Ref.unsafe[IO, Map[String, Array[Byte]]](Map.empty)
+    val expectedResponse = EmsUploadResponse("id1", filePath, "b1", "new", "c1".some, None, None)
+    val responseQueueRef: Ref[IO, Queue[() => EmsUploadResponse]] = {
+      Ref.unsafe[IO, Queue[() => EmsUploadResponse]](Queue(() => expectedResponse))
+    }
+    val proxyServerResource = ProxyServer.resource[IO](proxyPort, proxyAuth)
+    val serverResource =
+      HttpServer.resource[IO](serverPort,
+                              new InMemoryFileService[IO](mapRef),
+                              new QueueEmsUploadResponseProvider[IO](responseQueueRef),
+                              auth,
+                              targetTable,
+      )
+    val fileResource: Resource[IO, File] = Resource.make[IO, File](IO {
+      val file = new File(filePath)
+      file.createNewFile()
+      val fw = new FileOutputStream(file)
+      fw.write(fileContent)
+      fw.close()
+      file
+    })(file => IO(file.delete()).map(_ => ()))
+
+    (for {
+      server <- serverResource
+      proxy  <- proxyServerResource
+      file   <- fileResource
+    } yield (server, proxy, file)).use {
+      case (_, _, file) =>
+        for {
+          uploader <- IO(
+            new EmsUploader[IO](new URL(s"http://localhost:$serverPort$path"),
+                                auth,
+                                targetTable,
+                                Some("id2"),
+                                None,
+                                None,
+                                None,
+                                ExecutionContext.global,
+                                Some(ProxyConfig("localhost", proxyPort, None)),
+            ),
+          )
+          response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
+          map      <- mapRef.get
+        } yield {
+          response shouldBe expectedResponse
+          map("a_0_100.parquet") shouldBe fileContent
+        }
+    }.unsafeRunSync()
+  }
+
+  test("uploads the file through an authenticated proxy") {
+    val proxyPort        = 21214
+    val serverPort       = 21215
+    val proxyAuth        = Some(BasicAuthentication("user", "pass"))
+    val auth             = "this is auth"
+    val targetTable      = "tableA"
+    val path             = "/api/push"
+    val filePath         = UUID.randomUUID().toString + ".parquet"
+    val fileContent      = Array[Byte](1, 2, 3, 4)
+    val mapRef           = Ref.unsafe[IO, Map[String, Array[Byte]]](Map.empty)
+    val expectedResponse = EmsUploadResponse("id1", filePath, "b1", "new", "c1".some, None, None)
+    val responseQueueRef: Ref[IO, Queue[() => EmsUploadResponse]] = {
+      Ref.unsafe[IO, Queue[() => EmsUploadResponse]](Queue(() => expectedResponse))
+    }
+    val proxyServerResource = ProxyServer.resource[IO](proxyPort, proxyAuth)
+    val serverResource =
+      HttpServer.resource[IO](serverPort,
+                              new InMemoryFileService[IO](mapRef),
+                              new QueueEmsUploadResponseProvider[IO](responseQueueRef),
+                              auth,
+                              targetTable,
+      )
+    val fileResource: Resource[IO, File] = Resource.make[IO, File](IO {
+      val file = new File(filePath)
+      file.createNewFile()
+      val fw = new FileOutputStream(file)
+      fw.write(fileContent)
+      fw.close()
+      file
+    })(file => IO(file.delete()).map(_ => ()))
+
+    (for {
+      server <- serverResource
+      proxy  <- proxyServerResource
+      file   <- fileResource
+    } yield (server, proxy, file)).use {
+      case (_, _, file) =>
+        for {
+          uploader <- IO(
+            new EmsUploader[IO](new URL(s"http://localhost:$serverPort$path"),
+                                auth,
+                                targetTable,
+                                Some("id2"),
+                                None,
+                                None,
+                                None,
+                                ExecutionContext.global,
+                                Some(ProxyConfig("localhost", proxyPort, proxyAuth)),
+            ),
+          )
+          response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
+          map      <- mapRef.get
+        } yield {
+          response shouldBe expectedResponse
+          map("a_0_100.parquet") shouldBe fileContent
+        }
+    }.unsafeRunSync()
+  }
+
 }

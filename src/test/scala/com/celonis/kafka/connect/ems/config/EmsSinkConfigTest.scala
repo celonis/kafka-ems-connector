@@ -44,6 +44,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         List("a", "b"),
         Some(512),
         None,
+        None,
       )
 
       val inputMap: Map[String, _] = Map(
@@ -231,6 +232,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         Some(ObfuscationConfig(FixObfuscation(5, '*'),
                                NonEmptyList.of(ObfuscatedField(NonEmptyList.fromListUnsafe(List("a", "b")))),
         )),
+        None,
       )
 
       val inputMap: Map[String, _] = Map(
