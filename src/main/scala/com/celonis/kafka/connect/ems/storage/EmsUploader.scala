@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Celonis Ltd
+ * Copyright 2017-2022 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.storage
 
@@ -53,17 +53,18 @@ class EmsUploader[F[_]](
 
   def createHttpClient(): RawAsyncHttpClient = {
     def createRealm(proxy: ProxyConfig): Option[Realm] =
-      proxy.authentication.map((auth: BasicAuthentication) =>
-        new Realm.Builder(auth.username, auth.password)
-          .setUsePreemptiveAuth(true)
-          .setScheme(Realm.AuthScheme.BASIC)
-          .build(),
-      )
+      proxy.authentication.map {
+        auth: BasicAuthentication =>
+          new Realm.Builder(auth.username, auth.password)
+            .setUsePreemptiveAuth(true)
+            .setScheme(Realm.AuthScheme.BASIC)
+            .build()
+      }
 
     def createProxyServer: Option[ProxyServer] =
-      maybeProxyConfig.map(proxy =>
-        new ProxyServer.Builder(proxy.host, proxy.port).setRealm(createRealm(proxy).orNull).build(),
-      )
+      maybeProxyConfig.map { proxy =>
+        new ProxyServer.Builder(proxy.host, proxy.port).setRealm(createRealm(proxy).orNull).build()
+      }
 
     val asyncHttpClientConfig =
       new DefaultAsyncHttpClientConfig.Builder().setProxyServer(createProxyServer.orNull).build()

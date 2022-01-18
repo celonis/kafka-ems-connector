@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Celonis Ltd
+ * Copyright 2017-2022 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.config
 
@@ -45,6 +45,7 @@ case class EmsSinkConfig(
   fallbackVarCharLengths: Option[Int],
   obfuscation:            Option[ObfuscationConfig],
   proxy:                  Option[ProxyConfig],
+  explode:                ExplodeConfig,
 )
 
 object EmsSinkConfig {
@@ -240,7 +241,7 @@ object EmsSinkConfig {
       case Some("BASIC") => {
           for {
             user <- PropertiesHelper.getString(props, PROXY_AUTHBASIC_USERNAME_KEY)
-            pass <- PropertiesHelper.getString(props, PROXY_AUTHBASIC_PASSWORD_KEY)
+            pass <- PropertiesHelper.getPassword(props, PROXY_AUTHBASIC_PASSWORD_KEY)
           } yield BasicAuthentication(user, pass)
         }.asRight
       case Some(other) => s"Proxy authentication type not currently supported: ($other). Supported values: BASIC".asLeft
@@ -261,6 +262,9 @@ object EmsSinkConfig {
     }
     .getOrElse(None.asRight)
 
+  def extractExplode(props: Map[String, _]): ExplodeConfig =
+    ExplodeConfig(PropertiesHelper.getString(props, EXPLODE_MODE_KEY))
+
   def from(sinkName: String, props: Map[String, _]): Either[String, EmsSinkConfig] =
     for {
       url                 <- extractURL(props)
@@ -279,6 +283,7 @@ object EmsSinkConfig {
       clientId               = PropertiesHelper.getString(props, CLIENT_ID_KEY).map(_.trim).filter(_.nonEmpty)
       fallbackVarCharLength <- extractFallbackVarcharLength(props)
       obfuscation           <- extractObfuscation(props)
+      explodeConfig          = extractExplode(props)
       proxyConfig           <- extractProxy(props)
     } yield EmsSinkConfig(
       sinkName,
@@ -296,6 +301,7 @@ object EmsSinkConfig {
       fallbackVarCharLength,
       obfuscation,
       proxyConfig,
+      explodeConfig,
     )
 
   private def buildCleanup(keepParquetFiles: Boolean) =

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Celonis Ltd
+ * Copyright 2017-2022 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.storage.formats
 import com.celonis.kafka.connect.ems.config.ParquetConfig
@@ -26,7 +26,8 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
       val topicPartition = TopicPartition(new Topic("B"), new Partition(2))
       val output         = FileSystem.createOutput(dir, sinkName, topicPartition)
       output.size shouldBe 0L
-      val formatWriter = ParquetFormatWriter.from(output, simpleSchema, ParquetConfig.Default)
+      val formatWriter =
+        ParquetFormatWriter.from(output, simpleSchema, ParquetConfig.Default, new NoOpExploder().explode)
       formatWriter.rolloverFileOnSchemaChange() shouldBe true
       formatWriter.close()
     }
@@ -38,7 +39,8 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
       val topicPartition = TopicPartition(new Topic("C"), new Partition(1))
       val output         = FileSystem.createOutput(dir, sinkName, topicPartition)
       output.size shouldBe 0L
-      val formatWriter = ParquetFormatWriter.from(output, simpleSchema, ParquetConfig.Default)
+      val formatWriter =
+        ParquetFormatWriter.from(output, simpleSchema, ParquetConfig.Default, new NoOpExploder().explode)
       formatWriter.size shouldBe 4L //4 BYTES from MAGIC PAR1
     }
   }
@@ -49,8 +51,9 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
       val topicPartition = TopicPartition(new Topic("A"), new Partition(2))
       val output         = FileSystem.createOutput(dir, sinkName, topicPartition)
       output.size shouldBe output.outputFile().length()
-      val formatWriter = ParquetFormatWriter.from(output, simpleSchema, ParquetConfig.Default)
-      val struct       = buildSimpleStruct()
+      val formatWriter =
+        ParquetFormatWriter.from(output, simpleSchema, ParquetConfig.Default, new NoOpExploder().explode)
+      val struct = buildSimpleStruct()
       formatWriter.write(struct)
       formatWriter.close()
       formatWriter.size > 4 shouldBe true
@@ -79,8 +82,9 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
         )
       val schemaAndValue = converter.toConnectData("topic", entry.asJson.noSpaces.getBytes)
 
-      val struct       = DataConverter.apply(schemaAndValue.value()).getOrElse(fail("Should convert the map"))
-      val formatWriter = ParquetFormatWriter.from(output, struct.getSchema, ParquetConfig.Default)
+      val struct = DataConverter.apply(schemaAndValue.value()).getOrElse(fail("Should convert the map"))
+      val formatWriter =
+        ParquetFormatWriter.from(output, struct.getSchema, ParquetConfig.Default, new NoOpExploder().explode)
       formatWriter.write(struct)
       formatWriter.close()
       formatWriter.size > 4 shouldBe true
@@ -99,8 +103,12 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
       val topicPartition = TopicPartition(new Topic("A"), new Partition(2))
       val output         = FileSystem.createOutput(dir, sinkName, topicPartition)
       output.size shouldBe output.outputFile().length()
-      val count        = 100
-      val formatWriter = ParquetFormatWriter.from(output, simpleSchema, ParquetConfig(count, ParquetFileCleanupDelete))
+      val count = 100
+      val formatWriter = ParquetFormatWriter.from(output,
+                                                  simpleSchema,
+                                                  ParquetConfig(count, ParquetFileCleanupDelete),
+                                                  new NoOpExploder().explode,
+      )
       (1 until count).foreach { _ =>
         formatWriter.write(buildSimpleStruct())
       }

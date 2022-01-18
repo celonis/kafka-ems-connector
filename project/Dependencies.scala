@@ -9,7 +9,7 @@ object Dependencies {
   val scalaOrganization      = "org.scala-lang"
   val scala212Version        = "2.12.13"
   val scala213Version        = "2.13.5"
-  val supportedScalaVersions = List(scala212Version, scala213Version)
+  val supportedScalaVersions = List(scala213Version)
 
   val FunctionalTest: Configuration = config("fun") extend Test describedAs "Runs functional tests"
   val ItTest:         Configuration = config("it").extend(Test).describedAs("Runs integration tests")

@@ -1,9 +1,12 @@
 /*
- * Copyright 2017-2021 Celonis Ltd
+ * Copyright 2017-2022 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.conversion
-import org.apache.avro.{ Schema => AvroSchema }
+import cats.data.NonEmptySeq
+import com.celonis.kafka.connect.ems.storage.formats.ListExploder
+import io.confluent.connect.avro.AvroData
 import org.apache.avro.generic.GenericRecord
+import org.apache.avro.{ Schema => AvroSchema }
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
@@ -82,4 +85,45 @@ class AvroDataConverterTests extends AnyFunSuite with Matchers {
     item.get("key") shouldBe 1
     item.get("value") shouldBe 1
   }
+
+  test("explode structure") {
+
+    val simpleSchema: Schema = SchemaBuilder.struct()
+      .field("id", SchemaBuilder.string())
+      .field("int_field", SchemaBuilder.int32())
+      .field("long_field", SchemaBuilder.int64())
+
+    val containerSchema: Schema = SchemaBuilder
+      .struct()
+      .field("messages", SchemaBuilder.array(simpleSchema))
+
+    val itemStruct1 = new Struct(simpleSchema)
+      .put("id", "beans")
+      .put("int_field", 1)
+      .put("long_field", 1L)
+
+    val itemStruct2 = new Struct(simpleSchema)
+      .put("id", "toast")
+      .put("int_field", 2)
+      .put("long_field", 2L)
+
+    //val avroSchema = ToAvroDataConverter.convertSchema(containerSchema)
+
+    val avroData = new AvroData(0)
+
+    val expectedItemStruct1 = avroData.fromConnectData(simpleSchema, itemStruct1)
+    val expectedItemStruct2 = avroData.fromConnectData(simpleSchema, itemStruct2)
+
+    val exploder = new ListExploder
+    val containerStruct = new Struct(containerSchema)
+      .put("messages", List(itemStruct1, itemStruct2).asJava)
+
+    val exploded = DataConverter(containerStruct) match {
+      case Left(err)     => fail(err)
+      case Right(record) => exploder.explode(record)
+    }
+    exploded should be(NonEmptySeq.of(expectedItemStruct1, expectedItemStruct2))
+
+  }
+
 }

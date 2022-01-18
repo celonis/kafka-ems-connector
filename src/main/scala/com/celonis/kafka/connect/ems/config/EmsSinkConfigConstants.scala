@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Celonis Ltd
+ * Copyright 2017-2022 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.config
 
@@ -117,5 +117,8 @@ object EmsSinkConfigConstants {
   val PROXY_AUTHBASIC_PASSWORD_KEY = s"$CONNECTOR_PREFIX.proxy.auth.password"
   val PROXY_AUTHBASIC_PASSWORD_DOC =
     s"Proxy BASIC auth password"
+
+  val EXPLODE_MODE_KEY = s"$CONNECTOR_PREFIX.explode.mode"
+  val EXPLODE_MODE_DOC = s"Explode (flatten out) a top-level collection, can be set to None or List"
 
 }

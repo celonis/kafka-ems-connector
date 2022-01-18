@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Celonis Ltd
+ * Copyright 2017-2022 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.config
 
@@ -45,6 +45,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         Some(512),
         None,
         None,
+        ExplodeConfig.None,
       )
 
       val inputMap: Map[String, _] = Map(
@@ -233,6 +234,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
                                NonEmptyList.of(ObfuscatedField(NonEmptyList.fromListUnsafe(List("a", "b")))),
         )),
         None,
+        ExplodeConfig.None,
       )
 
       val inputMap: Map[String, _] = Map(

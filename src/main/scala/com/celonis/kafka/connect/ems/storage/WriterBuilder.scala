@@ -1,7 +1,8 @@
 /*
- * Copyright 2017-2021 Celonis Ltd
+ * Copyright 2017-2022 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.storage
+import com.celonis.kafka.connect.ems.config.ExplodeConfig
 import com.celonis.kafka.connect.ems.config.ParquetConfig
 import com.celonis.kafka.connect.ems.model.CommitPolicy
 import com.celonis.kafka.connect.ems.model.Offset
@@ -27,8 +28,13 @@ trait WriterBuilder {
   def writerFrom(record: Record): Writer
 }
 
-class WriterBuilderImpl(tempDir: Path, sinkName: String, commitPolicy: CommitPolicy, parquet: ParquetConfig)
-    extends WriterBuilder {
+class WriterBuilderImpl(
+  tempDir:      Path,
+  sinkName:     String,
+  commitPolicy: CommitPolicy,
+  parquet:      ParquetConfig,
+  explode:      ExplodeConfig,
+) extends WriterBuilder {
 
   /**
     * Creates a new writer from an existing one. This happens only when the data(i.e. file) is committed
@@ -47,7 +53,8 @@ class WriterBuilderImpl(tempDir: Path, sinkName: String, commitPolicy: CommitPol
       file            = output.outputFile(),
     )
 
-    val formatWriter = ParquetFormatWriter.from(output, currentState.schema, parquet)
+    val formatWriter =
+      ParquetFormatWriter.from(output, explode.explodeSchema(currentState.schema), parquet, explode.toExplodeFn)
     new EmsWriter(sinkName, commitPolicy, formatWriter, newState)
   }
 
@@ -57,8 +64,9 @@ class WriterBuilderImpl(tempDir: Path, sinkName: String, commitPolicy: CommitPol
     * @return
     */
   def writerFrom(record: Record): Writer = {
-    val output       = FileSystem.createOutput(tempDir, sinkName, record.metadata.topicPartition)
-    val formatWriter = ParquetFormatWriter.from(output, record.value.getSchema, parquet)
+    val output = FileSystem.createOutput(tempDir, sinkName, record.metadata.topicPartition)
+    val formatWriter =
+      ParquetFormatWriter.from(output, explode.explodeSchema(record.value.getSchema), parquet, explode.toExplodeFn)
     val state = WriterState(
       record.metadata.topicPartition,
       //creates the state from the record. the data hasn't been yet written

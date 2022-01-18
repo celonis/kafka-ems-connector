@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Celonis Ltd
+ * Copyright 2017-2022 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.sink
 
@@ -45,6 +45,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
                                NonEmptyList.of(ObfuscatedField(NonEmptyList.fromListUnsafe(List("a", "b")))),
         )),
         None,
+        ExplodeConfig.None,
       )
       val config = Map(
         ENDPOINT_KEY                -> sinkConfig.url.toString,

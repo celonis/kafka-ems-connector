@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Celonis Ltd
+ * Copyright 2017-2022 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.storage
 
@@ -186,7 +186,7 @@ object WriterManager extends LazyLogging {
       sinkName,
       uploader,
       config.workingDir,
-      new WriterBuilderImpl(config.workingDir, sinkName, config.commitPolicy, config.parquet),
+      new WriterBuilderImpl(config.workingDir, sinkName, config.commitPolicy, config.parquet, config.explode),
       writers,
       ParquetFileCleanupDelete,
     )

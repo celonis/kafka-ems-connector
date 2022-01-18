@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Celonis Ltd
+ * Copyright 2017-2022 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.config
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_DOC
@@ -27,6 +27,8 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EXPLODE_MODE_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EXPLODE_MODE_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_KEY
@@ -47,6 +49,8 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHBAS
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHBASIC_PASSWORD_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHBASIC_USERNAME_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHBASIC_USERNAME_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHENTICATION_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHENTICATION_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_HOST_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_HOST_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_PORT_DOC
@@ -285,13 +289,24 @@ object EmsSinkConfigDef {
       PROXY_PORT_DOC,
     )
     .define(
+      PROXY_AUTHENTICATION_KEY,
+      Type.STRING,
+      null,
+      Importance.LOW,
+      PROXY_AUTHENTICATION_DOC,
+      "Proxy",
+      3,
+      ConfigDef.Width.MEDIUM,
+      PROXY_AUTHENTICATION_DOC,
+    )
+    .define(
       PROXY_AUTHBASIC_USERNAME_KEY,
       Type.STRING,
       null,
       Importance.LOW,
       PROXY_AUTHBASIC_USERNAME_DOC,
       "Proxy",
-      3,
+      4,
       ConfigDef.Width.MEDIUM,
       PROXY_AUTHBASIC_USERNAME_DOC,
     )
@@ -302,9 +317,20 @@ object EmsSinkConfigDef {
       Importance.LOW,
       PROXY_AUTHBASIC_PASSWORD_DOC,
       "Proxy",
-      4,
+      5,
       ConfigDef.Width.MEDIUM,
       PROXY_AUTHBASIC_PASSWORD_DOC,
+    )
+    .define(
+      EXPLODE_MODE_KEY,
+      Type.STRING,
+      "None",
+      Importance.LOW,
+      EXPLODE_MODE_DOC,
+      "Explode",
+      1,
+      ConfigDef.Width.MEDIUM,
+      EXPLODE_MODE_DOC,
     )
 }
 

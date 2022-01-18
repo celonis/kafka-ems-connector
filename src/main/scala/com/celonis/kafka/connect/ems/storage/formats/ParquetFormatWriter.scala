@@ -1,8 +1,9 @@
 /*
- * Copyright 2017-2021 Celonis Ltd
+ * Copyright 2017-2022 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.storage.formats
 
+import cats.data.NonEmptySeq
 import com.celonis.kafka.connect.ems.config.ParquetConfig
 import com.celonis.kafka.connect.ems.storage.FileAndStream
 import com.typesafe.scalalogging.LazyLogging
@@ -12,9 +13,13 @@ import org.apache.parquet.avro.AvroParquetWriter
 import org.apache.parquet.hadoop.ParquetWriter
 import org.apache.parquet.hadoop.metadata.CompressionCodecName
 
-class ParquetFormatWriter(output: FileAndStream, writer: ParquetWriter[AnyRef]) extends FormatWriter with LazyLogging {
-  override def write(value: GenericRecord): Unit =
-    writer.write(value)
+class ParquetFormatWriter(
+  output:    FileAndStream,
+  writer:    ParquetWriter[AnyRef],
+  explodeFn: GenericRecord => NonEmptySeq[GenericRecord],
+) extends FormatWriter
+    with LazyLogging {
+  override def write(value: GenericRecord): Unit = { val _ = explodeFn(value).map(writer.write) }
 
   override def rolloverFileOnSchemaChange() = true
 
@@ -27,7 +32,12 @@ class ParquetFormatWriter(output: FileAndStream, writer: ParquetWriter[AnyRef]) 
 }
 
 object ParquetFormatWriter {
-  def from(output: FileAndStream, schema: Schema, config: ParquetConfig): ParquetFormatWriter = {
+  def from(
+    output:    FileAndStream,
+    schema:    Schema,
+    config:    ParquetConfig,
+    explodeFn: GenericRecord => NonEmptySeq[GenericRecord],
+  ): ParquetFormatWriter = {
     val outputFile = new ParquetOutputFile(output)
 
     val writer: ParquetWriter[AnyRef] = AvroParquetWriter
@@ -39,6 +49,6 @@ object ParquetFormatWriter {
       .withSchema(schema)
       .build()
 
-    new ParquetFormatWriter(output, writer)
+    new ParquetFormatWriter(output, writer, explodeFn)
   }
 }
