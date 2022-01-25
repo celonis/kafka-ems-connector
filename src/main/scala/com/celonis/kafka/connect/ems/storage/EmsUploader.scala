@@ -51,6 +51,8 @@ class EmsUploader[F[_]](
     with Http4sClientDsl[F]
     with StrictLogging {
 
+  val httpClient: RawAsyncHttpClient = createHttpClient()
+
   def createHttpClient(): RawAsyncHttpClient = {
     def createRealm(proxy: ProxyConfig): Option[Realm] =
       proxy.authentication.map {
@@ -98,7 +100,7 @@ class EmsUploader[F[_]](
       } yield response
     }
 
-    AsyncHttpClient.fromClient(createHttpClient()).use(uploadWithClient)
+    AsyncHttpClient.fromClient(httpClient).use(uploadWithClient)
   }
 
   private def handleUploadError(response: Response[F], request: UploadRequest): F[Throwable] =
