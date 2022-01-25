@@ -8,7 +8,7 @@ import cats.effect.kernel.Resource
 import cats.effect.unsafe.implicits.global
 import cats.syntax.option._
 import com.celonis.kafka.connect.ems.config.BasicAuthentication
-import com.celonis.kafka.connect.ems.config.ProxyConfig
+import com.celonis.kafka.connect.ems.config.NoProxyConfig
 import com.celonis.kafka.connect.ems.errors.UploadFailedException
 import com.celonis.kafka.connect.ems.model.Offset
 import com.celonis.kafka.connect.ems.model.Partition
@@ -16,13 +16,12 @@ import com.celonis.kafka.connect.ems.model.Topic
 import org.http4s.Status.Forbidden
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-
+import com.celonis.kafka.connect.ems.config.ConfiguredProxyConfig
 import java.io.File
 import java.io.FileOutputStream
 import java.net.URL
 import java.util.UUID
 import scala.collection.immutable.Queue
-import scala.concurrent.ExecutionContext
 
 class EmsUploaderTests extends AnyFunSuite with Matchers {
   test("uploads the file") {
@@ -66,8 +65,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 None,
                                 None,
                                 None,
-                                ExecutionContext.global,
-                                None,
+                                NoProxyConfig().createHttpClient(),
             ),
           )
           response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
@@ -120,8 +118,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 None,
                                 None,
                                 None,
-                                ExecutionContext.global,
-                                None,
+                                NoProxyConfig().createHttpClient(),
             ),
           )
           e <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100))).attempt
@@ -184,8 +181,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 None,
                                 None,
                                 None,
-                                ExecutionContext.global,
-                                Some(ProxyConfig("localhost", proxyPort, None)),
+                                ConfiguredProxyConfig("localhost", proxyPort, None).createHttpClient(),
             ),
           )
           response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
@@ -243,8 +239,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 None,
                                 None,
                                 None,
-                                ExecutionContext.global,
-                                Some(ProxyConfig("localhost", proxyPort, proxyAuth)),
+                                ConfiguredProxyConfig("localhost", proxyPort, proxyAuth).createHttpClient(),
             ),
           )
           response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))

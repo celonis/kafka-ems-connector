@@ -44,7 +44,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         Some(ObfuscationConfig(FixObfuscation(5, '*'),
                                NonEmptyList.of(ObfuscatedField(NonEmptyList.fromListUnsafe(List("a", "b")))),
         )),
-        None,
+        NoProxyConfig(),
         ExplodeConfig.None,
       )
       val config = Map(
