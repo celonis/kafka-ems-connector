@@ -44,7 +44,7 @@ case class EmsSinkConfig(
   primaryKeys:            List[String],
   fallbackVarCharLengths: Option[Int],
   obfuscation:            Option[ObfuscationConfig],
-  proxy:                  Option[ProxyConfig],
+  proxy:                  ProxyConfig,
   explode:                ExplodeConfig,
 )
 
@@ -248,7 +248,7 @@ object EmsSinkConfig {
       case None        => None.asRight
     }
 
-  def extractProxy(props: Map[String, _]): Either[String, Option[ProxyConfig]] = {
+  def extractProxy(props: Map[String, _]): Either[String, ProxyConfig] = {
     for {
       host <- PropertiesHelper.getString(props, PROXY_HOST_KEY)
       port <- PropertiesHelper.getInt(props, PROXY_PORT_KEY)
@@ -258,9 +258,9 @@ object EmsSinkConfig {
   }
     .map {
       case (host, port) => extractProxyAuth(props)
-          .map(maybeAuth => Some(ProxyConfig(host, port, maybeAuth)))
+          .map(maybeAuth => ConfiguredProxyConfig(host, port, maybeAuth))
     }
-    .getOrElse(None.asRight)
+    .getOrElse(NoProxyConfig().asRight)
 
   def extractExplode(props: Map[String, _]): ExplodeConfig =
     ExplodeConfig(PropertiesHelper.getString(props, EXPLODE_MODE_KEY))
