@@ -8,6 +8,20 @@ import org.asynchttpclient.DefaultAsyncHttpClient
 import org.asynchttpclient.DefaultAsyncHttpClientConfig
 import org.asynchttpclient.Realm
 import org.asynchttpclient.proxy.ProxyServer
+import org.asynchttpclient.proxy.{ ProxyType => AsyncProxyType }
+import enumeratum._
+
+sealed abstract class ProxyType(val proxyType: AsyncProxyType) extends EnumEntry
+
+object ProxyType extends Enum[ProxyType] {
+
+  val values = findValues
+
+  case object Http   extends ProxyType(AsyncProxyType.HTTP)
+  case object Socks4 extends ProxyType(AsyncProxyType.SOCKS_V4)
+  case object Socks5 extends ProxyType(AsyncProxyType.SOCKS_V5)
+
+}
 
 sealed trait ProxyConfig {
   def createHttpClient(): AsyncHttpClient
@@ -20,6 +34,7 @@ case class NoProxyConfig() extends ProxyConfig {
 case class ConfiguredProxyConfig(
   host:           String,
   port:           Int,
+  proxyType:      ProxyType,
   authentication: Option[BasicAuthentication],
 ) extends ProxyConfig {
 
@@ -27,6 +42,7 @@ case class ConfiguredProxyConfig(
     val realmMaybe: Option[Realm] = authentication.map(_.createRealm())
     new ProxyServer.Builder(host, port)
       .setRealm(realmMaybe.orNull)
+      .setProxyType(proxyType.proxyType)
       .build()
   }
 

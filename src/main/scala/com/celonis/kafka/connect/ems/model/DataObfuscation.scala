@@ -5,6 +5,7 @@ package com.celonis.kafka.connect.ems.model
 
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
+import java.util.UUID
 
 sealed trait DataObfuscation {
   def obfuscate(value: String): String
@@ -34,4 +35,19 @@ object DataObfuscation {
     override def obfuscate(value: String): String = if (value == null) value
     else new String(md.digest(value.getBytes(StandardCharsets.UTF_8)))
   }
+
+  case class SHA512WithRandomSalt() extends DataObfuscation {
+    private val md: MessageDigest = MessageDigest.getInstance("SHA-512")
+
+    private def generateRandomSalt(): Array[Byte] =
+      UUID.randomUUID().toString.getBytes(StandardCharsets.UTF_8)
+
+    override def obfuscate(value: String): String =
+      if (value == null) value
+      else {
+        md.update(generateRandomSalt())
+        new String(md.digest(value.getBytes(StandardCharsets.UTF_8)))
+      }
+  }
+
 }

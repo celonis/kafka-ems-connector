@@ -55,6 +55,10 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_HOST_DO
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_HOST_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_PORT_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_PORT_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_TYPE_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_TYPE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.SHA512_RANDOM_SALT_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.SHA512_RANDOM_SALT_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.SHA512_SALT_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.SHA512_SALT_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_DOC
@@ -267,6 +271,17 @@ object EmsSinkConfigDef {
       SHA512_SALT_DOC,
     )
     .define(
+      SHA512_RANDOM_SALT_KEY,
+      Type.BOOLEAN,
+      null,
+      Importance.LOW,
+      SHA512_RANDOM_SALT_DOC,
+      "Obfuscation",
+      4,
+      ConfigDef.Width.MEDIUM,
+      SHA512_RANDOM_SALT_DOC,
+    )
+    .define(
       PROXY_HOST_KEY,
       Type.STRING,
       null,
@@ -289,13 +304,24 @@ object EmsSinkConfigDef {
       PROXY_PORT_DOC,
     )
     .define(
+      PROXY_TYPE_KEY,
+      Type.STRING,
+      "HTTP",
+      Importance.LOW,
+      PROXY_TYPE_DOC,
+      "Proxy",
+      3,
+      ConfigDef.Width.MEDIUM,
+      PROXY_TYPE_DOC,
+    )
+    .define(
       PROXY_AUTHENTICATION_KEY,
       Type.STRING,
       null,
       Importance.LOW,
       PROXY_AUTHENTICATION_DOC,
       "Proxy",
-      3,
+      4,
       ConfigDef.Width.MEDIUM,
       PROXY_AUTHENTICATION_DOC,
     )
@@ -306,7 +332,7 @@ object EmsSinkConfigDef {
       Importance.LOW,
       PROXY_AUTHBASIC_USERNAME_DOC,
       "Proxy",
-      4,
+      5,
       ConfigDef.Width.MEDIUM,
       PROXY_AUTHBASIC_USERNAME_DOC,
     )
@@ -317,7 +343,7 @@ object EmsSinkConfigDef {
       Importance.LOW,
       PROXY_AUTHBASIC_PASSWORD_DOC,
       "Proxy",
-      5,
+      6,
       ConfigDef.Width.MEDIUM,
       PROXY_AUTHBASIC_PASSWORD_DOC,
     )

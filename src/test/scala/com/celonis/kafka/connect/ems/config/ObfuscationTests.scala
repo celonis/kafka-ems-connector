@@ -6,11 +6,12 @@ package com.celonis.kafka.connect.ems.config
 import cats.data.NonEmptyList
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.OBFUSCATED_FIELDS_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.OBFUSCATION_TYPE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.SHA512_RANDOM_SALT_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.SHA512_SALT_KEY
-import com.celonis.kafka.connect.ems.model.DataObfuscation
 import com.celonis.kafka.connect.ems.model.DataObfuscation.SHA1
 import com.celonis.kafka.connect.ems.model.DataObfuscation.SHA512WithSalt
 import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
+import com.celonis.kafka.connect.ems.model.DataObfuscation.SHA512WithRandomSalt
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -102,9 +103,28 @@ class ObfuscationTests extends AnyFunSuite with Matchers {
       ),
     )
     actual.obfuscation match {
-      case FixObfuscation(_, _) => fail("should be SHA512")
-      case DataObfuscation.SHA1 => fail("should be SHA512")
       case SHA512WithSalt(salt) => salt shouldBe "jack norris".getBytes(StandardCharsets.UTF_8)
+      case _                    => fail("should be SHA512")
     }
+
+    EmsSinkConfig.extractObfuscation(
+      Map(OBFUSCATED_FIELDS_KEY  -> "abc, foo.boo.moo, a.x.y.z ",
+          OBFUSCATION_TYPE_KEY   -> "sHa512",
+          SHA512_RANDOM_SALT_KEY -> "true",
+      ),
+    ) shouldBe Right(
+      Some(
+        ObfuscationConfig(
+          SHA512WithRandomSalt(),
+          NonEmptyList.fromListUnsafe(
+            List(
+              ObfuscatedField(NonEmptyList.of("abc")),
+              ObfuscatedField(NonEmptyList.fromListUnsafe(List("foo", "boo", "moo"))),
+              ObfuscatedField(NonEmptyList.fromListUnsafe(List("a", "x", "y", "z"))),
+            ),
+          ),
+        ),
+      ),
+    )
   }
 }

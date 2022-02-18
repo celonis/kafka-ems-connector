@@ -94,9 +94,12 @@ object EmsSinkConfigConstants {
   val SHA512_SALT_KEY = s"$CONNECTOR_PREFIX.obfuscation.sha512.salt"
   val SHA512_SALT_DOC = s"The required salt value when using SHA512 obfuscation."
 
+  val SHA512_RANDOM_SALT_KEY = s"$CONNECTOR_PREFIX.obfuscation.sha512.randomsalt"
+  val SHA512_RANDOM_SALT_DOC = s"Salt is randomly generated for each call to obfuscate a field."
+
   val OBFUSCATION_TYPE_KEY = s"$CONNECTOR_PREFIX.obfuscation.method"
   val OBFUSCATION_TYPE_DOC =
-    s"The obfuscation type. Only required if obfuscation fields are provided. Available values are: FIX,SHA1 and SHA512. For SHA512 a salt is required via $SHA512_SALT_KEY configuration."
+    s"The obfuscation type. Only required if obfuscation fields are provided. Available values are: FIX,SHA1 and SHA512. For SHA512 a salt is required via $SHA512_SALT_KEY configuration, or a random salt can be configured using $SHA512_RANDOM_SALT_KEY."
 
   val PROXY_HOST_KEY = s"$CONNECTOR_PREFIX.proxy.host"
   val PROXY_HOST_DOC =
@@ -117,6 +120,10 @@ object EmsSinkConfigConstants {
   val PROXY_AUTHBASIC_PASSWORD_KEY = s"$CONNECTOR_PREFIX.proxy.auth.password"
   val PROXY_AUTHBASIC_PASSWORD_DOC =
     s"Proxy BASIC auth password"
+
+  val PROXY_TYPE_KEY = s"$CONNECTOR_PREFIX.proxy.type"
+  val PROXY_TYPE_DOC =
+    s"Proxy type, can be HTTP, SOCKS4 or SOCKS5"
 
   val EXPLODE_MODE_KEY = s"$CONNECTOR_PREFIX.explode.mode"
   val EXPLODE_MODE_DOC = s"Explode (flatten out) a top-level collection, can be set to None or List"

@@ -11,6 +11,7 @@ import com.celonis.kafka.connect.ems.model.CommitPolicy
 import com.celonis.kafka.connect.ems.model.DataObfuscation
 import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
 import com.celonis.kafka.connect.ems.model.DataObfuscation.SHA1
+import com.celonis.kafka.connect.ems.model.DataObfuscation.SHA512WithRandomSalt
 import com.celonis.kafka.connect.ems.model.DataObfuscation.SHA512WithSalt
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
@@ -181,14 +182,18 @@ object EmsSinkConfig {
       case None => Nil.asRight
     }
 
-  def extractSHA512(props: Map[String, _]): Either[String, SHA512WithSalt] =
+  def extractSHA512(props: Map[String, _]): Either[String, DataObfuscation] =
     PropertiesHelper.getString(props, SHA512_SALT_KEY) match {
       case Some(value) =>
         Try(SHA512WithSalt(value.getBytes(StandardCharsets.UTF_8))) match {
           case Failure(exception) => error(SHA512_SALT_KEY, s"Invalid salt provided. ${exception.getMessage}")
           case Success(value)     => value.asRight
         }
-      case None => error(SHA512_SALT_KEY, "Required field.")
+      case None =>
+        PropertiesHelper.getBoolean(props, SHA512_RANDOM_SALT_KEY) match {
+          case Some(true) => SHA512WithRandomSalt().asRight
+          case _          => error(SHA512_SALT_KEY, "Required field. A salt or random salt must be configured.")
+        }
     }
 
   def extractObfuscationMethod(props: Map[String, _]): Either[String, DataObfuscation] =
@@ -252,13 +257,17 @@ object EmsSinkConfig {
     for {
       host <- PropertiesHelper.getString(props, PROXY_HOST_KEY)
       port <- PropertiesHelper.getInt(props, PROXY_PORT_KEY)
+      proxyType <- for {
+        proxyTypeStringOpt <- PropertiesHelper.getString(props, PROXY_TYPE_KEY)
+        proxyType           = ProxyType.withNameInsensitiveOption(proxyTypeStringOpt).getOrElse(ProxyType.Http)
+      } yield proxyType
     } yield {
-      (host, port)
+      (host, port, proxyType)
     }
   }
     .map {
-      case (host, port) => extractProxyAuth(props)
-          .map(maybeAuth => ConfiguredProxyConfig(host, port, maybeAuth))
+      case (host, port, proxyType) => extractProxyAuth(props)
+          .map(maybeAuth => ConfiguredProxyConfig(host, port, proxyType, maybeAuth))
     }
     .getOrElse(NoProxyConfig().asRight)
 

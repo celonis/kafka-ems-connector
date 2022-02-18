@@ -17,6 +17,8 @@ import org.http4s.Status.Forbidden
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import com.celonis.kafka.connect.ems.config.ConfiguredProxyConfig
+import com.celonis.kafka.connect.ems.config.ProxyType
+
 import java.io.File
 import java.io.FileOutputStream
 import java.net.URL
@@ -181,7 +183,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 None,
                                 None,
                                 None,
-                                ConfiguredProxyConfig("localhost", proxyPort, None).createHttpClient(),
+                                ConfiguredProxyConfig("localhost", proxyPort, ProxyType.Http, None).createHttpClient(),
             ),
           )
           response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
@@ -239,7 +241,11 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 None,
                                 None,
                                 None,
-                                ConfiguredProxyConfig("localhost", proxyPort, proxyAuth).createHttpClient(),
+                                ConfiguredProxyConfig("localhost",
+                                                      proxyPort,
+                                                      ProxyType.Http,
+                                                      proxyAuth,
+                                ).createHttpClient(),
             ),
           )
           response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
