@@ -1,16 +1,14 @@
-import java.util.Calendar
-import Dependencies.FunctionalTest
-import Dependencies.ItTest
-import Dependencies.E2ETest
-import sbt._
-import sbt.Keys.semanticdbEnabled
+import Dependencies.{E2ETest, FunctionalTest, ItTest}
+import bloop.integrations.sbt.BloopDefaults
+import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import sbt.Keys._
 import sbt.TestFrameworks.ScalaTest
+import sbt._
+import scalafix.sbt.ScalafixPlugin.autoImport.{scalafixConfigSettings, scalafixSemanticdb}
+import scoverage.ScoverageKeys.coverageEnabled
 import scoverage._
-import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
-import scalafix.sbt.ScalafixPlugin.autoImport.scalafixConfigSettings
-import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
-import bloop.integrations.sbt.BloopDefaults
+
+import java.util.Calendar
 
 object Settings extends Dependencies {
   // keep the SNAPSHOT version numerically higher than the latest release.
@@ -29,11 +27,8 @@ object Settings extends Dependencies {
     }
   }
 
-  import scala.sys.process._
-
   val manifestSection: Package.JarManifest = {
-    import java.util.jar.Attributes
-    import java.util.jar.Manifest
+    import java.util.jar.{Attributes, Manifest}
     val manifest      = new Manifest
     val newAttributes = new Attributes()
     newAttributes.put(new Attributes.Name("version"), majorVersion)
@@ -259,6 +254,7 @@ object Settings extends Dependencies {
         .settings(bloopConfigToConfig(Test) ++ bloopConfigToConfig(ItTest) ++ bloopConfigToConfig(FunctionalTest) ++ bloopConfigToConfig(E2ETest))
         .settings( testSettings ++ itSettings(itTestsParallel) ++ funSettings(funTestsParallel) ++ e2eSettings(e2eTestsParallel) : _*)
         .settings(libraryDependencies ++= baseTestDeps)
+        .settings(coverageEnabled := true)
         .enablePlugins(ScoverageSbtPlugin)
   }
 }
