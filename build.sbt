@@ -5,7 +5,7 @@ scalafixDependencies in ThisBuild ++= Dependencies.scalafixDeps
 // This line ensures that sources are downloaded for dependencies, when using Bloop
 bloopExportJarClassifiers in Global := Some(Set("sources"))
 
-lazy val root = Project("stream-reactor", file("."))
+lazy val root = Project("kafka-ems-connector", file("."))
   .settings(
     publish := {},
     publishArtifact := false,
