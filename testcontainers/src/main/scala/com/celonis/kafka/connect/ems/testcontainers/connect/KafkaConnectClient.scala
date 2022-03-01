@@ -40,13 +40,13 @@ class KafkaConnectClient(kafkaConnectContainer: KafkaConnectContainer) {
     await.atMost(timeoutSeconds, TimeUnit.SECONDS).until(() => this.isConnectorConfigured(connectorConfiguration.name))
   }
 
-  def deleteConnector(connectorConfiguration: EmsConnectorConfiguration, timeoutSeconds: Long = 10L): Unit = {
+  def deleteConnector(connectorName: String, timeoutSeconds: Long = 10L): Unit = {
     val httpDelete =
-      new HttpDelete(s"${kafkaConnectContainer.getConnectRestUrl}/connectors/${connectorConfiguration.name}")
+      new HttpDelete(s"${kafkaConnectContainer.getConnectRestUrl}/connectors/$connectorName")
     val response = httpClient.execute(httpDelete)
     checkRequestSuccessful(response)
     EntityUtils.consume(response.getEntity)
-    await.atMost(timeoutSeconds, TimeUnit.SECONDS).until(() => !this.isConnectorConfigured(connectorConfiguration.name))
+    await.atMost(timeoutSeconds, TimeUnit.SECONDS).until(() => !this.isConnectorConfigured(connectorName))
   }
 
   def getConnectorStatus(connectorName: String): ConnectorStatus = {

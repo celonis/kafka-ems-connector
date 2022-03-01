@@ -1,12 +1,16 @@
 package com.celonis.kafka.connect.ems.testcontainers
 
+import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration
 import com.celonis.kafka.connect.ems.testcontainers.connect.KafkaConnectClient
 import com.celonis.kafka.connect.ems.testcontainers.connect.KafkaConnectContainer
 import com.celonis.kafka.connect.ems.testcontainers.sr.SchemaRegistryContainer
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import io.confluent.kafka.serializers.KafkaAvroSerializer
+import org.apache.avro.SchemaBuilder
+import org.apache.avro.generic.GenericData
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -52,6 +56,13 @@ trait KafkaConnectEnvironment extends ToxiproxyEnvironment {
 
   val kafkaConnectClient: KafkaConnectClient = new KafkaConnectClient(kafkaConnectContainer)
 
+  def withConnector(connectorConfig: EmsConnectorConfiguration)(testCode: => Any): Unit = {
+    kafkaConnectClient.registerConnector(connectorConfig)
+    kafkaConnectClient.waitConnectorInRunningState(connectorConfig.name)
+    testCode
+    kafkaConnectClient.deleteConnector(connectorConfig.name)
+  }
+
   def createProducer[K, V](
     keySer:            Class[_],
     valSer:            Class[_],
@@ -73,4 +84,18 @@ trait KafkaConnectEnvironment extends ToxiproxyEnvironment {
       kafkaContainer.getBootstrapServers,
       schemaRegistryContainer.getSchemaRegistryUrl,
     )
+
+  def sendDummyAvroRecord(topic: String): Unit = {
+    val valueSchema = SchemaBuilder.record("record").fields()
+      .requiredString("a")
+      .requiredInt("b")
+      .endRecord()
+
+    val record = new GenericData.Record(valueSchema)
+    record.put("a", "string")
+    record.put("b", 1)
+
+    stringAvroProducer.send(new ProducerRecord(topic, record))
+    stringAvroProducer.flush()
+  }
 }

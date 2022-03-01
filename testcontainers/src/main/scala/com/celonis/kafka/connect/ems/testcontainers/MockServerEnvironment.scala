@@ -1,6 +1,8 @@
 package com.celonis.kafka.connect.ems.testcontainers
 
 import org.mockserver.client.MockServerClient
+import org.mockserver.model.HttpRequest
+import org.mockserver.model.HttpResponse
 import org.testcontainers.containers.MockServerContainer
 import org.testcontainers.containers.Network
 import org.testcontainers.utility.DockerImageName
@@ -33,4 +35,10 @@ trait MockServerEnvironment {
     .findFirst()
     .get()
     .getIpAddress
+
+  def withMockResponse(request: HttpRequest, response: HttpResponse)(testCode: => Any): Unit = {
+    mockServerClient.when(request).respond(response)
+    testCode
+    val _ = mockServerClient.reset()
+  }
 }
