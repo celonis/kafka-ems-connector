@@ -156,23 +156,18 @@ class SmokeTests extends AnyFunSuite with KafkaConnectEnvironment with Matchers 
 
     withConnector(emsConnector) {
 
-      proxy.setConnectionCut(true)
+      withConnectionCut {
+        // produce a record to the source topic
+        sendDummyAvroRecord(sourceTopic)
 
-      // produce a record to the source topic
-      sendDummyAvroRecord(sourceTopic)
-
-      val consumer = new WaitingConsumer
-      kafkaConnectContainer.followOutput(consumer, OutputType.STDOUT)
-      consumer.waitUntil(
-        (frame: OutputFrame) => {
-          println(frame.getUtf8String)
-          frame.getUtf8String.contains("Error policy set to RETRY.")
-        },
-        30,
-        TimeUnit.SECONDS,
-      )
-
-      proxy.setConnectionCut(false)
+        val consumer = new WaitingConsumer
+        kafkaConnectContainer.followOutput(consumer, OutputType.STDOUT)
+        consumer.waitUntil(
+          (frame: OutputFrame) => frame.getUtf8String.contains("Error policy set to RETRY."),
+          30,
+          TimeUnit.SECONDS,
+        )
+      }
 
       // assert
       val emsRequest = HttpRequest.request()

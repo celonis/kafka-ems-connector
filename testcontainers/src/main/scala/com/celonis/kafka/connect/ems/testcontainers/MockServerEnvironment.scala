@@ -29,13 +29,6 @@ trait MockServerEnvironment {
 
   def mockServerInternalUrl = s"https://$mockServerNetworkAlias:${MockServerContainer.PORT}"
 
-  def mockServerIpAddress: String = mockServer.getContainerInfo.getNetworkSettings
-    .getNetworks.values()
-    .stream()
-    .findFirst()
-    .get()
-    .getIpAddress
-
   def withMockResponse(request: HttpRequest, response: HttpResponse)(testCode: => Any): Unit = {
     mockServerClient.when(request).respond(response)
     testCode

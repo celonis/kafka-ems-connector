@@ -22,4 +22,10 @@ trait ToxiproxyEnvironment extends MockServerEnvironment {
   val proxy: ToxiproxyContainer.ContainerProxy = toxiproxyContainer.getProxy(mockServer, MockServerContainer.PORT)
 
   val proxyServerUrl: String = s"https://$toxiproxyNetworkAlias:${proxy.getOriginalProxyPort}"
+
+  def withConnectionCut(testCode: => Any): Unit = {
+    proxy.setConnectionCut(true)
+    testCode
+    proxy.setConnectionCut(false)
+  }
 }
