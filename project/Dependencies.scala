@@ -73,6 +73,11 @@ object Dependencies {
     val hadoopVersion       = "2.10.1"
 
     val jerseyCommonVersion = "2.34"
+
+    val testcontainersVersion   = "1.16.3"
+    val mockServerClientVersion = "5.5.4"
+    val httpClientVersion       = "4.5.13"
+    val json4sVersion           = "3.6.11"
   }
 
   val scalaCollectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % Versions.scalaCollectionCompat
@@ -162,6 +167,15 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "org.mortbay.jetty"))
     .exclude("org.apache.hadoop", "hadoop-yarn-common")
     .exclude("org.apache.hadoop", "hadoop-yarn-client")
+
+  // testcontainers module dependencies
+  val testcontainersCore       = "org.testcontainers"        % "testcontainers"         % Versions.testcontainersVersion
+  val testcontainersKafka      = "org.testcontainers"        % "kafka"                  % Versions.testcontainersVersion
+  val testcontainersToxiproxy  = "org.testcontainers"        % "toxiproxy"              % Versions.testcontainersVersion
+  val testcontainersMockServer = "org.testcontainers"        % "mockserver"             % Versions.testcontainersVersion
+  val mockServerClient         = "org.mock-server"           % "mockserver-client-java" % Versions.mockServerClientVersion
+  val httpClient               = "org.apache.httpcomponents" % "httpclient"             % Versions.httpClientVersion
+  val json4s                   = "org.json4s"               %% "json4s-native"          % Versions.json4sVersion
 }
 
 trait Dependencies {
@@ -191,6 +205,18 @@ trait Dependencies {
     avro4s,
   ) ++ enumeratum ++ circe ++ http4s).map(_ exclude ("org.slf4j", "slf4j-log4j12")).map(
     _ % testConfigurationsMap.keys.mkString(","),
+  )
+
+  val testcontainersDeps: Seq[ModuleID] = Seq(
+    testcontainersCore,
+    testcontainersKafka,
+    testcontainersToxiproxy,
+    testcontainersMockServer,
+    mockServerClient,
+    kafkaConnectJson,
+    confluentAvroConverter,
+    httpClient,
+    json4s,
   )
 
   //Specific modules dependencies
