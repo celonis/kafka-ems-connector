@@ -1,3 +1,6 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package com.celonis.kafka.connect.ems.testcontainers
 
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration
