@@ -11,13 +11,6 @@ object Dependencies {
   val scala213Version        = "2.13.5"
   val supportedScalaVersions = List(scala213Version)
 
-  val FunctionalTest: Configuration = config("fun") extend Test describedAs "Runs functional tests"
-  val ItTest:         Configuration = config("it").extend(Test).describedAs("Runs integration tests")
-  val E2ETest:        Configuration = config("e2e").extend(Test).describedAs("Runs E2E tests")
-
-  val testConfigurationsMap =
-    Map(Test.name -> Test, FunctionalTest.name -> FunctionalTest, ItTest.name -> ItTest, E2ETest.name -> E2ETest)
-
   val commonResolvers = Seq(
     Resolver sonatypeRepo "public",
     Resolver typesafeRepo "releases",
@@ -31,7 +24,7 @@ object Dependencies {
 
   object Versions {
     // libraries versions
-    val scalatestVersion               = "3.1.0"
+    val scalatestVersion               = "3.2.9"
     val scalaCheckPlusVersion          = "3.1.0.0"
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.14.3"
@@ -108,7 +101,8 @@ object Dependencies {
   val scalaLogging     = "com.typesafe.scala-logging" %% "scala-logging"   % Versions.scalaLoggingVersion
 
   // testing
-  val scalatest = "org.scalatest" %% "scalatest" % Versions.scalatestVersion
+  val `scalatest-funsuite` = "org.scalatest" %% "scalatest-funsuite" % Versions.scalatestVersion
+  val `scalatest-funspec`  = "org.scalatest" %% "scalatest-funspec"  % Versions.scalatestVersion
   val scalatestPlusScalaCheck =
     "org.scalatestplus" %% "scalatestplus-scalacheck" % Versions.scalatestPlusScalaCheckVersion
   val scalaCheck      = "org.scalacheck"    %% "scalacheck"  % Versions.scalaCheckVersion
@@ -176,6 +170,7 @@ object Dependencies {
   val mockServerClient         = "org.mock-server"           % "mockserver-client-java" % Versions.mockServerClientVersion
   val httpClient               = "org.apache.httpcomponents" % "httpclient"             % Versions.httpClientVersion
   val json4s                   = "org.json4s"               %% "json4s-native"          % Versions.json4sVersion
+  val kafkaClients             = "org.apache.kafka"          % "kafka-clients"          % Versions.kafkaVersion
 }
 
 trait Dependencies {
@@ -195,7 +190,6 @@ trait Dependencies {
     catsLaws,
     catsEffect,
     catsEffectLaws,
-    scalatest,
     catsEffectScalatest,
     scalatestPlusScalaCheck,
     scalaCheck,
@@ -203,9 +197,9 @@ trait Dependencies {
     `wiremock-jre8`,
     jerseyCommon,
     avro4s,
-  ) ++ enumeratum ++ circe ++ http4s).map(_ exclude ("org.slf4j", "slf4j-log4j12")).map(
-    _ % testConfigurationsMap.keys.mkString(","),
-  )
+  ) ++ enumeratum ++ circe ++ http4s).map(_ exclude ("org.slf4j", "slf4j-log4j12"))
+
+  val scalaTestFunSuiteDeps = baseTestDeps ++ Seq(`scalatest-funsuite`)
 
   val testcontainersDeps: Seq[ModuleID] = Seq(
     testcontainersCore,
@@ -217,6 +211,7 @@ trait Dependencies {
     confluentAvroConverter,
     httpClient,
     json4s,
+    kafkaClients,
   )
 
   //Specific modules dependencies
@@ -254,26 +249,5 @@ trait Dependencies {
     private val commonDir = "modules"
 
     def from(dir: String): Project = project in file(s"$commonDir/$dir")
-  }
-
-  implicit final class DependsOnProject(project: Project) {
-    private def findCompileAndTestConfigs(p: Project) =
-      findTestConfigs(p) + "compile"
-
-    private def findTestConfigs(p: Project) =
-      p.configurations.map(_.name).toSet.intersect(testConfigurationsMap.keys.toSet)
-
-    private val thisProjectsConfigs = findCompileAndTestConfigs(project)
-    private def generateDepsForProject(p: Project, withCompile: Boolean) =
-      p % thisProjectsConfigs
-        .intersect(if (withCompile) findCompileAndTestConfigs(p) else findTestConfigs(p))
-        .map(c => s"$c->$c")
-        .mkString(";")
-
-    def compileAndTestDependsOn(projects: Project*): Project =
-      project.dependsOn(projects.map(generateDepsForProject(_, true)): _*)
-
-    def testsDependOn(projects: Project*): Project =
-      project.dependsOn(projects.map(generateDepsForProject(_, false)): _*)
   }
 }

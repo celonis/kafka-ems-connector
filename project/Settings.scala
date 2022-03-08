@@ -1,34 +1,32 @@
-import Dependencies.{E2ETest, FunctionalTest, ItTest}
-import bloop.integrations.sbt.BloopDefaults
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import sbt.Keys._
 import sbt.TestFrameworks.ScalaTest
 import sbt._
-import scalafix.sbt.ScalafixPlugin.autoImport.{scalafixConfigSettings, scalafixSemanticdb}
-import scoverage.ScoverageKeys.coverageEnabled
+import scalafix.sbt.ScalafixPlugin.autoImport.scalafixConfigSettings
+import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
 import scoverage._
 
 import java.util.Calendar
 
 object Settings extends Dependencies {
   // keep the SNAPSHOT version numerically higher than the latest release.
-  val majorVersion  = "1.0"
+  val majorVersion        = "1.0"
   val nextSnapshotVersion = "1.1"
 
-
   val artifactVersion: String = {
-    val maybeGithubRunId   = sys.env.get("github_run_id")
-    val maybeVersion = sys.env.get("VERSION")
-    val snapshotTag        = sys.env.get("SNAPSHOT_TAG")
+    val maybeGithubRunId = sys.env.get("github_run_id")
+    val maybeVersion     = sys.env.get("VERSION")
+    val snapshotTag      = sys.env.get("SNAPSHOT_TAG")
     (maybeVersion, maybeGithubRunId) match {
-      case (_, Some(patchVersion))  => majorVersion + "." + patchVersion
-      case (Some(v), _) => v
-      case _                        => s"$nextSnapshotVersion-${snapshotTag.fold("SNAPSHOT")(t => s"$t-SNAPSHOT")}"
+      case (_, Some(patchVersion)) => majorVersion + "." + patchVersion
+      case (Some(v), _)            => v
+      case _                       => s"$nextSnapshotVersion-${snapshotTag.fold("SNAPSHOT")(t => s"$t-SNAPSHOT")}"
     }
   }
 
   val manifestSection: Package.JarManifest = {
-    import java.util.jar.{Attributes, Manifest}
+    import java.util.jar.Attributes
+    import java.util.jar.Manifest
     val manifest      = new Manifest
     val newAttributes = new Attributes()
     newAttributes.put(new Attributes.Name("version"), majorVersion)
@@ -61,8 +59,8 @@ object Settings extends Dependencies {
       // private options
       "-Ybackend-parallelism",
       availableProcessors,
-      "-Yrangepos", // required by SemanticDB compiler plugin
-      "-P:semanticdb:synthetics:on" // required by scala-collection-migrations
+      "-Yrangepos",                 // required by SemanticDB compiler plugin
+      "-P:semanticdb:synthetics:on",// required by scala-collection-migrations
     )
 
     val lintings = List(
@@ -79,7 +77,7 @@ object Settings extends Dependencies {
       "-Xlint:poly-implicit-overload",
       "-Xlint:private-shadow",
       "-Xlint:stars-align",
-      "-Xlint:type-parameter-shadow"
+      "-Xlint:type-parameter-shadow",
     )
 
     object Scala212 {
@@ -103,7 +101,7 @@ object Settings extends Dependencies {
         "-Ywarn-unused:locals",
         //    "-Ywarn-unused:params", //todo this is more pain than it's worth right now
         "-Ywarn-unused:patvars",
-        "-Ywarn-unused:privates"
+        "-Ywarn-unused:privates",
       )
 
       val options: Seq[String] = commonOptions ++ List(
@@ -113,7 +111,7 @@ object Settings extends Dependencies {
         "-Yno-adapted-args",
         "-Xlint:by-name-right-associative",
         "-Xlint:unsound-match",
-        "-Xlint:nullary-override"
+        "-Xlint:nullary-override",
       ) ++ warnings ++ lintings
     }
 
@@ -133,14 +131,14 @@ object Settings extends Dependencies {
         "-Wunused:implicits",
         "-Wunused:locals",
         "-Wunused:patvars",
-        "-Wunused:privates"
+        "-Wunused:privates",
         //    "-Wself-implicit"
         //    "-Wunused:params", //todo this is more pain than it's worth right now
       )
 
       val options: Seq[String] = commonOptions ++ List(
         // advanced options
-        "-Xcheckinit"
+        "-Xcheckinit",
         // TODO Verify whether this is right...
         //"-Wconf:msg=import scala\\.collection\\.compat\\._:s"
       ) ++ warnings ++ lintings
@@ -160,10 +158,16 @@ object Settings extends Dependencies {
     betterMonadicFor,
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision,
-    libraryDependencies ++= Seq(Dependencies.scalaCollectionCompat)
+    libraryDependencies ++= Seq(Dependencies.scalaCollectionCompat),
   )
 
-  val settings: Seq[Setting[_]] = commonSettings ++ Seq(
+  val rootSettings: Seq[Setting[_]] = commonSettings ++ Seq(
+    crossScalaVersions := Nil,
+    publish / skip := true,
+    publishArtifact := false,
+  )
+
+  val modulesSettings: Seq[Setting[_]] = commonSettings ++ Seq(
     scalacOptions ++= {
       CrossVersion.partialVersion(scalaVersion.value) match {
         case Some((2, n)) if n <= 12 =>
@@ -180,7 +184,7 @@ object Settings extends Dependencies {
     Compile / outputStrategy := Some(StdoutOutput),
     resolvers ++= projectResolvers,
     //libraryDependencies ++= mainDeps,
-    crossScalaVersions := supportedScalaVersionsUsed
+    crossScalaVersions := supportedScalaVersionsUsed,
     /*Global / concurrentRestrictions := {
       val max = java.lang.Runtime.getRuntime.availableProcessors
       Seq(
@@ -190,71 +194,81 @@ object Settings extends Dependencies {
     }*/
   )
 
-  def bloopConfigToConfig(config: Configuration) = inConfig(config)(BloopDefaults.configSettings)
+  val ItTest:         Configuration = config("it").extend(Test).describedAs("Runs integration tests")
+  val FunctionalTest: Configuration = config("fun") extend Test describedAs "Runs functional tests"
+  val E2ETest:        Configuration = config("e2e").extend(Test).describedAs("Runs E2E tests")
 
-  private val testSettings =
-    inConfig(Test)(
-      Defaults.testSettings ++
-        Seq(
-          Test / fork := false,
-          Test / scalaSource := baseDirectory.value / s"src/${Test.name}/scala",
-          Test / testFrameworks := Seq(ScalaTest),
-          // This might fix an issue we are having in CI quite often
-          Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
-        )
-    )
+  val testConfigurationsMap =
+    Map(Test.name -> Test, ItTest.name -> ItTest, FunctionalTest.name -> FunctionalTest, E2ETest.name -> E2ETest)
 
-  private def itSettings(parallel: Boolean) =
-    inConfig(ItTest)(
-      Defaults.testSettings ++
-        Seq(
-          ItTest / fork := false,
-          ItTest / parallelExecution := parallel,
-          ItTest / scalaSource := baseDirectory.value / s"src/${ItTest.name}/scala",
-          ItTest / testFrameworks := Seq(ScalaTest),
-          // This might fix an issue we are having in CI quite often
-          ItTest / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
-        ) ++ scalafixConfigSettings(ItTest)
-    )
+  sealed abstract class TestConfigurator(
+    project:         Project,
+    config:          Configuration,
+    defaultSettings: Seq[Def.Setting[_]] = Defaults.testSettings,
+  ) {
 
-  private def funSettings(parallel: Boolean) =
-    inConfig(FunctionalTest)(
-      Defaults.testSettings ++
-        Seq(
-          FunctionalTest / fork := false,
-          FunctionalTest / parallelExecution := parallel,
-          FunctionalTest / scalaSource := baseDirectory.value / s"src/${FunctionalTest.name}/scala",
-          FunctionalTest / testFrameworks := Seq(ScalaTest),
-          // This might fix an issue we are having in CI quite often
-          FunctionalTest / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
-        ) ++ scalafixConfigSettings(FunctionalTest)
-    )
-
-  private def e2eSettings(parallel: Boolean) =
-    inConfig(E2ETest)(
-      Defaults.testSettings ++
-        Seq(
-          E2ETest / fork := false,
-          E2ETest / parallelExecution := parallel,
-          E2ETest / scalaSource := baseDirectory.value / s"src/${E2ETest.name}/scala",
-          E2ETest / testFrameworks := Seq(ScalaTest),
-          // This might fix an issue we are having in CI quite often
-          E2ETest / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
-        ) ++ scalafixConfigSettings(E2ETest)
-    )
-
-  /**
-   *
-   * @param project the project that will be configured with Test, ItTest, FunctionalTest and E2ETest configurations
-   */
-  implicit final class ProjectTestsConfigurator(project: Project) {
-    def configureTestsForProject(itTestsParallel: Boolean = true, funTestsParallel: Boolean = true, e2eTestsParallel: Boolean = true): Project =
+    protected def configure(
+      requiresFork:              Boolean,
+      requiresParallelExecution: Boolean,
+      frameworks:                Seq[TestFramework],
+      dependencies:              Seq[ModuleID],
+    ): Project =
       project
-        .configs(Test, ItTest, FunctionalTest, E2ETest)
-        .settings(bloopConfigToConfig(Test) ++ bloopConfigToConfig(ItTest) ++ bloopConfigToConfig(FunctionalTest) ++ bloopConfigToConfig(E2ETest))
-        .settings( testSettings ++ itSettings(itTestsParallel) ++ funSettings(funTestsParallel) ++ e2eSettings(e2eTestsParallel) : _*)
-        .settings(libraryDependencies ++= baseTestDeps)
-        .settings(coverageEnabled := true)
+        .configs(config)
+        .settings(
+          libraryDependencies ++= dependencies.map(
+            _ % config,
+          ),
+          inConfig(config)(
+            defaultSettings ++ Seq(
+              fork := requiresFork,
+              parallelExecution := requiresParallelExecution,
+              testFrameworks := frameworks,
+              classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
+            ) ++ scalafixConfigSettings(config),
+          ),
+        )
         .enablePlugins(ScoverageSbtPlugin)
+
+  }
+
+  implicit final class UnitTestConfigurator(project: Project) extends TestConfigurator(project, Test) {
+
+    def configureTests(
+      requiresFork:              Boolean            = false,
+      requiresParallelExecution: Boolean            = false,
+      frameworks:                Seq[TestFramework] = Seq(ScalaTest),
+    ): Project =
+      configure(requiresFork, requiresParallelExecution, frameworks, scalaTestFunSuiteDeps)
+  }
+
+  implicit final class IntegrationTestConfigurator(project: Project) extends TestConfigurator(project, ItTest) {
+
+    def configureIntegrationTests(
+      requiresFork:              Boolean            = false,
+      requiresParallelExecution: Boolean            = false,
+      frameworks:                Seq[TestFramework] = Seq(ScalaTest),
+    ): Project =
+      configure(requiresFork, requiresParallelExecution, frameworks, scalaTestFunSuiteDeps)
+  }
+
+  implicit final class FunctionalTestConfigurator(project: Project) extends TestConfigurator(project, FunctionalTest) {
+
+    def configureFunctionalTests(
+      requiresFork:              Boolean            = false,
+      requiresParallelExecution: Boolean            = true,
+      frameworks:                Seq[TestFramework] = Seq(ScalaTest),
+    ): Project =
+      configure(requiresFork, requiresParallelExecution, frameworks, scalaTestFunSuiteDeps)
+  }
+
+  implicit final class E2ETestConfigurator(project: Project) extends TestConfigurator(project, E2ETest) {
+
+    def configureE2ETests(
+      requiresFork:              Boolean            = false,
+      requiresParallelExecution: Boolean            = true,
+      frameworks:                Seq[TestFramework] = Seq(ScalaTest),
+    ): Project =
+      configure(requiresFork, requiresParallelExecution, frameworks, scalaTestFunSuiteDeps)
   }
 }

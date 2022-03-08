@@ -1,14 +1,13 @@
-import sbt._
 import Settings._
+import sbt._
 
-scalafixDependencies in ThisBuild ++= Dependencies.scalafixDeps
+ThisBuild / scalafixDependencies ++= Dependencies.scalafixDeps
 // This line ensures that sources are downloaded for dependencies, when using Bloop
 bloopExportJarClassifiers in Global := Some(Set("sources"))
 
 lazy val root = Project("kafka-ems-connector", file("."))
+  .settings(rootSettings)
   .settings(
-    publish := {},
-    publishArtifact := false,
     name := "kafka-ems-connector",
   )
   .aggregate(
@@ -18,7 +17,7 @@ lazy val root = Project("kafka-ems-connector", file("."))
 
 lazy val testcontainers = project.in(file("testcontainers"))
   .settings(
-    settings ++
+    modulesSettings ++
       Seq(
         name := "kafka-ems-testcontainers",
         description := "Provides a testing environment for EMS connector",
@@ -29,7 +28,7 @@ lazy val testcontainers = project.in(file("testcontainers"))
 
 lazy val connector = project.in(file("connector"))
   .settings(
-    settings ++
+    modulesSettings ++
       Seq(
         name := "kafka-ems-sink",
         description := "Provides a Kafka Connect sink for Celonis EMS",
@@ -40,20 +39,23 @@ lazy val connector = project.in(file("connector"))
         packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar"),
       ),
   )
-  .configureTestsForProject(itTestsParallel = false)
-  .enablePlugins(PackPlugin)
+  .configureTests()
+  .configureE2ETests()
   .dependsOn(testcontainers)
+  .enablePlugins(PackPlugin)
 
 addCommandAlias(
   "validateAll",
-  ";headerCheck;test:headerCheck;fun:headerCheck;it:headerCheck;scalafmtCheck;test:scalafmtCheck;it:scalafmtCheck;fun:scalafmtCheck;e2e:scalafmtCheck",
+  ";headerCheck;test:headerCheck;scalafmtCheckAll;scalafmtSbtCheck",
 )
+
 addCommandAlias(
   "formatAll",
-  ";headerCreate;test:headerCreate;fun:headerCreate;it:headerCreate;scalafmt;test:scalafmt;it:scalafmt;fun:scalafmt;e2e:scalafmt",
+  ";headerCreate;test:headerCreate;scalafmtAll;scalafmtSbt",
 )
+
 addCommandAlias("fullTest", ";test;fun:test;it:test;e2e:test")
-addCommandAlias("fullCoverageTest", ";coverage;test;fun:test;it:test;e2e:test;coverageReport;coverageAggregate")
+addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")
 
 dependencyCheckFormats := Seq("XML", "HTML")
 dependencyCheckNodeAnalyzerEnabled := Some(false)
