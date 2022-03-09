@@ -14,6 +14,9 @@ lazy val root = Project("kafka-ems-connector", file("."))
     connector,
     testcontainers,
   )
+  .dependsOn(testcontainers)
+  .dependsOn(connector)
+  .configureE2ETests()
 
 lazy val testcontainers = project.in(file("testcontainers"))
   .settings(
@@ -40,8 +43,6 @@ lazy val connector = project.in(file("connector"))
       ),
   )
   .configureTests()
-  .configureE2ETests()
-  .dependsOn(testcontainers)
   .enablePlugins(PackPlugin)
 
 addCommandAlias(
