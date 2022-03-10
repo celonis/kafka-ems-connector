@@ -71,6 +71,7 @@ object Dependencies {
     val mockServerClientVersion = "5.5.4"
     val httpClientVersion       = "4.5.13"
     val json4sVersion           = "3.6.11"
+    val slf4jTestingVersion     = "2.0.0-alpha1"
   }
 
   val scalaCollectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % Versions.scalaCollectionCompat
@@ -171,6 +172,10 @@ object Dependencies {
   val httpClient               = "org.apache.httpcomponents" % "httpclient"             % Versions.httpClientVersion
   val json4s                   = "org.json4s"               %% "json4s-native"          % Versions.json4sVersion
   val kafkaClients             = "org.apache.kafka"          % "kafka-clients"          % Versions.kafkaVersion
+
+  val slf4jTestingApi    = "org.slf4j" % "slf4j-api"     % Versions.slf4jTestingVersion
+  val slf4jTesting       = "org.slf4j" % "slf4j-log4j12" % Versions.slf4jTestingVersion
+  val slf4jTestingSimple = "org.slf4j" % "slf4j-simple"  % Versions.slf4jTestingVersion
 }
 
 trait Dependencies {
@@ -212,6 +217,9 @@ trait Dependencies {
     httpClient,
     json4s,
     kafkaClients,
+    slf4jTestingApi,
+    slf4jTesting,
+    slf4jTestingSimple,
   )
 
   //Specific modules dependencies
