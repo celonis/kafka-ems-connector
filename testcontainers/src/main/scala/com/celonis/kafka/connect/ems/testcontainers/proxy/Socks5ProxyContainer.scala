@@ -21,7 +21,7 @@ class Socks5ProxyContainer(network: Network, proxyUser: String = "", proxyPasswo
   withEnv("PROXY_PASSWORD", proxyPassword)
 
   def getProxyUrl: String =
-    if (proxyUser.isBlank && proxyPassword.isBlank) {
+    if (proxyUser.isEmpty && proxyPassword.isEmpty) {
       s"$networkAlias:$port"
     } else {
       s"$proxyUser:$proxyPassword@$networkAlias:$port"
