@@ -17,8 +17,10 @@ lazy val root = Project("kafka-ems-connector", file("."))
   .dependsOn(testcontainers)
   .dependsOn(connector)
   .configureE2ETests()
+  .disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val testcontainers = project.in(file("testcontainers"))
+  .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
     modulesSettings ++
       Seq(
@@ -37,13 +39,10 @@ lazy val connector = project.in(file("connector"))
         description := "Provides a Kafka Connect sink for Celonis EMS",
         libraryDependencies ++= emsSinkDeps,
         publish / skip := true,
-        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
-        packGenerateMakefile := false,
-        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar"),
-      ),
+      )
   )
   .configureTests()
-  .enablePlugins(PackPlugin)
+  .configureAssembly()
 
 addCommandAlias(
   "validateAll",

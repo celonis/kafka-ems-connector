@@ -18,6 +18,7 @@ import org.testcontainers.utility.DockerImageName
 import org.testcontainers.utility.MountableFile
 
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.time.Duration
 
 class KafkaConnectContainer(
@@ -37,9 +38,10 @@ class KafkaConnectContainer(
   withCreateContainerCmdModifier { cmd =>
     val _ = cmd.getHostConfig.withUlimits(Array(new Ulimit("nofile", 65536L, 65536L)))
   }
+
   // install mockserver ca certificate
   withCopyFileToContainer(MountableFile.forClasspathResource("/mockserver/cacerts"), jvmCertsPath)
-  withCopyFileToContainer(MountableFile.forHostPath(connectorPath), pluginPath)
+  withCopyFileToContainer(MountableFile.forHostPath(connectorPath), Paths.get(pluginPath).resolve(connectorPath.getFileName).toString)
 
   withEnv("CONNECT_REST_ADVERTISED_HOST_NAME", networkAlias)
   withEnv("CONNECT_REST_PORT", port.toString)
