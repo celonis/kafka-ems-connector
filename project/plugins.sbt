@@ -7,7 +7,6 @@ addSbtPlugin("io.spray"                          % "sbt-revolver"       % "0.9.1
 addSbtPlugin("org.scoverage"                     % "sbt-scoverage"      % "1.9.3")
 addSbtPlugin("de.heikoseeberger"                 % "sbt-header"         % "5.6.0")
 addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings"   % "latest.release")
-addSbtPlugin("org.xerial.sbt"                    % "sbt-pack"           % "0.13")
 addSbtPlugin("ch.epfl.scala"                     % "sbt-scalafix"       % "0.9.26")
 addSbtPlugin("ch.epfl.scala"                     % "sbt-bloop"          % "1.4.8")
 addSbtPlugin("com.eed3si9n"                      % "sbt-buildinfo"      % "0.10.0")

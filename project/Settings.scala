@@ -2,6 +2,11 @@ import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import sbt.Keys._
 import sbt.TestFrameworks.ScalaTest
 import sbt._
+import sbtassembly.AssemblyKeys.assembly
+import sbtassembly.AssemblyKeys.assemblyExcludedJars
+import sbtassembly.AssemblyKeys.assemblyMergeStrategy
+import sbtassembly.MergeStrategy
+import sbtassembly.PathList
 import scalafix.sbt.ScalafixPlugin.autoImport.scalafixConfigSettings
 import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
 import scoverage._
@@ -270,5 +275,32 @@ object Settings extends Dependencies {
       frameworks:                Seq[TestFramework] = Seq(ScalaTest),
     ): Project =
       configure(requiresFork, requiresParallelExecution, frameworks, scalaTestFunSuiteDeps)
+  }
+
+
+  implicit final class AssemblyConfigurator(project: Project) {
+
+    val excludePatterns = Set("kafka-client","hadoop-yarn","org.apache.avro","org.apache.kafka", "io.confluent", "org.apache.zookeeper", "com.google.guava", "log4j", "org.apache.logging.log4j")
+
+    def configureAssembly(): Project = {
+      project.settings(
+        modulesSettings ++ Seq(
+          assembly / assemblyExcludedJars := {
+            val cp: Classpath = (assembly / fullClasspath).value
+            cp filter { f =>
+              excludePatterns.exists(f.data.getName.contains)
+            }
+          },
+          assembly / assemblyMergeStrategy := {
+            case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
+            case PathList("META-INF", "*.SF") => MergeStrategy.discard
+            case PathList("META-INF", "*.DSA") => MergeStrategy.discard
+            case PathList("META-INF", "*.RSA") => MergeStrategy.discard
+            case PathList(ps @ _*) if ps.last == "module-info.class" => MergeStrategy.discard
+            case _ => MergeStrategy.first
+          }
+        )
+      )
+    }
   }
 }
