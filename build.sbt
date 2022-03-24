@@ -5,6 +5,15 @@ ThisBuild / scalafixDependencies ++= Dependencies.scalafixDeps
 // This line ensures that sources are downloaded for dependencies, when using Bloop
 bloopExportJarClassifiers in Global := Some(Set("sources"))
 
+lazy val generateManifest = Def.task {
+  val content = IO.read((Compile / baseDirectory).value / "release/manifest.json")
+  val out = (Compile / baseDirectory ).value / "connector/target/manifest.json"
+  IO.write(out, content.replace("<project.version>", artifactVersion))
+  Seq(out)
+}
+
+Compile / resourceGenerators += generateManifest.taskValue
+
 lazy val root = Project("kafka-ems-connector", file("."))
   .settings(rootSettings)
   .settings(
