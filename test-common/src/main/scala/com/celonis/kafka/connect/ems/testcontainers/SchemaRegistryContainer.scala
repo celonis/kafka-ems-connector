@@ -1,15 +1,12 @@
 /*
  * Copyright 2017-2022 Celonis Ltd
  */
-package com.celonis.kafka.connect.ems.testcontainers.sr
+package com.celonis.kafka.connect.ems.testcontainers
 
-import com.celonis.kafka.connect.ems.testcontainers.sr.SchemaRegistryContainer.imageName
-import com.celonis.kafka.connect.ems.testcontainers.sr.SchemaRegistryContainer.networkAlias
-import com.celonis.kafka.connect.ems.testcontainers.sr.SchemaRegistryContainer.port
+import com.celonis.kafka.connect.ems.testcontainers.SchemaRegistryContainer.{imageName, networkAlias, port}
 import com.celonis.kafka.connect.ems.testcontainers.syntax.KafkaContainerOps
+import org.testcontainers.containers.{GenericContainer, KafkaContainer}
 import org.testcontainers.containers.wait.strategy.Wait
-import org.testcontainers.containers.GenericContainer
-import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 
 class SchemaRegistryContainer(tag: String, kafkaContainer: KafkaContainer)

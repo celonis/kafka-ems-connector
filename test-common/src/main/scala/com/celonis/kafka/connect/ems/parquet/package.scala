@@ -16,7 +16,7 @@ package object parquet {
     new FileUpload(fileItemFactory)
   }
 
-  def extractParquetFrom(httpRequest: HttpRequest): File = {
+  def extractParquetFromRequest(httpRequest: HttpRequest): File = {
     val contentType = httpRequest.getHeader("Content-Type").iterator().next()
 
     val uploadContext = new PartParser.ByteArrayUploadContext(

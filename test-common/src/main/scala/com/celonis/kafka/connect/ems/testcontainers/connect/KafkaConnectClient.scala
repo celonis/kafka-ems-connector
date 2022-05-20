@@ -3,6 +3,7 @@
  */
 package com.celonis.kafka.connect.ems.testcontainers.connect
 
+import com.celonis.kafka.connect.ems.testcontainers.KafkaConnectContainer
 import com.celonis.kafka.connect.ems.testcontainers.connect.KafkaConnectClient.ConnectorStatus
 import org.apache.http.HttpHeaders
 import org.apache.http.HttpResponse

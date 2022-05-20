@@ -154,9 +154,9 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val file1 = new File("abc1")
       val file2 = new File("abc2")
       val file3 = new File("abc3")
-      when(writer1.state).thenReturn(WriterState(tp1, record1.metadata.offset, None, 0, 1, 1, simpleSchema, file1))
-      when(writer2.state).thenReturn(WriterState(tp2, record2.metadata.offset, None, 0, 1, 1, simpleSchema, file2))
-      when(writer3.state).thenReturn(WriterState(tp3, record3.metadata.offset, None, 0, 1, 1, simpleSchema, file3))
+      when(writer1.state).thenReturn(WriterState(tp1, record1.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file1))
+      when(writer2.state).thenReturn(WriterState(tp2, record2.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file2))
+      when(writer3.state).thenReturn(WriterState(tp3, record3.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file3))
 
       manager.preCommit(Map(
         tp1 -> new OffsetAndMetadata(100),
@@ -210,7 +210,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
                                                  0,
                                                  1,
                                                  1,
-                                                 simpleSchema,
+                                                 simpleSchemaV1,
                                                  file1,
       ))
       when(writer2.state).thenReturn(WriterState(tp2,
@@ -219,7 +219,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
                                                  0,
                                                  1,
                                                  1,
-                                                 simpleSchema,
+                                                 simpleSchemaV1,
                                                  file2,
       ))
       when(writer3.state).thenReturn(WriterState(tp3,
@@ -228,7 +228,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
                                                  0,
                                                  1,
                                                  1,
-                                                 simpleSchema,
+                                                 simpleSchemaV1,
                                                  file3,
       ))
 
@@ -281,9 +281,9 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val file1 = new File("abc1")
       val file2 = new File("abc2")
       val file3 = new File("abc3")
-      when(writer1.state).thenReturn(WriterState(tp1, record1.metadata.offset, None, 0, 1, 1, simpleSchema, file1))
-      when(writer2.state).thenReturn(WriterState(tp2, record2.metadata.offset, None, 0, 1, 1, simpleSchema, file2))
-      when(writer3.state).thenReturn(WriterState(tp3, record3.metadata.offset, None, 0, 1, 1, simpleSchema, file3))
+      when(writer1.state).thenReturn(WriterState(tp1, record1.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file1))
+      when(writer2.state).thenReturn(WriterState(tp2, record2.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file2))
+      when(writer3.state).thenReturn(WriterState(tp3, record3.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file3))
 
       when(writer2.shouldFlush).thenReturn(true)
       when(
@@ -344,9 +344,9 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val file2 = Paths.get(dir.toString, "abc2").toFile
       file2.createNewFile() shouldBe true
       val file3 = new File("abc3")
-      when(writer1.state).thenReturn(WriterState(tp1, record1.metadata.offset, None, 0, 1, 1, simpleSchema, file1))
-      when(writer2.state).thenReturn(WriterState(tp2, record2.metadata.offset, None, 0, 1, 1, simpleSchema, file2))
-      when(writer3.state).thenReturn(WriterState(tp3, record3.metadata.offset, None, 0, 1, 1, simpleSchema, file3))
+      when(writer1.state).thenReturn(WriterState(tp1, record1.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file1))
+      when(writer2.state).thenReturn(WriterState(tp2, record2.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file2))
+      when(writer3.state).thenReturn(WriterState(tp3, record3.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file3))
 
       when(writer2.shouldFlush).thenReturn(true)
       when(
@@ -407,12 +407,12 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val file1 = new File("abc1")
       val file2 = new File("abc2")
       val file3 = new File("abc3")
-      when(writer1.state).thenReturn(WriterState(tp1, record1.metadata.offset, None, 0, 1, 1, simpleSchema, file1))
-      when(writer2.state).thenReturn(WriterState(tp2, record2.metadata.offset, None, 0, 1, 1, simpleSchema, file2))
-      when(writer3.state).thenReturn(WriterState(tp3, record3.metadata.offset, None, 0, 1, 1, simpleSchema, file3))
+      when(writer1.state).thenReturn(WriterState(tp1, record1.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file1))
+      when(writer2.state).thenReturn(WriterState(tp2, record2.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file2))
+      when(writer3.state).thenReturn(WriterState(tp3, record3.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file3))
 
       reset(writer2)
-      when(writer2.state).thenReturn(WriterState(tp2, record2.metadata.offset, None, 0, 1, 1, simpleSchema, file2))
+      when(writer2.state).thenReturn(WriterState(tp2, record2.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file2))
       when(writer2.shouldRollover(any[Schema])).thenReturn(true)
       val writer2Next = mock[Writer]
       when(builder.writerFrom(writer2)).thenReturn(writer2Next)
@@ -473,9 +473,9 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val file1 = new File("abc1")
       val file2 = new File("abc2")
       val file3 = new File("abc3")
-      when(writer1.state).thenReturn(WriterState(tp1, record1.metadata.offset, None, 0, 1, 1, simpleSchema, file1))
-      when(writer2.state).thenReturn(WriterState(tp2, record2.metadata.offset, None, 0, 1, 1, simpleSchema, file2))
-      when(writer3.state).thenReturn(WriterState(tp3, record3.metadata.offset, None, 0, 1, 1, simpleSchema, file3))
+      when(writer1.state).thenReturn(WriterState(tp1, record1.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file1))
+      when(writer2.state).thenReturn(WriterState(tp2, record2.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file2))
+      when(writer3.state).thenReturn(WriterState(tp3, record3.metadata.offset, None, 0, 1, 1, simpleSchemaV1, file3))
 
       when(writer2.shouldFlush).thenReturn(true)
       val exception = new RuntimeException("Just throwing")

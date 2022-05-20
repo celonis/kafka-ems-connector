@@ -4,24 +4,22 @@
 package com.celonis.kafka.connect.ems
 
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
-import com.celonis.kafka.connect.ems.testcontainers.KafkaConnectEnvironment
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration.TOPICS_KEY
+import com.celonis.kafka.connect.ems.testcontainers.scalatest.KafkaConnectContainerPerSuite
+import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.connect.{withConnectionCut, withConnector}
+import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.ems.withMockResponse
 import org.mockserver.verify.VerificationTimes
-import org.scalatest.concurrent.Eventually.eventually
-import org.scalatest.concurrent.Futures.interval
-import org.scalatest.concurrent.Futures.timeout
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import org.testcontainers.containers.output.OutputFrame.OutputType
-import org.testcontainers.containers.output.OutputFrame
-import org.testcontainers.containers.output.WaitingConsumer
+import org.testcontainers.containers.output.{OutputFrame, WaitingConsumer}
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
-class ErrorPolicyTests extends AnyFunSuite with KafkaConnectEnvironment with Matchers {
+class ErrorPolicyTests extends AnyFunSuite with KafkaConnectContainerPerSuite with Matchers {
 
   test("throw error policy") {
 

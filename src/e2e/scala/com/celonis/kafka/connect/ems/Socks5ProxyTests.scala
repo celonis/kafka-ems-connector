@@ -4,21 +4,20 @@
 package com.celonis.kafka.connect.ems
 
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
-import com.celonis.kafka.connect.ems.testcontainers.KafkaConnectEnvironment
+import com.celonis.kafka.connect.ems.testcontainers.Socks5ProxyContainer
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration.TOPICS_KEY
-import com.celonis.kafka.connect.ems.testcontainers.proxy.Socks5ProxyContainer
+import com.celonis.kafka.connect.ems.testcontainers.scalatest.KafkaConnectContainerPerSuite
+import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.connect.withConnector
+import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.ems.withMockResponse
 import org.mockserver.verify.VerificationTimes
-import org.scalatest.concurrent.Eventually.eventually
-import org.scalatest.concurrent.Futures.interval
-import org.scalatest.concurrent.Futures.timeout
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
-class Socks5ProxyTests extends AnyFunSuite with KafkaConnectEnvironment with Matchers {
+class Socks5ProxyTests extends AnyFunSuite with KafkaConnectContainerPerSuite with Matchers {
 
   test("socks5 proxy support") {
 

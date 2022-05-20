@@ -2,13 +2,9 @@ import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import sbt.Keys._
 import sbt.TestFrameworks.ScalaTest
 import sbt._
-import sbtassembly.AssemblyKeys.assembly
-import sbtassembly.AssemblyKeys.assemblyExcludedJars
-import sbtassembly.AssemblyKeys.assemblyMergeStrategy
-import sbtassembly.MergeStrategy
-import sbtassembly.PathList
-import scalafix.sbt.ScalafixPlugin.autoImport.scalafixConfigSettings
-import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
+import sbtassembly.AssemblyKeys.{assembly, assemblyExcludedJars, assemblyMergeStrategy}
+import sbtassembly.{MergeStrategy, PathList}
+import scalafix.sbt.ScalafixPlugin.autoImport.{scalafixConfigSettings, scalafixSemanticdb}
 import scoverage._
 
 import java.util.Calendar
@@ -30,8 +26,7 @@ object Settings extends Dependencies {
   }
 
   val manifestSection: Package.JarManifest = {
-    import java.util.jar.Attributes
-    import java.util.jar.Manifest
+    import java.util.jar.{Attributes, Manifest}
     val manifest      = new Manifest
     val newAttributes = new Attributes()
     newAttributes.put(new Attributes.Name("version"), majorVersion)
@@ -199,12 +194,11 @@ object Settings extends Dependencies {
     }*/
   )
 
-  val ItTest:         Configuration = config("it").extend(Test).describedAs("Runs integration tests")
-  val FunctionalTest: Configuration = config("fun") extend Test describedAs "Runs functional tests"
+  val FunctionalTest: Configuration = config("fun") extend Test describedAs "Runs system and acceptance tests"
   val E2ETest:        Configuration = config("e2e").extend(Test).describedAs("Runs E2E tests")
 
   val testConfigurationsMap =
-    Map(Test.name -> Test, ItTest.name -> ItTest, FunctionalTest.name -> FunctionalTest, E2ETest.name -> E2ETest)
+    Map(Test.name -> Test, IntegrationTest.name -> IntegrationTest, FunctionalTest.name -> FunctionalTest, E2ETest.name -> E2ETest)
 
   sealed abstract class TestConfigurator(
     project:         Project,
@@ -233,7 +227,6 @@ object Settings extends Dependencies {
             ) ++ scalafixConfigSettings(config),
           ),
         )
-        .enablePlugins(ScoverageSbtPlugin)
 
   }
 
@@ -244,17 +237,21 @@ object Settings extends Dependencies {
       requiresParallelExecution: Boolean            = false,
       frameworks:                Seq[TestFramework] = Seq(ScalaTest),
     ): Project =
-      configure(requiresFork, requiresParallelExecution, frameworks, scalaTestFunSuiteDeps)
+      configure(requiresFork, requiresParallelExecution, frameworks, scalaTestFunSuiteDeps).enablePlugins(
+        ScoverageSbtPlugin,
+      )
   }
 
-  implicit final class IntegrationTestConfigurator(project: Project) extends TestConfigurator(project, ItTest) {
+  implicit final class IntegrationTestConfigurator(project: Project) extends TestConfigurator(project, IntegrationTest) {
 
     def configureIntegrationTests(
       requiresFork:              Boolean            = false,
       requiresParallelExecution: Boolean            = false,
       frameworks:                Seq[TestFramework] = Seq(ScalaTest),
     ): Project =
-      configure(requiresFork, requiresParallelExecution, frameworks, scalaTestFunSuiteDeps)
+      configure(requiresFork, requiresParallelExecution, frameworks, scalaTestFunSuiteDeps).enablePlugins(
+        ScoverageSbtPlugin,
+      )
   }
 
   implicit final class FunctionalTestConfigurator(project: Project) extends TestConfigurator(project, FunctionalTest) {
@@ -277,12 +274,21 @@ object Settings extends Dependencies {
       configure(requiresFork, requiresParallelExecution, frameworks, scalaTestFunSuiteDeps)
   }
 
-
   implicit final class AssemblyConfigurator(project: Project) {
 
-    val excludePatterns = Set("kafka-client","hadoop-yarn","org.apache.avro","org.apache.kafka", "io.confluent", "org.apache.zookeeper", "com.google.guava", "log4j", "org.apache.logging.log4j")
+    val excludePatterns = Set(
+      "kafka-client",
+      "hadoop-yarn",
+      "org.apache.avro",
+      "org.apache.kafka",
+      "io.confluent",
+      "org.apache.zookeeper",
+      "com.google.guava",
+      "log4j",
+      "org.apache.logging.log4j",
+    )
 
-    def configureAssembly(): Project = {
+    def configureAssembly(): Project =
       project.settings(
         modulesSettings ++ Seq(
           assembly / assemblyExcludedJars := {
@@ -292,15 +298,14 @@ object Settings extends Dependencies {
             }
           },
           assembly / assemblyMergeStrategy := {
-            case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
-            case PathList("META-INF", "*.SF") => MergeStrategy.discard
-            case PathList("META-INF", "*.DSA") => MergeStrategy.discard
-            case PathList("META-INF", "*.RSA") => MergeStrategy.discard
+            case PathList("META-INF", "MANIFEST.MF")                 => MergeStrategy.discard
+            case PathList("META-INF", "*.SF")                        => MergeStrategy.discard
+            case PathList("META-INF", "*.DSA")                       => MergeStrategy.discard
+            case PathList("META-INF", "*.RSA")                       => MergeStrategy.discard
             case PathList(ps @ _*) if ps.last == "module-info.class" => MergeStrategy.discard
-            case _ => MergeStrategy.first
-          }
-        )
+            case _                                                   => MergeStrategy.first
+          },
+        ),
       )
-    }
   }
 }

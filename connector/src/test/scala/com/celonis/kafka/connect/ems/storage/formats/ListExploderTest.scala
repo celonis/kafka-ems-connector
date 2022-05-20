@@ -16,7 +16,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class ListExploderTest extends AnyFunSuite with Matchers with MockitoSugar with SampleData {
 
-  val arraySchema: Schema = SchemaBuilder.array().items(simpleSchema)
+  val arraySchema: Schema = SchemaBuilder.array().items(simpleSchemaV1)
 
   val containerSchema: Schema = SchemaBuilder.record("myRecord")
     .fields()
@@ -37,7 +37,7 @@ class ListExploderTest extends AnyFunSuite with Matchers with MockitoSugar with 
 
     val listExploder = new ListExploder()
     listExploder.explode(arrayContainerStruct) should be(NonEmptySeq.of(struct1, struct2))
-    listExploder.explodeSchema(containerSchema) should be(simpleSchema)
+    listExploder.explodeSchema(containerSchema) should be(simpleSchemaV1)
   }
 
   test("explodes a container struct containing list") {
@@ -49,7 +49,7 @@ class ListExploderTest extends AnyFunSuite with Matchers with MockitoSugar with 
 
     val listExploder = new ListExploder()
     listExploder.explode(listContainerStruct) should be(NonEmptySeq.of(struct1, struct2))
-    listExploder.explodeSchema(containerSchema) should be(simpleSchema)
+    listExploder.explodeSchema(containerSchema) should be(simpleSchemaV1)
   }
 
 }

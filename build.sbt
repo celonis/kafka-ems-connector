@@ -21,21 +21,21 @@ lazy val root = Project("kafka-ems-connector", file("."))
   )
   .aggregate(
     connector,
-    testcontainers,
+    `test-common`,
   )
-  .dependsOn(testcontainers)
+  .dependsOn(`test-common` % "e2e->compile")
   .dependsOn(connector)
-  .configureE2ETests()
+  .configureE2ETests(requiresParallelExecution = false)
   .disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val testcontainers = project.in(file("testcontainers"))
+lazy val `test-common` = project.in(file("test-common"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
     modulesSettings ++
       Seq(
-        name := "kafka-ems-testcontainers",
-        description := "Provides a testing environment for EMS connector",
-        libraryDependencies ++= testcontainersDeps,
+        name := "test-common",
+        description := "Provides common utilities for testing",
+        libraryDependencies ++= testCommonDeps,
         publish / skip := true,
       ),
   )
@@ -50,7 +50,9 @@ lazy val connector = project.in(file("connector"))
         publish / skip := true,
       )
   )
+  .dependsOn(`test-common` % "test->compile;it->compile")
   .configureTests()
+  .configureIntegrationTests()
   .configureAssembly()
 
 addCommandAlias(
@@ -63,7 +65,7 @@ addCommandAlias(
   ";headerCreate;test:headerCreate;scalafmtAll;scalafmtSbt",
 )
 
-addCommandAlias("fullTest", ";test;fun:test;it:test;e2e:test")
+addCommandAlias("fullTest", ";test;it:test;fun:test;e2e:test")
 addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")
 
 dependencyCheckFormats := Seq("XML", "HTML")

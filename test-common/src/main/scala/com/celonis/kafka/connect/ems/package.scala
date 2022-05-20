@@ -1,6 +1,6 @@
 package com.celonis.kafka.connect
-import org.mockserver.model.HttpRequest
-import org.mockserver.model.HttpResponse
+
+import org.mockserver.model.{HttpRequest, HttpResponse}
 
 import java.util.UUID
 

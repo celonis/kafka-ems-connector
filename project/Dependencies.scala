@@ -206,13 +206,13 @@ trait Dependencies {
 
   val scalaTestFunSuiteDeps = baseTestDeps ++ Seq(`scalatest-funsuite`)
 
-  val testcontainersDeps: Seq[ModuleID] = Seq(
+  val testCommonDeps: Seq[ModuleID] = Seq(
+    `scalatest-funsuite`,
     testcontainersCore,
     testcontainersKafka,
     testcontainersToxiproxy,
     testcontainersMockServer,
     mockServerClient,
-    kafkaConnectJson,
     confluentAvroConverter,
     httpClient,
     json4s,
@@ -220,6 +220,11 @@ trait Dependencies {
     slf4jTestingApi,
     slf4jTesting,
     slf4jTestingSimple,
+    `wiremock-jre8`,
+    kafkaConnectJson,
+    parquetAvro,
+    parquetHadoop,
+    hadoopCommon,
   )
 
   //Specific modules dependencies

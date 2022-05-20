@@ -2,13 +2,7 @@
  * Copyright 2017-2022 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.storage
-import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
-import com.celonis.kafka.connect.ems.model.Offset
-import com.celonis.kafka.connect.ems.model.Partition
-import com.celonis.kafka.connect.ems.model.Record
-import com.celonis.kafka.connect.ems.model.RecordMetadata
-import com.celonis.kafka.connect.ems.model.Topic
-import com.celonis.kafka.connect.ems.model.TopicPartition
+import com.celonis.kafka.connect.ems.model._
 import com.celonis.kafka.connect.ems.storage.formats.FormatWriter
 import org.apache.avro.generic.GenericRecord
 import org.mockito.ArgumentMatchers.any
@@ -27,19 +21,20 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     when(formatWriter.rolloverFileOnSchemaChange()).thenReturn(true)
     val startingRecords = 3L
     val startingSize    = 1000000L
-    val emsWriter = new EmsWriter("sinkA",
-                                  DefaultCommitPolicy(10000, 1000.minutes.toMillis, 10000),
-                                  formatWriter,
-                                  WriterState(
-                                    TopicPartition(new Topic("A"), new Partition(0)),
-                                    new Offset(-1),
-                                    None,
-                                    startingRecords,
-                                    startingRecords,
-                                    System.currentTimeMillis(),
-                                    simpleSchema,
-                                    new File("abc"),
-                                  ),
+    val emsWriter = new EmsWriter(
+      "sinkA",
+      DefaultCommitPolicy(10000, 1000.minutes.toMillis, 10000),
+      formatWriter,
+      WriterState(
+        TopicPartition(new Topic("A"), new Partition(0)),
+        new Offset(-1),
+        None,
+        startingRecords,
+        startingRecords,
+        System.currentTimeMillis(),
+        simpleSchemaV1,
+        new File("abc"),
+      )
     )
 
     val struct  = buildSimpleStruct()
@@ -73,7 +68,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
       10,
       1,
       System.currentTimeMillis(),
-      simpleSchema,
+      simpleSchemaV1,
       new File("abc"),
     )
     val emsWriter =
@@ -94,19 +89,20 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     when(formatWriter.rolloverFileOnSchemaChange()).thenReturn(true)
     val startingRecords = 3L
     val startingSize    = 1000000L
-    val emsWriter = new EmsWriter("sinkA",
-                                  DefaultCommitPolicy(10000, 1000.minutes.toMillis, 10000),
-                                  formatWriter,
-                                  WriterState(
-                                    TopicPartition(new Topic("A"), new Partition(0)),
-                                    new Offset(9),
-                                    None,
-                                    startingRecords,
-                                    startingRecords,
-                                    System.currentTimeMillis(),
-                                    simpleSchema,
-                                    new File("abc"),
-                                  ),
+    val emsWriter = new EmsWriter(
+      "sinkA",
+      DefaultCommitPolicy(10000, 1000.minutes.toMillis, 10000),
+      formatWriter,
+      WriterState(
+        TopicPartition(new Topic("A"), new Partition(0)),
+        new Offset(9),
+        None,
+        startingRecords,
+        startingRecords,
+        System.currentTimeMillis(),
+        simpleSchemaV1,
+        new File("abc"),
+      )
     )
 
     val struct  = buildSimpleStruct()
@@ -132,6 +128,128 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     currentState = emsWriter.state
     currentState.records shouldBe startingRecords + 1
     currentState.fileSize shouldBe firstSize
+  }
+
+  test("shouldRollover returns true when schema changes and format writer sets rollover on schema change to true") {
+    val formatWriter = mock[FormatWriter]
+    when(formatWriter.rolloverFileOnSchemaChange()).thenReturn(true)
+    val startingRecords = 3L
+    val emsWriter = new EmsWriter(
+      "sinkA",
+      DefaultCommitPolicy(10000, 1000.minutes.toMillis, 10000),
+      formatWriter,
+      WriterState(
+        TopicPartition(new Topic("A"), new Partition(0)),
+        new Offset(-1),
+        None,
+        startingRecords,
+        startingRecords,
+        System.currentTimeMillis(),
+        simpleSchemaV1,
+        new File("abc"),
+      )
+    )
+
+    emsWriter.shouldRollover(simpleSchemaV2) shouldBe true
+  }
+
+  test(
+    "shouldRollover returns false when schema remains unchanged and format writer sets rollover on schema change to true",
+  ) {
+    val formatWriter = mock[FormatWriter]
+    when(formatWriter.rolloverFileOnSchemaChange()).thenReturn(true)
+    val startingRecords = 3L
+    val emsWriter = new EmsWriter(
+      "sinkA",
+      DefaultCommitPolicy(10000, 1000.minutes.toMillis, 10000),
+      formatWriter,
+      WriterState(
+        TopicPartition(new Topic("A"), new Partition(0)),
+        new Offset(-1),
+        None,
+        startingRecords,
+        startingRecords,
+        System.currentTimeMillis(),
+        simpleSchemaV1,
+        new File("abc"),
+      )
+    )
+
+    emsWriter.shouldRollover(simpleSchemaV1) shouldBe false
+  }
+
+  test("shouldRollover returns false when schema changes and format writer sets rollover on schema change to false") {
+    val formatWriter = mock[FormatWriter]
+    when(formatWriter.rolloverFileOnSchemaChange()).thenReturn(false)
+    val startingRecords = 3L
+    val emsWriter = new EmsWriter(
+      "sinkA",
+      DefaultCommitPolicy(10000, 1000.minutes.toMillis, 10000),
+      formatWriter,
+      WriterState(
+        TopicPartition(new Topic("A"), new Partition(0)),
+        new Offset(-1),
+        None,
+        startingRecords,
+        startingRecords,
+        System.currentTimeMillis(),
+        simpleSchemaV1,
+        new File("abc"),
+      )
+    )
+
+    emsWriter.shouldRollover(simpleSchemaV2) shouldBe false
+  }
+
+  test("shouldFlush returns true once commit policy is matched") {
+    val formatWriter = mock[FormatWriter]
+    when(formatWriter.rolloverFileOnSchemaChange()).thenReturn(false)
+    val startingRecords = 0L
+    val emsWriter = new EmsWriter(
+      "sinkA",
+      DefaultCommitPolicy(10000, 1000.minutes.toMillis, 1),
+      formatWriter,
+      WriterState(
+        TopicPartition(new Topic("A"), new Partition(0)),
+        new Offset(-1),
+        None,
+        startingRecords,
+        startingRecords,
+        System.currentTimeMillis(),
+        simpleSchemaV1,
+        new File("abc"),
+      )
+    )
+
+    val struct  = buildSimpleStruct()
+    val record1 = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(10)))
+
+    emsWriter.write(record1)
+
+    emsWriter.shouldFlush shouldBe true
+  }
+
+  test("shouldFlush returns false when commit policy remains unmatched") {
+    val formatWriter = mock[FormatWriter]
+    when(formatWriter.rolloverFileOnSchemaChange()).thenReturn(false)
+    val startingRecords = 0L
+    val emsWriter = new EmsWriter(
+      "sinkA",
+      DefaultCommitPolicy(10000, 1000.minutes.toMillis, 1),
+      formatWriter,
+      WriterState(
+        TopicPartition(new Topic("A"), new Partition(0)),
+        new Offset(-1),
+        None,
+        startingRecords,
+        startingRecords,
+        System.currentTimeMillis(),
+        simpleSchemaV1,
+        new File("abc"),
+      )
+    )
+
+    emsWriter.shouldFlush shouldBe false
   }
 
 }

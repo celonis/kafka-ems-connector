@@ -27,7 +27,7 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
       val output         = FileSystem.createOutput(dir, sinkName, topicPartition)
       output.size shouldBe 0L
       val formatWriter =
-        ParquetFormatWriter.from(output, simpleSchema, ParquetConfig.Default, new NoOpExploder().explode)
+        ParquetFormatWriter.from(output, simpleSchemaV1, ParquetConfig.Default, new NoOpExploder().explode)
       formatWriter.rolloverFileOnSchemaChange() shouldBe true
       formatWriter.close()
     }
@@ -40,7 +40,7 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
       val output         = FileSystem.createOutput(dir, sinkName, topicPartition)
       output.size shouldBe 0L
       val formatWriter =
-        ParquetFormatWriter.from(output, simpleSchema, ParquetConfig.Default, new NoOpExploder().explode)
+        ParquetFormatWriter.from(output, simpleSchemaV1, ParquetConfig.Default, new NoOpExploder().explode)
       formatWriter.size shouldBe 4L //4 BYTES from MAGIC PAR1
     }
   }
@@ -52,7 +52,7 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
       val output         = FileSystem.createOutput(dir, sinkName, topicPartition)
       output.size shouldBe output.outputFile().length()
       val formatWriter =
-        ParquetFormatWriter.from(output, simpleSchema, ParquetConfig.Default, new NoOpExploder().explode)
+        ParquetFormatWriter.from(output, simpleSchemaV1, ParquetConfig.Default, new NoOpExploder().explode)
       val struct = buildSimpleStruct()
       formatWriter.write(struct)
       formatWriter.close()
@@ -105,7 +105,7 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
       output.size shouldBe output.outputFile().length()
       val count = 100
       val formatWriter = ParquetFormatWriter.from(output,
-                                                  simpleSchema,
+                                                  simpleSchemaV1,
                                                   ParquetConfig(count, ParquetFileCleanupDelete),
                                                   new NoOpExploder().explode,
       )

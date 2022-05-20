@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContextExecutor
 import scala.jdk.CollectionConverters._
+import scala.util.Try
 
 class EmsSinkTask extends SinkTask with StrictLogging {
 
@@ -61,10 +62,13 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     sinkName = getSinkName(props).getOrElse("MissingSinkName")
 
     logger.debug(s"[{}] EmsSinkTask.start", sinkName)
-    val config = EmsSinkConfig.from(sinkName, EmsSinkConfigDef.config.parse(props).asScala.toMap) match {
-      case Left(value)  => throw new ConnectException(value)
-      case Right(value) => value
-    }
+    val config: EmsSinkConfig = {
+      for {
+        parsedConfigDef <- Try(EmsSinkConfigDef.config.parse(props).asScala.toMap).toEither.leftMap(_.getMessage)
+        config          <- EmsSinkConfig.from(sinkName, parsedConfigDef)
+      } yield config
+    }.leftMap(err => throw new ConnectException(err)).merge
+
     maybeSetErrorInterval(config)
 
     val writers = Ref.unsafe[IO, Map[TopicPartition, Writer]](Map.empty)

@@ -4,18 +4,16 @@
 package com.celonis.kafka.connect.ems
 
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
-import com.celonis.kafka.connect.ems.parquet.extractParquetFrom
-import com.celonis.kafka.connect.ems.parquet.parquetReader
-import com.celonis.kafka.connect.ems.testcontainers.KafkaConnectEnvironment
+import com.celonis.kafka.connect.ems.parquet.{extractParquetFromRequest, parquetReader}
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration.TOPICS_KEY
+import com.celonis.kafka.connect.ems.testcontainers.scalatest.KafkaConnectContainerPerSuite
+import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.connect.withConnector
+import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.ems.withMockResponse
 import org.apache.avro.SchemaBuilder
 import org.apache.avro.generic.GenericData
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.mockserver.verify.VerificationTimes
-import org.scalatest.concurrent.Eventually.eventually
-import org.scalatest.concurrent.Futures.interval
-import org.scalatest.concurrent.Futures.timeout
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -23,7 +21,7 @@ import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
-class ParquetTests extends AnyFunSuite with KafkaConnectEnvironment with Matchers {
+class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with Matchers {
 
   test("read generated parquet file") {
 
@@ -66,7 +64,7 @@ class ParquetTests extends AnyFunSuite with KafkaConnectEnvironment with Matcher
         }
 
         val httpRequests = mockServerClient.retrieveRecordedRequests(emsRequestForTable(emsTable))
-        val parquetFile  = extractParquetFrom(httpRequests.head)
+        val parquetFile  = extractParquetFromRequest(httpRequests.head)
         val reader       = parquetReader(parquetFile)
         val record       = reader.read()
 
