@@ -45,7 +45,7 @@ object ParquetFormatWriter {
       //.withPageSize(DEFAULT_PAGE_SIZE)
       //.withWriterVersion(ParquetProperties.WriterVersion.PARQUET_2_0)
       .withCompressionCodec(CompressionCodecName.SNAPPY)
-      .withRowGroupSize(config.rowGroupSize)
+      .withRowGroupSize(config.rowGroupSize.toLong)
       .withSchema(schema)
       .build()
 

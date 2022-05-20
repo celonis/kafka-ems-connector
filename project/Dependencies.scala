@@ -1,3 +1,7 @@
+import Dependencies.Versions.jacksonDatabindVersion
+import Dependencies.Versions.jacksonVersion
+import Dependencies.Versions.nettyVersion
+import Dependencies.Versions.nimbusJoseJwtVersion
 import Dependencies._
 import sbt._
 
@@ -32,19 +36,19 @@ object Dependencies {
 
     val enumeratumVersion = "1.7.0"
 
-    val kafkaVersion = "2.8.0"
+    val kafkaVersion = "3.1.0"
 
-    val confluentVersion = "6.2.0"
+    val confluentVersion = "7.0.1"
 
     val http4sVersion = "1.0.0-M27"
-    val avroVersion   = "1.9.2"
-    val avro4sVersion = "4.0.11"
+    val avroVersion   = "1.11.0"
+    val avro4sVersion = "4.0.13"
 
-    val catsVersion           = "2.6.1"
-    val catsEffectVersion     = "3.2.2"
+    val catsVersion           = "2.7.0"
+    val catsEffectVersion     = "3.3.11"
     val `cats-effect-testing` = "1.2.0"
 
-    val urlValidatorVersion       = "1.6"
+    val urlValidatorVersion       = "1.7"
     val circeVersion              = "0.14.1"
     val circeGenericExtrasVersion = "0.14.1"
     val circeJsonSchemaVersion    = "0.2.0"
@@ -54,23 +58,29 @@ object Dependencies {
     val kindProjectorVersion    = "0.10.3"
     val betterMonadicForVersion = "0.3.1"
 
-    val slf4jVersion = "1.7.25"
+    val slf4jVersion = "1.7.36"
 
-    val logbackVersion        = "1.2.3"
+    val logbackVersion        = "1.2.11"
     val scalaLoggingVersion   = "3.9.2"
     val classGraphVersions    = "4.4.12"
     val scalaCollectionCompat = "2.4.2"
 
     val wiremockJre8Version = "2.25.1"
-    val parquetVersion      = "1.12.0"
-    val hadoopVersion       = "2.10.1"
+    val parquetVersion      = "1.12.2"
+    val hadoopVersion       = "3.2.3"
 
-    val jerseyCommonVersion = "2.34"
+    val nettyVersion = "4.1.77.Final"
+
+    val nimbusJoseJwtVersion = "9.22"
+
+    val jerseyCommonVersion = "2.35"
 
     val testcontainersVersion   = "1.16.3"
     val mockServerClientVersion = "5.5.4"
     val httpClientVersion       = "4.5.13"
-    val json4sVersion           = "3.6.11"
+    val json4sVersion           = "4.0.5"
+    val jacksonVersion          = "2.12.6"
+    val jacksonDatabindVersion          = "2.12.6.1"
     val slf4jTestingVersion     = "2.0.0-alpha1"
   }
 
@@ -130,7 +140,10 @@ object Dependencies {
     //.exclude("io.confluent", "kafka-schema-registry-client")
     //.exclude("io.confluent", "kafka-schema-serializer")
     .excludeAll(ExclusionRule(organization = "io.swagger"))
+    .excludeAll(ExclusionRule(organization = "org.codehaus.jackson"))
+    .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson"))
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.core"))
+    .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.databind"))
 
   val http4sDsl         = "org.http4s" %% "http4s-dsl"               % Versions.http4sVersion
   val http4sAsyncClient = "org.http4s" %% "http4s-async-http-client" % Versions.http4sVersion
@@ -139,7 +152,7 @@ object Dependencies {
   val http4sCirce       = "org.http4s" %% "http4s-circe"             % Versions.http4sVersion
   val http4s            = Seq(http4sDsl, http4sAsyncClient, http4sBlazeServer, http4sCirce)
 
-  //lazy val avro   = "org.apache.avro"      % "avro"        % Versions.avroVersion
+  lazy val avro   = "org.apache.avro"      % "avro"        % Versions.avroVersion
   lazy val avro4s = "com.sksamuel.avro4s" %% "avro4s-core" % Versions.avro4sVersion
 
   val `wiremock-jre8` = "com.github.tomakehurst" % "wiremock-jre8" % Versions.wiremockJre8Version
@@ -152,7 +165,13 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "javax.servlet"))
     .excludeAll(ExclusionRule(organization = "javax.servlet.jsp"))
     .excludeAll(ExclusionRule(organization = "org.mortbay.jetty"))
+    .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
+    .excludeAll(ExclusionRule(organization = "io.netty"))
     .excludeAll(ExclusionRule(organization = "org.codehaus.jackson"))
+    .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson"))
+    .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.core"))
+    .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.databind"))
+    .excludeAll(ExclusionRule(organization = "com.google.protobuf"))
     .exclude("org.apache.hadoop", "hadoop-annotations")
     .exclude("org.apache.hadoop", "hadoop-auth")
 
@@ -160,6 +179,13 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "javax.servlet"))
     .excludeAll(ExclusionRule(organization = "javax.servlet.jsp"))
     .excludeAll(ExclusionRule(organization = "org.mortbay.jetty"))
+    .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
+    .excludeAll(ExclusionRule(organization = "io.netty"))
+    .excludeAll(ExclusionRule(organization = "org.codehaus.jackson"))
+    .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson"))
+    .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.core"))
+    .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.databind"))
+    .excludeAll(ExclusionRule(organization = "com.google.protobuf"))
     .exclude("org.apache.hadoop", "hadoop-yarn-common")
     .exclude("org.apache.hadoop", "hadoop-yarn-client")
 
@@ -172,6 +198,25 @@ object Dependencies {
   val httpClient               = "org.apache.httpcomponents" % "httpclient"             % Versions.httpClientVersion
   val json4s                   = "org.json4s"               %% "json4s-native"          % Versions.json4sVersion
   val kafkaClients             = "org.apache.kafka"          % "kafka-clients"          % Versions.kafkaVersion
+
+  lazy val nettyCodecHttp: ModuleID = "io.netty" % "netty-codec-http" % nettyVersion
+  lazy val nettyCodecSocks: ModuleID = "io.netty" % "netty-codec-socks" % nettyVersion
+  lazy val nettyCodec: ModuleID = "io.netty" % "netty-codec" % nettyVersion
+  lazy val nettyCommon: ModuleID = "io.netty" % "netty-common" % nettyVersion
+  lazy val nettyHandlerProxy: ModuleID = "io.netty" % "netty-handler-proxy" % nettyVersion
+  lazy val nettyHandler: ModuleID = "io.netty" % "netty-handler" % nettyVersion
+  lazy val nettyResolver: ModuleID = "io.netty" % "netty-resolver" % nettyVersion
+  lazy val nettyTransport: ModuleID = "io.netty" % "netty-transport" % nettyVersion
+
+  lazy val jacksonCore: ModuleID = "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion
+  lazy val jacksonDatabind: ModuleID =
+    "com.fasterxml.jackson.core" % "jackson-databind" % jacksonDatabindVersion
+  lazy val jacksonDataformatCbor: ModuleID =
+    "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion
+  lazy val jacksonModuleScala: ModuleID =
+    "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion
+
+  lazy val nimbusJoseJwt = "com.nimbusds" % "nimbus-jose-jwt" % nimbusJoseJwtVersion
 
   val slf4jTestingApi    = "org.slf4j" % "slf4j-api"     % Versions.slf4jTestingVersion
   val slf4jTesting       = "org.slf4j" % "slf4j-log4j12" % Versions.slf4jTestingVersion
@@ -227,6 +272,10 @@ trait Dependencies {
     hadoopCommon,
   )
 
+  // override to the newest netty deps
+  val nettyDeps = Seq(nettyCodecHttp, nettyCodecSocks, nettyCodec, nettyCommon, nettyHandlerProxy, nettyHandler, nettyResolver, nettyTransport)
+  val jacksonDeps = Seq(jacksonCore, jacksonModuleScala, jacksonDatabind)
+
   //Specific modules dependencies
   val emsSinkDeps: Seq[ModuleID] = (Seq(
     kafkaConnectJson,
@@ -247,6 +296,13 @@ trait Dependencies {
   ) ++ enumeratum ++ circe ++ http4s).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
+    .map(_.excludeAll(
+      ExclusionRule(organization = "org.codehaus.jackson"),
+      ExclusionRule(organization = "com.fasterxml.jackson"),
+      ExclusionRule(organization = "com.fasterxml.jackson.core"),
+      ExclusionRule(organization = "com.fasterxml.jackson.databind"))) ++ jacksonDeps
+
+  val emsSinkOverrides = jacksonDeps ++ nettyDeps ++ Seq(avro, nimbusJoseJwt)
 
   // build plugins
   val kindProjectorPlugin = addCompilerPlugin("org.typelevel" %% "kind-projector" % Versions.kindProjectorVersion)

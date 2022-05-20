@@ -47,6 +47,7 @@ lazy val connector = project.in(file("connector"))
         name := "kafka-ems-sink",
         description := "Provides a Kafka Connect sink for Celonis EMS",
         libraryDependencies ++= emsSinkDeps,
+        dependencyOverrides ++= emsSinkOverrides,
         publish / skip := true,
       )
   )
