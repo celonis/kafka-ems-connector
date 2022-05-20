@@ -89,6 +89,7 @@ class AvroDataConverterTests extends AnyFunSuite with Matchers {
   test("explode structure") {
 
     val simpleSchema: Schema = SchemaBuilder.struct()
+      .name("simpleSchema")
       .field("id", SchemaBuilder.string())
       .field("int_field", SchemaBuilder.int32())
       .field("long_field", SchemaBuilder.int64())
@@ -123,7 +124,6 @@ class AvroDataConverterTests extends AnyFunSuite with Matchers {
       case Right(record) => exploder.explode(record)
     }
     exploded should be(NonEmptySeq.of(expectedItemStruct1, expectedItemStruct2))
-
   }
 
 }
