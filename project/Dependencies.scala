@@ -38,7 +38,7 @@ object Dependencies {
 
     val kafkaVersion = "3.1.0"
 
-    val confluentVersion = "7.0.1"
+    val confluentVersion = "7.1.1"
 
     val http4sVersion = "1.0.0-M27"
     val avroVersion   = "1.11.0"
