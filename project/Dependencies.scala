@@ -69,7 +69,7 @@ object Dependencies {
     val parquetVersion      = "1.12.2"
     val hadoopVersion       = "3.2.3"
 
-    val nettyVersion = "4.1.77.Final"
+    val nettyVersion = "4.1.68.Final"
 
     val nimbusJoseJwtVersion = "9.22"
 
@@ -293,7 +293,7 @@ trait Dependencies {
     parquetHadoop,
     hadoopCommon,
     hadoopMapReduce,
-  ) ++ enumeratum ++ circe ++ http4s).map(_.exclude("org.slf4j", "slf4j-log4j12"))
+  ) ++ enumeratum ++ circe ++ http4s ++ nettyDeps).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
     .map(_.excludeAll(
