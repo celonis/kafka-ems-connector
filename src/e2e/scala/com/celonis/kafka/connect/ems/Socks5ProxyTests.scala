@@ -13,6 +13,7 @@ import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.ems.withM
 import org.mockserver.verify.VerificationTimes
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import org.testcontainers.containers.output.Slf4jLogConsumer
 
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
@@ -60,7 +61,7 @@ class Socks5ProxyTests extends AnyFunSuite with KafkaConnectContainerPerSuite wi
 
     val proxyUser = "user"
     val proxyPass = "pass"
-    val s5c       = new Socks5ProxyContainer(network, proxyUser, proxyPass)
+    val s5c       = new Socks5ProxyContainer(network, proxyUser, proxyPass).withLogConsumer(new Slf4jLogConsumer(log))
     s5c.start()
 
     val sourceTopic = randomTopicName()
