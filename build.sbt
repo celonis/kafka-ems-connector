@@ -7,7 +7,7 @@ bloopExportJarClassifiers in Global := Some(Set("sources"))
 
 lazy val generateManifest = Def.task {
   val content = IO.read((Compile / baseDirectory).value / "release/manifest.json")
-  val out = (Compile / baseDirectory ).value / "connector/target/manifest.json"
+  val out     = (Compile / baseDirectory).value / "connector/target/manifest.json"
   IO.write(out, content.replace("<project.version>", artifactVersion))
   Seq(out)
 }
@@ -49,7 +49,7 @@ lazy val connector = project.in(file("connector"))
         libraryDependencies ++= emsSinkDeps,
         dependencyOverrides ++= emsSinkOverrides,
         publish / skip := true,
-      )
+      ),
   )
   .dependsOn(`test-common` % "test->compile;it->compile")
   .configureTests()

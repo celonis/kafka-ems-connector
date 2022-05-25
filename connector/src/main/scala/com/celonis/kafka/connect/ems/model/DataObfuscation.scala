@@ -3,6 +3,8 @@
  */
 package com.celonis.kafka.connect.ems.model
 
+import org.apache.commons.codec.digest.DigestUtils
+
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.UUID
@@ -24,7 +26,7 @@ object DataObfuscation {
 
     override def obfuscate(value: String): String =
       Option(value).fold(value) { v =>
-        new String(md.digest(v.getBytes(StandardCharsets.UTF_8)))
+        DigestUtils.sha1Hex(md.digest(v.getBytes(StandardCharsets.UTF_8)))
       }
   }
 
@@ -33,7 +35,7 @@ object DataObfuscation {
     md.update(salt)
 
     override def obfuscate(value: String): String = if (value == null) value
-    else new String(md.digest(value.getBytes(StandardCharsets.UTF_8)))
+    else DigestUtils.sha512Hex(md.digest(value.getBytes(StandardCharsets.UTF_8)))
   }
 
   case class SHA512WithRandomSalt() extends DataObfuscation {
@@ -46,7 +48,7 @@ object DataObfuscation {
       if (value == null) value
       else {
         md.update(generateRandomSalt())
-        new String(md.digest(value.getBytes(StandardCharsets.UTF_8)))
+        DigestUtils.sha512Hex(md.digest(value.getBytes(StandardCharsets.UTF_8)))
       }
   }
 

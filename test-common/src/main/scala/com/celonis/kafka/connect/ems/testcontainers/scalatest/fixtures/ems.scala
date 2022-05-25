@@ -1,7 +1,11 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures
 
 import org.mockserver.client.MockServerClient
-import org.mockserver.model.{HttpRequest, HttpResponse}
+import org.mockserver.model.HttpRequest
+import org.mockserver.model.HttpResponse
 
 object ems {
 

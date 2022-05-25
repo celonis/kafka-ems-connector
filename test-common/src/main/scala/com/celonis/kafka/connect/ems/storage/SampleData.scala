@@ -1,3 +1,6 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package com.celonis.kafka.connect.ems.storage
 
 import org.apache.avro.generic.GenericData
@@ -43,9 +46,8 @@ trait SampleData {
     .field("salary", ConnectSchemaBuilder.float64().optional().build())
     .build()
 
-  def buildUserStruct(name: String, title: String, salary: Double): Struct = {
+  def buildUserStruct(name: String, title: String, salary: Double): Struct =
     new Struct(userSchema).put("name", name).put("title", title).put("salary", salary)
-  }
 
   def toSinkRecord(topic: String, user: Struct, k: Int): SinkRecord =
     new SinkRecord(topic, 1, null, null, userSchema, user, k.toLong)

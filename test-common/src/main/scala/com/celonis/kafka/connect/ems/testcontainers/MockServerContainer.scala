@@ -1,8 +1,12 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package com.celonis.kafka.connect.ems.testcontainers
 
-import com.celonis.kafka.connect.ems.testcontainers.MockServerContainer.{defaultNetworkAlias, defaultTag}
+import com.celonis.kafka.connect.ems.testcontainers.MockServerContainer.defaultNetworkAlias
+import com.celonis.kafka.connect.ems.testcontainers.MockServerContainer.defaultTag
 import org.mockserver.client.MockServerClient
-import org.testcontainers.containers.{MockServerContainer => JavaMockServerContainer}
+import org.testcontainers.containers.{ MockServerContainer => JavaMockServerContainer }
 import org.testcontainers.utility.DockerImageName
 
 class MockServerContainer(

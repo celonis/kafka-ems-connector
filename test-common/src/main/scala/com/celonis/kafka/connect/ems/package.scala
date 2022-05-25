@@ -1,6 +1,10 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package com.celonis.kafka.connect
 
-import org.mockserver.model.{HttpRequest, HttpResponse}
+import org.mockserver.model.HttpRequest
+import org.mockserver.model.HttpResponse
 
 import java.util.UUID
 

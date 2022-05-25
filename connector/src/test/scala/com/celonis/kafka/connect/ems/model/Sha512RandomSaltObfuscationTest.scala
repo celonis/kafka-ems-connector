@@ -20,5 +20,6 @@ class Sha512RandomSaltObfuscationTest extends AnyFunSuite with Matchers {
     val obWithSalt2 = obfuscation.obfuscate("this is a test")
     obWithSalt1 should not equal "this is a test"
     obWithSalt2 should not equal obWithSalt1
+    obWithSalt1.forall(c => c.isDigit || c.isValidChar) shouldBe true
   }
 }

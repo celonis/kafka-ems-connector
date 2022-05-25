@@ -1,7 +1,11 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package com.celonis.kafka.connect.ems.testcontainers
 
 import com.celonis.kafka.connect.ems.testcontainers.ToxiproxyContainer.defaultTag
-import org.testcontainers.containers.{GenericContainer, ToxiproxyContainer => JavaToxiproxyContainer}
+import org.testcontainers.containers.GenericContainer
+import org.testcontainers.containers.{ ToxiproxyContainer => JavaToxiproxyContainer }
 import org.testcontainers.utility.DockerImageName
 
 class ToxiproxyContainer(
@@ -15,7 +19,8 @@ class ToxiproxyContainer(
     new JavaToxiproxyContainer(dockerImage.withTag(dockerTag))
   container.withNetworkAliases(networkAlias)
 
-  def proxy(targetContainer: GenericContainer[_], port: Int): JavaToxiproxyContainer.ContainerProxy = container.getProxy(targetContainer, port)
+  def proxy(targetContainer: GenericContainer[_], port: Int): JavaToxiproxyContainer.ContainerProxy =
+    container.getProxy(targetContainer, port)
 }
 
 object ToxiproxyContainer {
