@@ -10,26 +10,17 @@ import com.celonis.kafka.connect.ems.config.PropertiesHelper.error
 import com.celonis.kafka.connect.ems.config.PropertiesHelper.nonEmptyStringOr
 import com.typesafe.scalalogging.StrictLogging
 
-import java.util.Date
 import enumeratum._
 import enumeratum.EnumEntry.Uppercase
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.errors.RetriableException
-
-case class ErrorTracker(
-  retries:            Int,
-  maxRetries:         Int,
-  lastErrorMessage:   String,
-  lastErrorTimestamp: Date,
-  policy:             ErrorPolicy,
-)
 
 sealed trait ErrorPolicy extends EnumEntry with Uppercase {
   def handle(error: Throwable, retries: Int): Unit
 }
 
 object ErrorPolicy extends Enum[ErrorPolicy] {
-  val values = findValues
+  val values: IndexedSeq[ErrorPolicy] = findValues
 
   case object Continue extends ErrorPolicy with StrictLogging {
     override def handle(error: Throwable, retries: Int): Unit =

@@ -29,8 +29,6 @@ object Offset {
 }
 
 case class TopicPartition(topic: Topic, partition: Partition) {
-  def withOffset(offset: Offset): TopicPartitionOffset = TopicPartitionOffset(topic, partition, offset)
-
   def toKafka: KafkaTopicPartition = new KafkaTopicPartition(topic.value, partition.value)
 }
 

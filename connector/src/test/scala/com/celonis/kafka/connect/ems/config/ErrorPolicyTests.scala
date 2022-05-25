@@ -11,6 +11,8 @@ import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Throw
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.errors.RetriableException
 
 class ErrorPolicyTests extends AnyFunSuite with Matchers {
   test(s"return an error if $ERROR_POLICY_KEY is missing") {
@@ -43,5 +45,16 @@ class ErrorPolicyTests extends AnyFunSuite with Matchers {
     ErrorPolicy.extract(Map(ERROR_POLICY_KEY -> "rEtry")) shouldBe Right(Retry)
     ErrorPolicy.extract(Map(ERROR_POLICY_KEY -> "THROW")) shouldBe Right(Throw)
     ErrorPolicy.extract(Map(ERROR_POLICY_KEY -> "conTinue")) shouldBe Right(Continue)
+  }
+
+  test(s"handle an error according to the configured error policy") {
+    val throwable = new RuntimeException()
+    // retry
+    an[RetriableException] should be thrownBy Retry.handle(throwable, 1)
+    an[ConnectException] should be thrownBy Retry.handle(throwable, 0)
+    // throw
+    an[ConnectException] should be thrownBy Throw.handle(throwable, 10)
+    // continue
+    noException should be thrownBy Continue.handle(throwable, 10)
   }
 }

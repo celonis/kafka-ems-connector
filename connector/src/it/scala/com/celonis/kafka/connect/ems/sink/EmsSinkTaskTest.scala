@@ -1,28 +1,32 @@
 package com.celonis.kafka.connect.ems.sink
 
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_KEY
 import com.celonis.kafka.connect.ems.parquet.parquetReader
 import com.celonis.kafka.connect.ems.storage.SampleData
 import com.celonis.kafka.connect.ems.testcontainers.scalatest.MockServerContainerPerSuite
-import com.celonis.kafka.connect.ems.{randomEmsTable, randomTopicName}
-import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
+import com.celonis.kafka.connect.ems.randomEmsTable
+import com.celonis.kafka.connect.ems.randomTopicName
+import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.errors.ConnectException
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import java.io.File
-import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class EmsSinkTaskTest extends AnyFunSuite with MockServerContainerPerSuite with Matchers with SampleData {
 
-  test("throws exception when config contains an invalid value") {
+  test(s"throws exception when $COMMIT_SIZE_KEY less than 1MB") {
     val props = Map(
       "name"                                     -> "ems",
       EmsSinkConfigConstants.ENDPOINT_KEY        -> proxyServerUrl,
       EmsSinkConfigConstants.AUTHORIZATION_KEY   -> "AppKey key",
       EmsSinkConfigConstants.TARGET_TABLE_KEY    -> "target-table",
       EmsSinkConfigConstants.COMMIT_RECORDS_KEY  -> "1",
-      EmsSinkConfigConstants.COMMIT_SIZE_KEY     -> "1000000L",
+      EmsSinkConfigConstants.COMMIT_SIZE_KEY     -> "1000",
       EmsSinkConfigConstants.COMMIT_INTERVAL_KEY -> "3600000",
       EmsSinkConfigConstants.TMP_DIRECTORY_KEY   -> "/tmp/",
       EmsSinkConfigConstants.ERROR_POLICY_KEY    -> "CONTINUE",
@@ -30,13 +34,33 @@ class EmsSinkTaskTest extends AnyFunSuite with MockServerContainerPerSuite with 
 
     val task = new EmsSinkTask()
 
-    a[ConnectException] should be thrownBy task.start(props)
+    val thrown = the[ConnectException] thrownBy task.start(props)
+    thrown.getMessage should include regex("^.*Flush size needs to be at least 1000000.*$")
+  }
+
+  test(s"throws exception when $COMMIT_RECORDS_KEY is negative") {
+    val props = Map(
+      "name"                                     -> "ems",
+      EmsSinkConfigConstants.ENDPOINT_KEY        -> proxyServerUrl,
+      EmsSinkConfigConstants.AUTHORIZATION_KEY   -> "AppKey key",
+      EmsSinkConfigConstants.TARGET_TABLE_KEY    -> "target-table",
+      EmsSinkConfigConstants.COMMIT_RECORDS_KEY  -> "-1",
+      EmsSinkConfigConstants.COMMIT_SIZE_KEY     -> "1000000",
+      EmsSinkConfigConstants.COMMIT_INTERVAL_KEY -> "3600000",
+      EmsSinkConfigConstants.TMP_DIRECTORY_KEY   -> "/tmp/",
+      EmsSinkConfigConstants.ERROR_POLICY_KEY    -> "CONTINUE",
+    ).asJava
+
+    val task = new EmsSinkTask()
+
+    val thrown = the[ConnectException] thrownBy task.start(props)
+    thrown.getMessage should include regex("^.*Uploading the data to EMS requires a record count greater than 0.*$")
   }
 
   test("writes to parquet format") {
     val connectorName = "ems"
-    val sourceTopic = randomTopicName()
-    val emsTable    = randomEmsTable()
+    val sourceTopic   = randomTopicName()
+    val emsTable      = randomEmsTable()
     val props = Map(
       "name"                                     -> connectorName,
       "connector.class"                          -> "com.celonis.kafka.connect.ems.sink.EmsSinkConnector",
@@ -63,14 +87,14 @@ class EmsSinkTaskTest extends AnyFunSuite with MockServerContainerPerSuite with 
     task.close(Seq(new KafkaTopicPartition(sourceTopic, 1)).asJava) // writes records
     task.stop()
 
-    val parquetFile  = new File(s"/tmp/$connectorName/$sourceTopic/1/1.parquet")
+    val parquetFile = new File(s"/tmp/$connectorName/$sourceTopic/1/1.parquet")
 
     eventually {
       assert(parquetFile.exists())
     }
 
-    val reader       = parquetReader(parquetFile)
-    val record       = reader.read()
+    val reader = parquetReader(parquetFile)
+    val record = reader.read()
 
     record.get("name").toString should be("bob")
     record.get("title").toString should be("mr")
