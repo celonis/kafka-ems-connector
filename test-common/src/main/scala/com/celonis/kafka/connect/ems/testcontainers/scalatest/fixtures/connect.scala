@@ -1,6 +1,10 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures
 
-import com.celonis.kafka.connect.ems.testcontainers.connect.{EmsConnectorConfiguration, KafkaConnectClient}
+import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration
+import com.celonis.kafka.connect.ems.testcontainers.connect.KafkaConnectClient
 import org.testcontainers.containers.ToxiproxyContainer
 
 object connect {

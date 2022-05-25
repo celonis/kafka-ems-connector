@@ -1,23 +1,35 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package com.celonis.kafka.connect.ems.testcontainers.scalatest
 
-import com.celonis.kafka.connect.ems.testcontainers.{KafkaConnectContainer, SchemaRegistryContainer}
+import com.celonis.kafka.connect.ems.testcontainers.KafkaConnectContainer
+import com.celonis.kafka.connect.ems.testcontainers.SchemaRegistryContainer
 import com.celonis.kafka.connect.ems.testcontainers.connect.KafkaConnectClient
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
 import io.confluent.kafka.serializers.KafkaAvroSerializer
 import org.apache.avro.SchemaBuilder
 import org.apache.avro.generic.GenericData
-import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
-import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
+import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.common.serialization.StringSerializer
 import org.scalatest.TestSuite
 import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.containers.output.Slf4jLogConsumer
 import org.testcontainers.utility.DockerImageName
 
 import java.io.File
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.time.Duration
-import java.util.{Properties, UUID}
+import java.util.Properties
+import java.util.UUID
 import java.util.stream.Collectors
 import scala.collection.mutable.ListBuffer
 

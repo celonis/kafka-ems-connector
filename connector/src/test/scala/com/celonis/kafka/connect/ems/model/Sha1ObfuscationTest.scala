@@ -16,6 +16,6 @@ class Sha1ObfuscationTest extends AnyFunSuite with Matchers {
 
   test("returns the expected value") {
     obfuscation.obfuscate("") should not equal ""
-    obfuscation.obfuscate("this is a test") should not equal "this is a test"
+    obfuscation.obfuscate("this is a test") shouldBe "9938a75e6d10a74d6b2e9bc204177de5b95f28fe"
   }
 }

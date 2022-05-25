@@ -3,14 +3,20 @@
  */
 package com.celonis.kafka.connect.ems.testcontainers
 
-import com.celonis.kafka.connect.ems.testcontainers.KafkaConnectContainer.{jvmCertsPath, networkAlias, pluginPath, port}
+import com.celonis.kafka.connect.ems.testcontainers.KafkaConnectContainer.jvmCertsPath
+import com.celonis.kafka.connect.ems.testcontainers.KafkaConnectContainer.networkAlias
+import com.celonis.kafka.connect.ems.testcontainers.KafkaConnectContainer.pluginPath
+import com.celonis.kafka.connect.ems.testcontainers.KafkaConnectContainer.port
 import com.celonis.kafka.connect.ems.testcontainers.syntax.KafkaContainerOps
 import com.github.dockerjava.api.model.Ulimit
-import org.testcontainers.containers.{GenericContainer, KafkaContainer}
+import org.testcontainers.containers.GenericContainer
+import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.containers.wait.strategy.Wait
-import org.testcontainers.utility.{DockerImageName, MountableFile}
+import org.testcontainers.utility.DockerImageName
+import org.testcontainers.utility.MountableFile
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.time.Duration
 
 class KafkaConnectContainer(
@@ -67,10 +73,10 @@ class KafkaConnectContainer(
 }
 
 object KafkaConnectContainer {
-  val imageName:                               DockerImageName = DockerImageName.parse("confluentinc/cp-kafka-connect")
-  val networkAlias:                            String          = "kafka-connect"
-  val port:                                    Int             = 8083
-  val pluginPath:                              String          = "/connectors"
+  val imageName:    DockerImageName = DockerImageName.parse("confluentinc/cp-kafka-connect")
+  val networkAlias: String          = "kafka-connect"
+  val port:         Int             = 8083
+  val pluginPath:   String          = "/connectors"
   val jvmCertsPath = "/usr/lib/jvm/zulu11-ca/lib/security/cacerts"
 
   def apply(

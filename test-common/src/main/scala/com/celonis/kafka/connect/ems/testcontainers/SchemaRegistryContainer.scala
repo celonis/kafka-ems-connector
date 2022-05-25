@@ -3,9 +3,12 @@
  */
 package com.celonis.kafka.connect.ems.testcontainers
 
-import com.celonis.kafka.connect.ems.testcontainers.SchemaRegistryContainer.{imageName, networkAlias, port}
+import com.celonis.kafka.connect.ems.testcontainers.SchemaRegistryContainer.imageName
+import com.celonis.kafka.connect.ems.testcontainers.SchemaRegistryContainer.networkAlias
+import com.celonis.kafka.connect.ems.testcontainers.SchemaRegistryContainer.port
 import com.celonis.kafka.connect.ems.testcontainers.syntax.KafkaContainerOps
-import org.testcontainers.containers.{GenericContainer, KafkaContainer}
+import org.testcontainers.containers.GenericContainer
+import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
 

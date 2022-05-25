@@ -80,7 +80,7 @@ object Dependencies {
     val httpClientVersion       = "4.5.13"
     val json4sVersion           = "4.0.5"
     val jacksonVersion          = "2.12.6"
-    val jacksonDatabindVersion          = "2.12.6.1"
+    val jacksonDatabindVersion  = "2.12.6.1"
     val slf4jTestingVersion     = "2.0.0-alpha1"
   }
 
@@ -199,14 +199,14 @@ object Dependencies {
   val json4s                   = "org.json4s"               %% "json4s-native"          % Versions.json4sVersion
   val kafkaClients             = "org.apache.kafka"          % "kafka-clients"          % Versions.kafkaVersion
 
-  lazy val nettyCodecHttp: ModuleID = "io.netty" % "netty-codec-http" % nettyVersion
-  lazy val nettyCodecSocks: ModuleID = "io.netty" % "netty-codec-socks" % nettyVersion
-  lazy val nettyCodec: ModuleID = "io.netty" % "netty-codec" % nettyVersion
-  lazy val nettyCommon: ModuleID = "io.netty" % "netty-common" % nettyVersion
+  lazy val nettyCodecHttp:    ModuleID = "io.netty" % "netty-codec-http"    % nettyVersion
+  lazy val nettyCodecSocks:   ModuleID = "io.netty" % "netty-codec-socks"   % nettyVersion
+  lazy val nettyCodec:        ModuleID = "io.netty" % "netty-codec"         % nettyVersion
+  lazy val nettyCommon:       ModuleID = "io.netty" % "netty-common"        % nettyVersion
   lazy val nettyHandlerProxy: ModuleID = "io.netty" % "netty-handler-proxy" % nettyVersion
-  lazy val nettyHandler: ModuleID = "io.netty" % "netty-handler" % nettyVersion
-  lazy val nettyResolver: ModuleID = "io.netty" % "netty-resolver" % nettyVersion
-  lazy val nettyTransport: ModuleID = "io.netty" % "netty-transport" % nettyVersion
+  lazy val nettyHandler:      ModuleID = "io.netty" % "netty-handler"       % nettyVersion
+  lazy val nettyResolver:     ModuleID = "io.netty" % "netty-resolver"      % nettyVersion
+  lazy val nettyTransport:    ModuleID = "io.netty" % "netty-transport"     % nettyVersion
 
   lazy val jacksonCore: ModuleID = "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion
   lazy val jacksonDatabind: ModuleID =
@@ -273,7 +273,15 @@ trait Dependencies {
   )
 
   // override to the newest netty deps
-  val nettyDeps = Seq(nettyCodecHttp, nettyCodecSocks, nettyCodec, nettyCommon, nettyHandlerProxy, nettyHandler, nettyResolver, nettyTransport)
+  val nettyDeps = Seq(nettyCodecHttp,
+                      nettyCodecSocks,
+                      nettyCodec,
+                      nettyCommon,
+                      nettyHandlerProxy,
+                      nettyHandler,
+                      nettyResolver,
+                      nettyTransport,
+  )
   val jacksonDeps = Seq(jacksonCore, jacksonModuleScala, jacksonDatabind)
 
   //Specific modules dependencies
@@ -296,11 +304,14 @@ trait Dependencies {
   ) ++ enumeratum ++ circe ++ http4s ++ nettyDeps).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
-    .map(_.excludeAll(
-      ExclusionRule(organization = "org.codehaus.jackson"),
-      ExclusionRule(organization = "com.fasterxml.jackson"),
-      ExclusionRule(organization = "com.fasterxml.jackson.core"),
-      ExclusionRule(organization = "com.fasterxml.jackson.databind"))) ++ jacksonDeps
+    .map(
+      _.excludeAll(
+        ExclusionRule(organization = "org.codehaus.jackson"),
+        ExclusionRule(organization = "com.fasterxml.jackson"),
+        ExclusionRule(organization = "com.fasterxml.jackson.core"),
+        ExclusionRule(organization = "com.fasterxml.jackson.databind"),
+      ),
+    ) ++ jacksonDeps
 
   val emsSinkOverrides = jacksonDeps ++ nettyDeps ++ Seq(avro, nimbusJoseJwt)
 

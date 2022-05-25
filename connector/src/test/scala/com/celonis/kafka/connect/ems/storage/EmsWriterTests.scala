@@ -34,7 +34,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
         System.currentTimeMillis(),
         simpleSchemaV1,
         new File("abc"),
-      )
+      ),
     )
 
     val struct  = buildSimpleStruct()
@@ -102,7 +102,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
         System.currentTimeMillis(),
         simpleSchemaV1,
         new File("abc"),
-      )
+      ),
     )
 
     val struct  = buildSimpleStruct()
@@ -147,7 +147,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
         System.currentTimeMillis(),
         simpleSchemaV1,
         new File("abc"),
-      )
+      ),
     )
 
     emsWriter.shouldRollover(simpleSchemaV2) shouldBe true
@@ -172,7 +172,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
         System.currentTimeMillis(),
         simpleSchemaV1,
         new File("abc"),
-      )
+      ),
     )
 
     emsWriter.shouldRollover(simpleSchemaV1) shouldBe false
@@ -195,7 +195,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
         System.currentTimeMillis(),
         simpleSchemaV1,
         new File("abc"),
-      )
+      ),
     )
 
     emsWriter.shouldRollover(simpleSchemaV2) shouldBe false
@@ -218,7 +218,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
         System.currentTimeMillis(),
         simpleSchemaV1,
         new File("abc"),
-      )
+      ),
     )
 
     val struct  = buildSimpleStruct()
@@ -246,7 +246,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
         System.currentTimeMillis(),
         simpleSchemaV1,
         new File("abc"),
-      )
+      ),
     )
 
     emsWriter.shouldFlush shouldBe false

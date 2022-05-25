@@ -2,9 +2,13 @@ import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import sbt.Keys._
 import sbt.TestFrameworks.ScalaTest
 import sbt._
-import sbtassembly.AssemblyKeys.{assembly, assemblyExcludedJars, assemblyMergeStrategy}
-import sbtassembly.{MergeStrategy, PathList}
-import scalafix.sbt.ScalafixPlugin.autoImport.{scalafixConfigSettings, scalafixSemanticdb}
+import sbtassembly.AssemblyKeys.assembly
+import sbtassembly.AssemblyKeys.assemblyExcludedJars
+import sbtassembly.AssemblyKeys.assemblyMergeStrategy
+import sbtassembly.MergeStrategy
+import sbtassembly.PathList
+import scalafix.sbt.ScalafixPlugin.autoImport.scalafixConfigSettings
+import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
 import scoverage._
 
 import java.util.Calendar
@@ -26,7 +30,8 @@ object Settings extends Dependencies {
   }
 
   val manifestSection: Package.JarManifest = {
-    import java.util.jar.{Attributes, Manifest}
+    import java.util.jar.Attributes
+    import java.util.jar.Manifest
     val manifest      = new Manifest
     val newAttributes = new Attributes()
     newAttributes.put(new Attributes.Name("version"), majorVersion)
@@ -198,7 +203,11 @@ object Settings extends Dependencies {
   val E2ETest:        Configuration = config("e2e").extend(Test).describedAs("Runs E2E tests")
 
   val testConfigurationsMap =
-    Map(Test.name -> Test, IntegrationTest.name -> IntegrationTest, FunctionalTest.name -> FunctionalTest, E2ETest.name -> E2ETest)
+    Map(Test.name            -> Test,
+        IntegrationTest.name -> IntegrationTest,
+        FunctionalTest.name  -> FunctionalTest,
+        E2ETest.name         -> E2ETest,
+    )
 
   sealed abstract class TestConfigurator(
     project:         Project,
@@ -242,7 +251,8 @@ object Settings extends Dependencies {
       )
   }
 
-  implicit final class IntegrationTestConfigurator(project: Project) extends TestConfigurator(project, IntegrationTest) {
+  implicit final class IntegrationTestConfigurator(project: Project)
+      extends TestConfigurator(project, IntegrationTest) {
 
     def configureIntegrationTests(
       requiresFork:              Boolean            = false,

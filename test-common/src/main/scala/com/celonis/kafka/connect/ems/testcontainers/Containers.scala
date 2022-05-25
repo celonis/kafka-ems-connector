@@ -1,6 +1,10 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package com.celonis.kafka.connect.ems.testcontainers
 
-import org.testcontainers.containers.{GenericContainer, Network}
+import org.testcontainers.containers.GenericContainer
+import org.testcontainers.containers.Network
 import org.testcontainers.containers.output.OutputFrame
 
 import java.util.function.Consumer

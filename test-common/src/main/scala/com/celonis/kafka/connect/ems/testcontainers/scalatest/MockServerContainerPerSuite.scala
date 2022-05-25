@@ -1,13 +1,21 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package com.celonis.kafka.connect.ems.testcontainers.scalatest
 
-import com.celonis.kafka.connect.ems.testcontainers.{MockServerContainer, ToxiproxyContainer}
+import com.celonis.kafka.connect.ems.testcontainers.MockServerContainer
+import com.celonis.kafka.connect.ems.testcontainers.ToxiproxyContainer
 import org.mockserver.client.MockServerClient
-import org.scalatest.{BeforeAndAfterAll, TestSuite}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.TestSuite
 import org.scalatest.concurrent.Eventually
-import org.scalatest.time.{Minute, Span}
-import org.slf4j.{Logger, LoggerFactory}
+import org.scalatest.time.Minute
+import org.scalatest.time.Span
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.testcontainers.containers.output.Slf4jLogConsumer
-import org.testcontainers.containers.{Network, ToxiproxyContainer => JavaToxiproxyContainer}
+import org.testcontainers.containers.Network
+import org.testcontainers.containers.{ ToxiproxyContainer => JavaToxiproxyContainer }
 
 trait MockServerContainerPerSuite extends BeforeAndAfterAll with Eventually { this: TestSuite =>
 

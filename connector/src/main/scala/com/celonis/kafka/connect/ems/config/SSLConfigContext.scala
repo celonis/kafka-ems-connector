@@ -34,7 +34,7 @@ object SSLConfigContext {
 
     val ctx: SSLContext = SSLContext.getInstance("TLS")
     val serverEngine = ctx.createSSLEngine()
-    serverEngine.setEnabledProtocols(Array( "TLSv1.2", "TLSv1.3" ))
+    serverEngine.setEnabledProtocols(Array("TLSv1.2", "TLSv1.3"))
     val trustManagers = getTrustManagers(config)
     ctx.init(keyManagers, trustManagers, new SecureRandom())
     ctx

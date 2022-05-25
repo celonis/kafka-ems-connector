@@ -1,3 +1,6 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package com.celonis.kafka.connect.ems.parquet
 import org.apache.parquet.io.InputFile
 import org.apache.parquet.io.SeekableInputStream

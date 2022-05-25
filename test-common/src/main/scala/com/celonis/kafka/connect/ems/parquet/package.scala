@@ -1,3 +1,6 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package com.celonis.kafka.connect.ems
 import com.github.tomakehurst.wiremock.http.multipart.PartParser
 import org.apache.avro.generic.GenericRecord
