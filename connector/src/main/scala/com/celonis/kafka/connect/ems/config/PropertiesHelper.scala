@@ -2,6 +2,8 @@
  * Copyright 2017-2022 Celonis Ltd
  */
 package com.celonis.kafka.connect.ems.config
+
+import cats.syntax.either._
 import org.apache.kafka.common.config.types.Password
 
 import scala.util.Try
@@ -33,5 +35,36 @@ object PropertiesHelper {
       case b: Boolean                              => b
       case s: String if Try(s.toBoolean).isSuccess => s.toBoolean
     }
+
+  def error[T](key: String, docs: String): Either[String, T] = s"Invalid [$key]. $docs".asLeft[T]
+
+  private def propertyOr[T](
+                             props: Map[String, _],
+                             key:   String,
+                             docs:  String,
+                           )(fn:    (Map[String, _], String) => Option[T],
+                           ): Either[String, T] =
+    fn(props, key) match {
+      case Some(value) => value.asRight[String]
+      case None        => error(key, docs)
+    }
+
+  def nonEmptyStringOr(props: Map[String, _], key: String, docs: String): Either[String, String] =
+    propertyOr(props, key, docs)(PropertiesHelper.getString).map(_.trim).flatMap { s =>
+      if (s.nonEmpty) s.asRight[String]
+      else error(key, docs)
+    }
+
+  def nonEmptyPasswordOr(props: Map[String, _], key: String, docs: String): Either[String, String] =
+    propertyOr(props, key, docs)(PropertiesHelper.getPassword).map(_.trim).flatMap { s =>
+      if (s.nonEmpty) s.asRight[String]
+      else error(key, docs)
+    }
+
+  def longOr(props: Map[String, _], key: String, docs: String): Either[String, Long] =
+    propertyOr(props, key, docs)(PropertiesHelper.getLong)
+
+  def booleanOr(props: Map[String, _], key: String, docs: String): Either[String, Boolean] =
+    propertyOr(props, key, docs)(PropertiesHelper.getBoolean)
 
 }

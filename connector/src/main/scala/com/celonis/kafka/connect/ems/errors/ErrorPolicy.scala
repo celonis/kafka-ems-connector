@@ -3,6 +3,11 @@
  */
 package com.celonis.kafka.connect.ems.errors
 
+import cats.syntax.either._
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
+import com.celonis.kafka.connect.ems.config.PropertiesHelper.error
+import com.celonis.kafka.connect.ems.config.PropertiesHelper.nonEmptyStringOr
 import com.typesafe.scalalogging.StrictLogging
 
 import java.util.Date
@@ -26,8 +31,6 @@ sealed trait ErrorPolicy extends EnumEntry with Uppercase {
 object ErrorPolicy extends Enum[ErrorPolicy] {
   val values = findValues
 
-  def find(value: String): Option[ErrorPolicy] = values.find(_.entryName.toUpperCase() == value.toUpperCase())
-
   case object Continue extends ErrorPolicy with StrictLogging {
     override def handle(error: Throwable, retries: Int): Unit =
       logger.warn(s"Error policy is set to continue.", error)
@@ -47,4 +50,13 @@ object ErrorPolicy extends Enum[ErrorPolicy] {
         throw new RetriableException(error)
       }
   }
+
+  def extract(props: Map[String, _]): Either[String, ErrorPolicy] =
+    nonEmptyStringOr(props, ERROR_POLICY_KEY, ERROR_POLICY_DOC)
+      .flatMap { constant =>
+        ErrorPolicy.withNameInsensitiveOption(constant) match {
+          case Some(value) => value.asRight[String]
+          case None        => error(ERROR_POLICY_KEY, ERROR_POLICY_DOC)
+        }
+      }
 }

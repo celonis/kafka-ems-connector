@@ -12,9 +12,9 @@ class AuthorizationTests extends AnyFunSuite with Matchers {
   test(s"return an error if $AUTHORIZATION_KEY is missing") {
     val expectedMessage =
       s"Invalid [$AUTHORIZATION_KEY]. $AUTHORIZATION_DOC"
-    EmsSinkConfig.extractAuthorizationHeader(Map.empty) shouldBe Left(expectedMessage)
-    EmsSinkConfig.extractAuthorizationHeader(Map("a" -> "b", "b" -> 1)) shouldBe Left(expectedMessage)
-    EmsSinkConfig.extractAuthorizationHeader(Map("a" -> "b", AUTHORIZATION_KEY + ".ext" -> 1)) shouldBe Left(
+    AuthorizationHeader.extract(Map.empty) shouldBe Left(expectedMessage)
+    AuthorizationHeader.extract(Map("a" -> "b", "b" -> 1)) shouldBe Left(expectedMessage)
+    AuthorizationHeader.extract(Map("a" -> "b", AUTHORIZATION_KEY + ".ext" -> 1)) shouldBe Left(
       expectedMessage,
     )
   }
@@ -22,28 +22,28 @@ class AuthorizationTests extends AnyFunSuite with Matchers {
   test(s"return an error if $AUTHORIZATION_KEY is empty") {
     val expectedMessage =
       s"Invalid [$AUTHORIZATION_KEY]. $AUTHORIZATION_DOC"
-    EmsSinkConfig.extractAuthorizationHeader(Map(AUTHORIZATION_KEY -> "")) shouldBe Left(expectedMessage)
+    AuthorizationHeader.extract(Map(AUTHORIZATION_KEY -> "")) shouldBe Left(expectedMessage)
   }
 
   test(s"return an error if $AUTHORIZATION_KEY is not a string") {
     val expectedMessage =
       s"Invalid [$AUTHORIZATION_KEY]. $AUTHORIZATION_DOC"
 
-    EmsSinkConfig.extractAuthorizationHeader(Map(AUTHORIZATION_KEY -> 2)) shouldBe Left(expectedMessage)
+    AuthorizationHeader.extract(Map(AUTHORIZATION_KEY -> 2)) shouldBe Left(expectedMessage)
   }
 
   test(s"return an error if $AUTHORIZATION_KEY is not matching the expected format") {
     val expectedMessage =
       s"Invalid [$AUTHORIZATION_KEY]. $AUTHORIZATION_DOC"
 
-    EmsSinkConfig.extractAuthorizationHeader(Map(AUTHORIZATION_KEY -> "abc")) shouldBe Left(expectedMessage)
+    AuthorizationHeader.extract(Map(AUTHORIZATION_KEY -> "abc")) shouldBe Left(expectedMessage)
   }
 
   test(s"return the value provided by $AUTHORIZATION_KEY setting") {
     val expected1 = "Bearer id"
-    EmsSinkConfig.extractAuthorizationHeader(Map(AUTHORIZATION_KEY -> expected1)) shouldBe Right(expected1)
+    AuthorizationHeader.extract(Map(AUTHORIZATION_KEY -> expected1)) shouldBe Right(AuthorizationHeader(expected1))
 
     val expected2 = "AppKey id"
-    EmsSinkConfig.extractAuthorizationHeader(Map(AUTHORIZATION_KEY -> expected2)) shouldBe Right(expected2)
+    AuthorizationHeader.extract(Map(AUTHORIZATION_KEY -> expected2)) shouldBe Right(AuthorizationHeader(expected2))
   }
 }

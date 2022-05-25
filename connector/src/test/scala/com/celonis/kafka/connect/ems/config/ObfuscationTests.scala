@@ -19,25 +19,25 @@ import java.nio.charset.StandardCharsets
 
 class ObfuscationTests extends AnyFunSuite with Matchers {
   test(s"return no obfuscation if $OBFUSCATED_FIELDS_KEY is not provided") {
-    EmsSinkConfig.extractObfuscation(Map.empty) shouldBe Right(None)
-    EmsSinkConfig.extractObfuscation(Map("a" -> "b", "b" -> 1)) shouldBe Right(None)
-    EmsSinkConfig.extractObfuscation(Map("a" -> "b", OBFUSCATED_FIELDS_KEY + ".ext" -> 1)) shouldBe Right(None)
+    ObfuscationConfig.extract(Map.empty) shouldBe Right(None)
+    ObfuscationConfig.extract(Map("a" -> "b", "b" -> 1)) shouldBe Right(None)
+    ObfuscationConfig.extract(Map("a" -> "b", OBFUSCATED_FIELDS_KEY + ".ext" -> 1)) shouldBe Right(None)
   }
 
   test(s"return an error if $OBFUSCATED_FIELDS_KEY contains invalid field names") {
-    EmsSinkConfig.extractObfuscation(Map(OBFUSCATED_FIELDS_KEY -> "")) shouldBe Left(
+    ObfuscationConfig.extract(Map(OBFUSCATED_FIELDS_KEY -> "")) shouldBe Left(
       s"Invalid [$OBFUSCATED_FIELDS_KEY]. Empty list of fields has been provided.",
     )
   }
 
   test("return an error if the obfuscation type is incorrect") {
-    EmsSinkConfig.extractObfuscation(
+    ObfuscationConfig.extract(
       Map(OBFUSCATED_FIELDS_KEY -> "abc, foo.boo.moo, a.x.y.z ", OBFUSCATION_TYPE_KEY -> "whaaa"),
     ) shouldBe Left(s"Invalid [$OBFUSCATION_TYPE_KEY]. Expected obfuscation methods are: *, sha1 or sha512.")
   }
 
   test("return the obfuscation keys") {
-    EmsSinkConfig.extractObfuscation(
+    ObfuscationConfig.extract(
       Map(OBFUSCATED_FIELDS_KEY -> "abc, foo.boo.moo, a.x.y.z ", OBFUSCATION_TYPE_KEY -> "fix"),
     ) shouldBe Right(
       Some(
@@ -54,7 +54,7 @@ class ObfuscationTests extends AnyFunSuite with Matchers {
       ),
     )
 
-    EmsSinkConfig.extractObfuscation(
+    ObfuscationConfig.extract(
       Map(OBFUSCATED_FIELDS_KEY -> "abc, ,foo.boo.moo, a.x.y.z ", OBFUSCATION_TYPE_KEY -> "fix"),
     ) shouldBe Right(
       Some(
@@ -71,7 +71,7 @@ class ObfuscationTests extends AnyFunSuite with Matchers {
       ),
     )
 
-    EmsSinkConfig.extractObfuscation(
+    ObfuscationConfig.extract(
       Map(OBFUSCATED_FIELDS_KEY -> "abc, foo.boo.moo, a.x.y.z ", OBFUSCATION_TYPE_KEY -> "shA1"),
     ) shouldBe Right(
       Some(
@@ -88,7 +88,7 @@ class ObfuscationTests extends AnyFunSuite with Matchers {
       ),
     )
 
-    val actual = EmsSinkConfig.extractObfuscation(
+    val actual = ObfuscationConfig.extract(
       Map(OBFUSCATED_FIELDS_KEY -> "abc, foo.boo.moo, a.x.y.z ",
           OBFUSCATION_TYPE_KEY  -> "shA512",
           SHA512_SALT_KEY       -> "jack norris",
@@ -107,7 +107,7 @@ class ObfuscationTests extends AnyFunSuite with Matchers {
       case _                    => fail("should be SHA512")
     }
 
-    EmsSinkConfig.extractObfuscation(
+    ObfuscationConfig.extract(
       Map(OBFUSCATED_FIELDS_KEY  -> "abc, foo.boo.moo, a.x.y.z ",
           OBFUSCATION_TYPE_KEY   -> "sHa512",
           SHA512_RANDOM_SALT_KEY -> "true",

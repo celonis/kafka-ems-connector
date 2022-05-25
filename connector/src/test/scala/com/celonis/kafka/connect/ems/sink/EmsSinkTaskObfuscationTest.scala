@@ -33,7 +33,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         "tableA",
         Some("id11111"),
         Some("client1212"),
-        "AppKey 123",
+        AuthorizationHeader("AppKey 123"),
         Retry,
         policy,
         RetryConfig(1, 1000),
@@ -50,7 +50,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
       val config = Map(
         ENDPOINT_KEY                -> sinkConfig.url.toString,
         TARGET_TABLE_KEY            -> sinkConfig.target,
-        AUTHORIZATION_KEY           -> sinkConfig.authorizationKey,
+        AUTHORIZATION_KEY           -> sinkConfig.authorization.header,
         ERROR_POLICY_KEY            -> sinkConfig.errorPolicy.entryName,
         COMMIT_SIZE_KEY             -> policy.fileSize.toString,
         COMMIT_INTERVAL_KEY         -> policy.interval.toString,

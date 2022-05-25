@@ -18,6 +18,7 @@ sealed abstract class ExplodeConfig(createExploderFn: () => Exploder) extends En
 }
 
 object ExplodeConfig extends Enum[ExplodeConfig] {
+  import EmsSinkConfigConstants._
 
   def apply(config: Option[String]): ExplodeConfig =
     config.flatMap(ExplodeConfig.withNameInsensitiveOption).getOrElse(None)
@@ -27,4 +28,6 @@ object ExplodeConfig extends Enum[ExplodeConfig] {
   case object None extends ExplodeConfig(() => new NoOpExploder())
   case object List extends ExplodeConfig(() => new ListExploder())
 
+  def extractExplode(props: Map[String, _]): ExplodeConfig =
+    ExplodeConfig(PropertiesHelper.getString(props, EXPLODE_MODE_KEY))
 }

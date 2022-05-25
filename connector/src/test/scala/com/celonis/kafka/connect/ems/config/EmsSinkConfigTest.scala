@@ -35,7 +35,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         "tableA",
         Some("id222"),
         Some("client123"),
-        "AppKey 123",
+        AuthorizationHeader("AppKey 123"),
         Retry,
         policy,
         RetryConfig(10, 1000),
@@ -51,7 +51,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
       val inputMap: Map[String, _] = Map(
         ENDPOINT_KEY                -> expected.url.toString,
         TARGET_TABLE_KEY            -> expected.target,
-        AUTHORIZATION_KEY           -> expected.authorizationKey,
+        AUTHORIZATION_KEY           -> expected.authorization.header,
         ERROR_POLICY_KEY            -> expected.errorPolicy.entryName,
         COMMIT_SIZE_KEY             -> policy.fileSize,
         COMMIT_INTERVAL_KEY         -> policy.interval,
@@ -207,7 +207,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     EmsSinkConfig.from("tst", EmsSinkConfigDef.config.parse(input.asJava).asScala.toMap) match {
       case Left(value) => throw new ConnectException(value)
       case Right(value) =>
-        value.authorizationKey shouldBe "AppKey 123"
+        value.authorization.header shouldBe "AppKey 123"
     }
   }
 
@@ -222,7 +222,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         "tableA",
         Some("id11111"),
         Some("client1212"),
-        "AppKey 123",
+        AuthorizationHeader("AppKey 123"),
         Retry,
         policy,
         RetryConfig(10, 1000),
@@ -240,7 +240,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
       val inputMap: Map[String, _] = Map(
         ENDPOINT_KEY                -> sinkConfig.url.toString,
         TARGET_TABLE_KEY            -> sinkConfig.target,
-        AUTHORIZATION_KEY           -> sinkConfig.authorizationKey,
+        AUTHORIZATION_KEY           -> sinkConfig.authorization.header,
         ERROR_POLICY_KEY            -> sinkConfig.errorPolicy.entryName,
         COMMIT_SIZE_KEY             -> policy.fileSize,
         COMMIT_INTERVAL_KEY         -> policy.interval,
