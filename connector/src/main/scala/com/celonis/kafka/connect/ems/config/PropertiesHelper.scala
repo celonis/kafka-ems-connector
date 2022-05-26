@@ -39,11 +39,11 @@ object PropertiesHelper {
   def error[T](key: String, docs: String): Either[String, T] = s"Invalid [$key]. $docs".asLeft[T]
 
   private def propertyOr[T](
-                             props: Map[String, _],
-                             key:   String,
-                             docs:  String,
-                           )(fn:    (Map[String, _], String) => Option[T],
-                           ): Either[String, T] =
+    props: Map[String, _],
+    key:   String,
+    docs:  String,
+  )(fn:    (Map[String, _], String) => Option[T],
+  ): Either[String, T] =
     fn(props, key) match {
       case Some(value) => value.asRight[String]
       case None        => error(key, docs)
