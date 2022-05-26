@@ -11,8 +11,8 @@ import scala.util.Try
 object PropertiesHelper {
   def getString(props: Map[String, _], key: String): Option[String] =
     props.get(key).collect {
-      case s: String   => s
-      case p: Password => p.value()
+      case s: String if s.nonEmpty => s
+      case p: Password             => p.value()
     }.flatMap(Option(_))
 
   def getLong(props: Map[String, _], key: String): Option[Long] =

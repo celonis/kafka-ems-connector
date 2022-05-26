@@ -7,7 +7,7 @@ import org.mockserver.client.MockServerClient
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpResponse
 
-object ems {
+object mockserver {
 
   def withMockResponse(
     request:  HttpRequest,

@@ -68,6 +68,6 @@ class EmsSinkConnectorTest extends AnyFunSuite with Matchers {
     val connector = new EmsSinkConnector()
 
     val thrown = the[ConfigException] thrownBy connector.config().parse(props)
-    thrown.getMessage should include regex("^.*Missing required configuration.*$")
+    thrown.getMessage should include regex "^.*Missing required configuration.*$"
   }
 }

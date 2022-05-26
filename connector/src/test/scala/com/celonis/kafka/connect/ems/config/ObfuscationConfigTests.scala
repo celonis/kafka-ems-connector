@@ -17,7 +17,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.nio.charset.StandardCharsets
 
-class ObfuscationTests extends AnyFunSuite with Matchers {
+class ObfuscationConfigTests extends AnyFunSuite with Matchers {
   test(s"return no obfuscation if $OBFUSCATED_FIELDS_KEY is not provided") {
     ObfuscationConfig.extract(Map.empty) shouldBe Right(None)
     ObfuscationConfig.extract(Map("a" -> "b", "b" -> 1)) shouldBe Right(None)
@@ -30,10 +30,53 @@ class ObfuscationTests extends AnyFunSuite with Matchers {
     )
   }
 
+  test(s"return an error if $OBFUSCATED_FIELDS_KEY contains invalid field value") {
+    ObfuscationConfig.extract(
+      Map(OBFUSCATED_FIELDS_KEY -> 1, OBFUSCATION_TYPE_KEY -> "sha1"),
+    ) shouldBe Left(
+      s"Invalid [$OBFUSCATED_FIELDS_KEY]. Invalid value provided. Expected a list of obfuscated fields but found:java.lang.Integer.",
+    )
+  }
+
   test("return an error if the obfuscation type is incorrect") {
     ObfuscationConfig.extract(
       Map(OBFUSCATED_FIELDS_KEY -> "abc, foo.boo.moo, a.x.y.z ", OBFUSCATION_TYPE_KEY -> "whaaa"),
     ) shouldBe Left(s"Invalid [$OBFUSCATION_TYPE_KEY]. Expected obfuscation methods are: *, sha1 or sha512.")
+  }
+
+  test(s"return an error if $OBFUSCATION_TYPE_KEY is missing") {
+    ObfuscationConfig.extract(
+      Map(OBFUSCATED_FIELDS_KEY -> "abc, foo.boo.moo, a.x.y.z "),
+    ) shouldBe Left(
+      s"Invalid [$OBFUSCATION_TYPE_KEY]. Obfuscation method is required.",
+    )
+  }
+
+  test(s"return an error if $OBFUSCATION_TYPE_KEY is empty") {
+    ObfuscationConfig.extract(
+      Map(OBFUSCATED_FIELDS_KEY -> "abc, foo.boo.moo, a.x.y.z ", OBFUSCATION_TYPE_KEY -> ""),
+    ) shouldBe Left(
+      s"Invalid [$OBFUSCATION_TYPE_KEY]. Obfuscation method is required.",
+    )
+  }
+
+  test(s"return an error if $SHA512_SALT_KEY is missing") {
+    ObfuscationConfig.extract(
+      Map(OBFUSCATED_FIELDS_KEY -> "abc, foo.boo.moo, a.x.y.z ", OBFUSCATION_TYPE_KEY -> "sHa512"),
+    ) shouldBe Left(
+      s"Invalid [$SHA512_SALT_KEY]. Required field. A salt or random salt must be configured.",
+    )
+  }
+
+  test(s"return an error if $SHA512_SALT_KEY is empty") {
+    ObfuscationConfig.extract(
+      Map(OBFUSCATED_FIELDS_KEY -> "abc, foo.boo.moo, a.x.y.z ",
+          OBFUSCATION_TYPE_KEY  -> "sHa512",
+          SHA512_SALT_KEY       -> "",
+      ),
+    ) shouldBe Left(
+      s"Invalid [$SHA512_SALT_KEY]. Required field. A salt or random salt must be configured.",
+    )
   }
 
   test("return the obfuscation keys") {

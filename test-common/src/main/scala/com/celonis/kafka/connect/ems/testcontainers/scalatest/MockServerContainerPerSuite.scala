@@ -13,7 +13,6 @@ import org.scalatest.time.Minute
 import org.scalatest.time.Span
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.testcontainers.containers.output.Slf4jLogConsumer
 import org.testcontainers.containers.Network
 import org.testcontainers.containers.{ ToxiproxyContainer => JavaToxiproxyContainer }
 
@@ -26,10 +25,10 @@ trait MockServerContainerPerSuite extends BeforeAndAfterAll with Eventually { th
   val network: Network = Network.newNetwork()
 
   lazy val mockServerContainer: MockServerContainer =
-    MockServerContainer().withNetwork(network).withLogConsumer(new Slf4jLogConsumer(log))
+    MockServerContainer().withNetwork(network)
 
   lazy val toxiproxyContainer: ToxiproxyContainer =
-    ToxiproxyContainer("mockserver.celonis.cloud").withNetwork(network).withLogConsumer(new Slf4jLogConsumer(log))
+    ToxiproxyContainer("mockserver.celonis.cloud").withNetwork(network)
 
   lazy val proxyServerUrl: String = s"https://${toxiproxyContainer.networkAlias}:${proxy.getOriginalProxyPort}"
 

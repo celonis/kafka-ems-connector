@@ -9,7 +9,7 @@ import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfigur
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration.TOPICS_KEY
 import com.celonis.kafka.connect.ems.testcontainers.scalatest.KafkaConnectContainerPerSuite
 import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.connect.withConnector
-import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.ems.withMockResponse
+import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.mockserver.withMockResponse
 import org.apache.avro.SchemaBuilder
 import org.apache.avro.generic.GenericData
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -17,14 +17,12 @@ import org.mockserver.verify.VerificationTimes
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
 class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with Matchers {
 
-  test("read generated parquet file") {
-
+  test("reads records from generated parquet file") {
     val sourceTopic = randomTopicName()
     val emsTable    = randomEmsTable()
 
@@ -39,10 +37,11 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with M
         .withConfig(COMMIT_SIZE_KEY, 1000000L)
         .withConfig(COMMIT_INTERVAL_KEY, 3600000)
         .withConfig(TMP_DIRECTORY_KEY, "/tmp/")
+        .withConfig(SHA512_SALT_KEY, "something")
+        .withConfig(OBFUSCATED_FIELDS_KEY, "field1")
+        .withConfig(OBFUSCATION_TYPE_KEY, "shA512")
 
       withConnector(emsConnector) {
-
-        val randomString = UUID.randomUUID().toString
         val randomInt    = scala.util.Random.nextInt()
 
         val valueSchema = SchemaBuilder.record("record").fields()
@@ -51,7 +50,7 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with M
           .endRecord()
 
         val writeRecord = new GenericData.Record(valueSchema)
-        writeRecord.put("field1", randomString)
+        writeRecord.put("field1", "myfieldvalue")
         writeRecord.put("field2", randomInt)
 
         stringAvroProducer.send(new ProducerRecord(sourceTopic, writeRecord))
@@ -68,7 +67,7 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with M
         val reader       = parquetReader(parquetFile)
         val record       = reader.read()
 
-        record.get("field1").toString should be(randomString)
+        record.get("field1").toString should be("ade2426de954b6cd28ce00c83b931c1943ce87fbc421897156c4be6c07e1b83e6618a842c406ba7c0bf806fee3ae3164c8aac873ff1ac113a6ceb66e0bb12224")
         record.get("field2").asInstanceOf[Int] should be(randomInt)
       }
     }

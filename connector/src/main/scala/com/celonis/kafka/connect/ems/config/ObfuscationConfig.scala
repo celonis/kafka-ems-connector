@@ -1,3 +1,6 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package com.celonis.kafka.connect.ems.config
 
 import cats.data.NonEmptyList
@@ -23,24 +26,15 @@ object ObfuscationConfig {
       case Some(value: String) =>
         val fields = value.split(',').map(_.trim).filter(_.nonEmpty).distinct
         if (fields.isEmpty) error(OBFUSCATED_FIELDS_KEY, "Empty list of fields has been provided.")
-        else {
-          val invalidFields = fields.map(f => f -> fields.count(_ == f)).filter(_._2 > 1)
-          if (invalidFields.nonEmpty)
-            error(
-              OBFUSCATED_FIELDS_KEY,
-              s"Invalid obfuscation fields. There are overlapping fields:${invalidFields.map(_._1).mkString("m,")}.",
-            )
-          else
-            ObfuscationConfig.extractObfuscationMethod(props).map { dataObfuscation =>
-              ObfuscationConfig(
-                dataObfuscation,
-                NonEmptyList.fromListUnsafe(
-                  fields.map(f => NonEmptyList.fromListUnsafe(f.split('.').toList)).map(ObfuscatedField.apply).toList,
-                ),
-              ).some
-            }
-
-        }
+        else
+          ObfuscationConfig.extractObfuscationMethod(props).map { dataObfuscation =>
+            ObfuscationConfig(
+              dataObfuscation,
+              NonEmptyList.fromListUnsafe(
+                fields.map(f => NonEmptyList.fromListUnsafe(f.split('.').toList)).map(ObfuscatedField.apply).toList,
+              ),
+            ).some
+          }
       case Some(other) =>
         Option(other).fold(Option.empty[ObfuscationConfig].asRight[String]) { o =>
           error[Option[ObfuscationConfig]](

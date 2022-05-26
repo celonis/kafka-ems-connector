@@ -9,7 +9,7 @@ import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfigur
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration.TOPICS_KEY
 import com.celonis.kafka.connect.ems.testcontainers.scalatest.KafkaConnectContainerPerSuite
 import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.connect.withConnector
-import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.ems.withMockResponse
+import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.mockserver.withMockResponse
 import org.mockserver.verify.VerificationTimes
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers

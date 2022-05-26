@@ -20,7 +20,6 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.scalatest.TestSuite
 import org.testcontainers.containers.KafkaContainer
-import org.testcontainers.containers.output.Slf4jLogConsumer
 import org.testcontainers.utility.DockerImageName
 
 import java.io.File
@@ -43,7 +42,6 @@ trait KafkaConnectContainerPerSuite extends MockServerContainerPerSuite { this: 
     new KafkaContainer(DockerImageName.parse(s"confluentinc/cp-kafka:$confluentPlatformVersion"))
       .withNetwork(network)
       .withNetworkAliases("kafka")
-      .withLogConsumer(new Slf4jLogConsumer(log))
 
   lazy val kafkaConnectContainer: KafkaConnectContainer = {
     KafkaConnectContainer(
@@ -51,13 +49,12 @@ trait KafkaConnectContainerPerSuite extends MockServerContainerPerSuite { this: 
       kafkaContainer          = kafkaContainer,
       schemaRegistryContainer = schemaRegistryContainer(),
       connectPluginJar        = connectPluginJar(),
-    ).withLogConsumer(new Slf4jLogConsumer(log))
+    )
   }
 
   // Override for different SchemaRegistryContainer configs
   def schemaRegistryContainer(): Option[SchemaRegistryContainer] = Some(
-    new SchemaRegistryContainer(confluentPlatformVersion, kafkaContainer)
-      .withLogConsumer(new Slf4jLogConsumer(log)),
+    new SchemaRegistryContainer(confluentPlatformVersion, kafkaContainer),
   )
 
   implicit lazy val kafkaConnectClient: KafkaConnectClient = new KafkaConnectClient(kafkaConnectContainer)
