@@ -40,9 +40,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContextExecutor
 import scala.jdk.CollectionConverters._
 
-class EmsSinkTask(emsSinkConfigurator: EmsSinkConfigurator = new DefaultEmsSinkConfigurator)
-    extends SinkTask
-    with StrictLogging {
+class EmsSinkTask extends SinkTask with StrictLogging {
 
   private var blockingExecutionContext: BlockingExecutionContext = _
   private var writerManager:            WriterManager[IO]        = _
@@ -53,6 +51,8 @@ class EmsSinkTask(emsSinkConfigurator: EmsSinkConfigurator = new DefaultEmsSinkC
   private var retriesLeft: Int                       = maxRetries
   private var errorPolicy: ErrorPolicy               = ErrorPolicy.Retry
   private var obfuscation: Option[ObfuscationConfig] = None
+
+  private var emsSinkConfigurator: EmsSinkConfigurator = new DefaultEmsSinkConfigurator
 
   override def version(): String =
     JarManifest.from(getClass.getProtectionDomain.getCodeSource.getLocation)
@@ -212,6 +212,9 @@ class EmsSinkTask(emsSinkConfigurator: EmsSinkConfigurator = new DefaultEmsSinkC
     blockingExecutionContext = null
     writerManager            = null
   }
+
+  private[ems] def withEmsSinkConfigurator(configurator: EmsSinkConfigurator): Unit =
+    emsSinkConfigurator = configurator
 
   private def maybeSetErrorInterval(config: EmsSinkConfig): Unit =
     //if error policy is retry set retry interval
