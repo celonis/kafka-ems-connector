@@ -9,7 +9,6 @@ import cats.effect.Ref
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigDef
 import com.celonis.kafka.connect.ems.config.ObfuscationConfig
 import com.celonis.kafka.connect.ems.conversion.DataConverter
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
@@ -30,7 +29,6 @@ import com.celonis.kafka.connect.ems.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
-import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
@@ -41,9 +39,10 @@ import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContextExecutor
 import scala.jdk.CollectionConverters._
-import scala.util.Try
 
-class EmsSinkTask extends SinkTask with StrictLogging {
+class EmsSinkTask(emsSinkConfigurator: EmsSinkConfigurator = new DefaultEmsSinkConfigurator)
+    extends SinkTask
+    with StrictLogging {
 
   private var blockingExecutionContext: BlockingExecutionContext = _
   private var writerManager:            WriterManager[IO]        = _
@@ -54,20 +53,16 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private var retriesLeft: Int                       = maxRetries
   private var errorPolicy: ErrorPolicy               = ErrorPolicy.Retry
   private var obfuscation: Option[ObfuscationConfig] = None
+
   override def version(): String =
     JarManifest.from(getClass.getProtectionDomain.getCodeSource.getLocation)
       .version.getOrElse("unknown")
 
   override def start(props: util.Map[String, String]): Unit = {
-    sinkName = getSinkName(props).getOrElse("MissingSinkName")
+    sinkName = emsSinkConfigurator.getSinkName(props)
 
     logger.debug(s"[{}] EmsSinkTask.start", sinkName)
-    val config: EmsSinkConfig = {
-      for {
-        parsedConfigDef <- Try(EmsSinkConfigDef.config.parse(props).asScala.toMap).toEither.leftMap(_.getMessage)
-        config          <- EmsSinkConfig.from(sinkName, parsedConfigDef)
-      } yield config
-    }.leftMap(err => throw new ConnectException(err)).merge
+    val config: EmsSinkConfig = emsSinkConfigurator.getEmsSinkConfig(props)
 
     maybeSetErrorInterval(config)
 
@@ -97,16 +92,6 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     pksValidator = new PrimaryKeysValidator(config.primaryKeys)
     obfuscation  = config.obfuscation
   }
-
-  private def getSinkName(props: util.Map[String, String]): Option[String] =
-    Option(props.get("name")).filter(_.trim.nonEmpty)
-
-  private def maybeSetErrorInterval(config: EmsSinkConfig): Unit =
-    //if error policy is retry set retry interval
-    config.errorPolicy match {
-      case Retry => Option(context).foreach(_.timeout(config.retries.interval))
-      case _     =>
-    }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
     val io = for {
@@ -227,6 +212,13 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     blockingExecutionContext = null
     writerManager            = null
   }
+
+  private def maybeSetErrorInterval(config: EmsSinkConfig): Unit =
+    //if error policy is retry set retry interval
+    config.errorPolicy match {
+      case Retry => Option(context).foreach(_.timeout(config.retries.interval))
+      case _     =>
+    }
 
   class BlockingExecutionContext private (executor: ExecutorService) extends AutoCloseable {
     val executionContext: ExecutionContextExecutor = ExecutionContext.fromExecutor(executor)
