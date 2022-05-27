@@ -188,6 +188,6 @@ object WriterManager extends LazyLogging {
       config.workingDir,
       new WriterBuilderImpl(config.workingDir, sinkName, config.commitPolicy, config.parquet, config.explode),
       writers,
-      ParquetFileCleanupDelete,
+      config.parquet.cleanup,
     )
 }
