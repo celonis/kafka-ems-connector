@@ -1,3 +1,6 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package com.celonis.kafka.connect.ems.sink
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_KEY

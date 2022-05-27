@@ -1,3 +1,6 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package com.celonis.kafka.connect.ems.sink
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
