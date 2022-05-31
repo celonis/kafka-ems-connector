@@ -48,7 +48,7 @@ class WriterManager[F[_]](
     logger.debug(s"[{}] Received call to WriterManager.maybeUploadData", sinkName)
     for {
       writers <- writersRef.get.map(_.values.filter(_.shouldFlush).toList)
-      _       <- writers.traverse(w => commit(w))
+      _       <- writers.traverse(w => commit(w, writerBuilder.writerFrom(w)))
     } yield ()
   }
 
@@ -59,7 +59,7 @@ class WriterManager[F[_]](
     * @param writer - An instance of [[Writer]]
     * @return
     */
-  private def commit(writer: Writer): F[Option[CommitWriterResult]] = {
+  private def commit(writer: Writer, buildFn: => Writer): F[Option[CommitWriterResult]] = {
     val state = writer.state
     //check if data was written to the file
     if (state.records == 0) A.pure(None)
@@ -72,16 +72,14 @@ class WriterManager[F[_]](
             s"Uploading file:$file size:${file.length()} for topic-partition:${TopicPartition.show.show(state.topicPartition)} and offset:${state.offset.show}",
           ),
         )
-        response <- uploader.upload(UploadRequest(file,
-                                                  state.topicPartition.topic,
-                                                  state.topicPartition.partition,
-                                                  state.offset,
-        ))
-        _         <- A.delay(logger.info(s"Received ${response.asJson.noSpaces} for uploading file:$file"))
-        _         <- A.delay(fileCleanup.clean(file, state.offset))
-        newWriter <- A.delay(writerBuilder.writerFrom(writer))
-        _         <- A.delay(logger.debug("Creating a new writer for [{}]", writer.state.show))
-        _         <- writersRef.update(map => map + (writer.state.topicPartition -> newWriter))
+        uploadRequest = UploadRequest(file, state.topicPartition.topic, state.topicPartition.partition, state.offset)
+        _            <- A.delay(println(s"Request:${UploadRequest.show.show(uploadRequest)}"))
+        response     <- uploader.upload(uploadRequest)
+        _            <- A.delay(logger.info(s"Received ${response.asJson.noSpaces} for uploading file:$file"))
+        _            <- A.delay(fileCleanup.clean(file, state.offset))
+        newWriter    <- A.delay(buildFn)
+        _            <- A.delay(logger.debug("Creating a new writer for [{}]", writer.state.show))
+        _            <- writersRef.update(map => map + (writer.state.topicPartition -> newWriter))
       } yield CommitWriterResult(
         newWriter,
         TopicPartitionOffset(writer.state.topicPartition.topic,
@@ -144,11 +142,12 @@ class WriterManager[F[_]](
       }
       schema = record.value.getSchema
       latestWriter <- {
-        if (writer.shouldRollover(schema)) commit(writer).map(_.fold(writer)(_.newWriter))
+        if (writer.shouldRollover(schema))
+          commit(writer, writerBuilder.writerFrom(record)).map(_.fold(writerBuilder.writerFrom(record))(_.newWriter))
         else A.pure(writer)
       }
       _ <- A.delay(latestWriter.write(record))
-      _ <- if (latestWriter.shouldFlush) commit(latestWriter) else A.pure(None)
+      _ <- if (latestWriter.shouldFlush) commit(latestWriter, writerBuilder.writerFrom(latestWriter)) else A.pure(None)
     } yield ()
 
   /**

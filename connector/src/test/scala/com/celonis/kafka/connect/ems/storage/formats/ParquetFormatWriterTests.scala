@@ -97,7 +97,7 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
                           "schemas.enable"                          -> "false",
   ).asJava)
 
-  test("flush to disk after N recrods") {
+  test("flush to disk after N records") {
     withDir { dir =>
       val sinkName       = "sA"
       val topicPartition = TopicPartition(new Topic("A"), new Partition(2))
