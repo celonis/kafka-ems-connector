@@ -96,3 +96,6 @@ The full list of configuration keys can be found in the wiki.
 
 ## Bugs and Feedback
 For bugs, questions and discussions please use the GitHub Issues.
+
+## License
+This code is open source software licensed under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0.html).

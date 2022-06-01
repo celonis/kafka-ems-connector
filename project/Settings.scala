@@ -1,4 +1,6 @@
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
+import sbt.Keys.licenses
+import sbt.Keys.startYear
 import sbt.Keys._
 import sbt.TestFrameworks.ScalaTest
 import sbt._
@@ -39,11 +41,11 @@ object Settings extends Dependencies {
     Package.JarManifest(manifest)
   }
 
-  val licenseHeader: String = {
-    val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-    s"Copyright 2017-$currentYear Celonis Ltd"
-  }
-
+  val legalCopyrightSettings = Seq(
+    organizationName := "Celonis SE",
+    startYear := Some(Calendar.getInstance().get(Calendar.YEAR)),
+    licenses := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.html")),
+  )
   object ScalacFlags {
     val availableProcessors: String = java.lang.Runtime.getRuntime.availableProcessors.toString
 
@@ -150,13 +152,11 @@ object Settings extends Dependencies {
     }
   }
 
-  private val commonSettings: Seq[Setting[_]] = Seq(
+  private val commonSettings: Seq[Setting[_]] = legalCopyrightSettings ++ Seq(
     organization := "com.celonis.kafka.connect",
     version := artifactVersion,
     scalaOrganization := scalaOrganizationUsed,
     scalaVersion := scalaVersionUsed,
-    headerLicense := Some(HeaderLicense.Custom(licenseHeader)),
-    headerEmptyLine := false,
     isSnapshot := artifactVersion.contains("SNAPSHOT"),
     //publishTo := artifactoryRepo,
     kindProjectorPlugin,

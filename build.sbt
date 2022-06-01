@@ -38,6 +38,8 @@ lazy val `test-common` = project.in(file("test-common"))
         name := "test-common",
         description := "Provides common utilities for testing",
         libraryDependencies ++= testCommonDeps,
+        excludeDependencies += ExclusionRule("javax.ws.rs", "javax.ws.rs-api"),
+        libraryDependencies += "jakarta.ws.rs" % "jakarta.ws.rs-api" % "2.1.6",
         publish / skip := true,
       ),
   )
@@ -50,6 +52,8 @@ lazy val connector = project.in(file("connector"))
         description := "Provides a Kafka Connect sink for Celonis EMS",
         libraryDependencies ++= emsSinkDeps,
         dependencyOverrides ++= emsSinkOverrides,
+        excludeDependencies += ExclusionRule("javax.ws.rs", "javax.ws.rs-api"),
+        libraryDependencies += "jakarta.ws.rs" % "jakarta.ws.rs-api" % "2.1.6",
         publish / skip := true,
       ),
   )
