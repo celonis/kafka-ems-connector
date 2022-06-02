@@ -141,4 +141,8 @@ object EmsSinkConfigConstants {
   val EXPLODE_MODE_KEY = s"$CONNECTOR_PREFIX.explode.mode"
   val EXPLODE_MODE_DOC = s"Explode (flatten out) a top-level collection, can be set to None or List"
 
+  val ORDER_FIELD_NAME_KEY = s"$CONNECTOR_PREFIX.order.field.name"
+  val ORDER_FIELD_NAME_DOC =
+    s"The name of a sortable field present in the data data. If it's not provided the connector injects its own."
+
 }

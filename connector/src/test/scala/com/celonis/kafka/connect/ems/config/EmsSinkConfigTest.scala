@@ -17,8 +17,11 @@
 package com.celonis.kafka.connect.ems.config
 
 import cats.data.NonEmptyList
+import cats.implicits.catsSyntaxOptionId
 import cats.syntax.either._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
+import com.celonis.kafka.connect.ems.conversion.NoOpOrderFieldInserter
+import com.celonis.kafka.connect.ems.conversion.OrderFieldInserter
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
@@ -59,6 +62,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         None,
         NoProxyConfig(),
         ExplodeConfig.None,
+        OrderFieldConfig(OrderFieldInserter.FieldName.some, OrderFieldInserter),
       )
 
       val inputMap: Map[String, _] = Map(
@@ -83,7 +87,6 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
       ) shouldBe Right(expected)
 
       val connectInputMap = {
-        import scala.collection.compat._
         EmsSinkConfigDef.config.parse(inputMap.view.mapValues(_.toString).toMap.asJava).asScala.toMap
       }: @scala.annotation.nowarn("msg=Unused import")
 
@@ -248,6 +251,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         )),
         NoProxyConfig(),
         ExplodeConfig.None,
+        OrderFieldConfig(OrderFieldInserter.FieldName.some, OrderFieldInserter),
       )
 
       val inputMap: Map[String, _] = Map(
@@ -281,6 +285,68 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
             connectInputMap,
           ))
         }
+    } finally {
+      dir.delete()
+      ()
+    }
+  }
+
+  test(s"uses the order field name specified") {
+    val policy = DefaultCommitPolicy(1000000L, 10.seconds.toMillis, 1000)
+    val dir    = new File(UUID.randomUUID().toString)
+    dir.mkdir() shouldBe true
+    val orderFieldName = "justfortest"
+    try {
+      val expected = EmsSinkConfig(
+        "sink1",
+        new URL("https://teamA.realmB.celonis.cloud/continuous-batch-processing/api/v1/abc-pool/items"),
+        "tableA",
+        Some("id222"),
+        Some("client123"),
+        AuthorizationHeader("AppKey 123"),
+        Retry,
+        policy,
+        RetryConfig(10, 1000),
+        dir.toPath,
+        ParquetConfig.Default,
+        List("a", "b"),
+        Some(512),
+        None,
+        NoProxyConfig(),
+        ExplodeConfig.None,
+        OrderFieldConfig(orderFieldName.some, NoOpOrderFieldInserter),
+      )
+
+      val inputMap: Map[String, _] = Map(
+        ENDPOINT_KEY                -> expected.url.toString,
+        TARGET_TABLE_KEY            -> expected.target,
+        AUTHORIZATION_KEY           -> expected.authorization.header,
+        ERROR_POLICY_KEY            -> expected.errorPolicy.entryName,
+        COMMIT_SIZE_KEY             -> policy.fileSize,
+        COMMIT_INTERVAL_KEY         -> policy.interval,
+        COMMIT_RECORDS_KEY          -> policy.records,
+        ERROR_RETRY_INTERVAL        -> expected.retries.interval,
+        NBR_OF_RETRIES_KEY          -> expected.retries.retries,
+        TMP_DIRECTORY_KEY           -> dir.toString,
+        PRIMARY_KEYS_KEY            -> expected.primaryKeys.mkString(","),
+        CONNECTION_ID_KEY           -> expected.connectionId.get,
+        FALLBACK_VARCHAR_LENGTH_KEY -> expected.fallbackVarCharLengths.orNull,
+        CLIENT_ID_KEY               -> expected.clientId.orNull,
+        ORDER_FIELD_NAME_KEY        -> orderFieldName,
+      )
+      EmsSinkConfig.from(
+        expected.sinkName,
+        inputMap,
+      ) shouldBe Right(expected)
+
+      val connectInputMap = {
+        EmsSinkConfigDef.config.parse(inputMap.view.mapValues(_.toString).toMap.asJava).asScala.toMap
+      }: @scala.annotation.nowarn("msg=Unused import")
+
+      EmsSinkConfig.from(
+        expected.sinkName,
+        connectInputMap,
+      ) shouldBe Right(expected)
     } finally {
       dir.delete()
       ()

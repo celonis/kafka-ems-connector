@@ -81,6 +81,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 None,
                                 None,
                                 NoProxyConfig().createHttpClient(),
+                                None,
             ),
           )
           response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
@@ -134,6 +135,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 None,
                                 None,
                                 NoProxyConfig().createHttpClient(),
+                                None,
             ),
           )
           e <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100))).attempt
@@ -197,6 +199,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 None,
                                 None,
                                 ConfiguredProxyConfig("localhost", proxyPort, ProxyType.Http, None).createHttpClient(),
+                                None,
             ),
           )
           response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
@@ -247,18 +250,16 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
       case (_, _, file) =>
         for {
           uploader <- IO(
-            new EmsUploader[IO](new URL(s"http://localhost:$serverPort$path"),
-                                auth,
-                                targetTable,
-                                Some("id2"),
-                                None,
-                                None,
-                                None,
-                                ConfiguredProxyConfig("localhost",
-                                                      proxyPort,
-                                                      ProxyType.Http,
-                                                      proxyAuth,
-                                ).createHttpClient(),
+            new EmsUploader[IO](
+              new URL(s"http://localhost:$serverPort$path"),
+              auth,
+              targetTable,
+              Some("id2"),
+              None,
+              None,
+              None,
+              ConfiguredProxyConfig("localhost", proxyPort, ProxyType.Http, proxyAuth).createHttpClient(),
+              None,
             ),
           )
           response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))

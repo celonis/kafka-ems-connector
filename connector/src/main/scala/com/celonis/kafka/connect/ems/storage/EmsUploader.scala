@@ -49,6 +49,7 @@ class EmsUploader[F[_]](
   fallbackVarcharLength: Option[Int],
   primaryKeys:           Option[NonEmptyList[String]],
   httpClient:            RawAsyncHttpClient,
+  maybeOrderFieldName:   Option[String],
 )(
   implicit
   A: Async[F],
@@ -69,7 +70,7 @@ class EmsUploader[F[_]](
       )
       val pks       = primaryKeys.map(nel => nel.mkString_(","))
       val multipart = Multipart[F](attributes)
-      val uri       = buildUri(baseUrl, targetTable, connectionId, clientId, fallbackVarcharLength, pks)
+      val uri       = buildUri(baseUrl, targetTable, connectionId, clientId, fallbackVarcharLength, pks, maybeOrderFieldName)
 
       val request: Request[F] = Method.POST.apply(
         multipart,
@@ -156,6 +157,7 @@ object EmsUploader {
   val ClientId              = "clientId"
   val FallbackVarcharLength = "fallbackVarcharLength"
   val PrimaryKeys           = "primaryKeys"
+  val OrderFieldName        = "duplicateRemovalOrderColumn"
   val ChunkSize             = 8192
 
   def buildUri(
@@ -165,6 +167,7 @@ object EmsUploader {
     clientId:              Option[String],
     fallbackVarcharLength: Option[Int],
     pks:                   Option[String],
+    orderableField:        Option[String],
   ): Uri = {
     val builder = connectionId.foldLeft(UriBuilder.fromUri(base.toURI)
       .queryParam(TargetTable, targetTable)) {
@@ -172,8 +175,9 @@ object EmsUploader {
     }
 
     clientId.foreach(builder.queryParam(ClientId, _))
-    fallbackVarcharLength.foreach(v => builder.queryParam(FallbackVarcharLength, v.toString))
-    pks.foreach(value => builder.queryParam(PrimaryKeys, value))
+    fallbackVarcharLength.foreach(builder.queryParam(FallbackVarcharLength, _))
+    pks.foreach(builder.queryParam(PrimaryKeys, _))
+    orderableField.foreach(builder.queryParam(OrderFieldName, _))
     val uri = builder.build()
 
     Uri.fromString(uri.toString).asInstanceOf[Right[ParseFailure, Uri]].value

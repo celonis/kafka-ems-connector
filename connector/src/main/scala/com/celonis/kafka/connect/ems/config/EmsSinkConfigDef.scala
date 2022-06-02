@@ -52,6 +52,8 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.OBFUSCATED_FI
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.OBFUSCATED_FIELDS_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.OBFUSCATION_TYPE_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.OBFUSCATION_TYPE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ORDER_FIELD_NAME_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ORDER_FIELD_NAME_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_KEY
@@ -370,6 +372,17 @@ object EmsSinkConfigDef {
       1,
       ConfigDef.Width.MEDIUM,
       EXPLODE_MODE_DOC,
+    )
+    .define(
+      ORDER_FIELD_NAME_KEY,
+      Type.STRING,
+      null,
+      Importance.LOW,
+      EXPLODE_MODE_DOC,
+      "Data",
+      3,
+      ConfigDef.Width.MEDIUM,
+      ORDER_FIELD_NAME_DOC,
     )
 }
 

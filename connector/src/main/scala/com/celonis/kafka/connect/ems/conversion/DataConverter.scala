@@ -34,7 +34,7 @@ sealed trait DataConverter[T] {
 }
 
 object DataConverter {
-  def apply(value: AnyRef): Either[Throwable, GenericRecord] =
+  def apply(value: Any): Either[Throwable, GenericRecord] =
     value match {
       case struct: Struct              => StructDataConverter.convert(struct)
       case map:    Map[_, _]           => MapDataConverter.convert(map)

@@ -17,8 +17,10 @@
 package com.celonis.kafka.connect.ems.sink
 
 import cats.data.NonEmptyList
+import cats.implicits.catsSyntaxOptionId
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
 import com.celonis.kafka.connect.ems.config._
+import com.celonis.kafka.connect.ems.conversion.OrderFieldInserter
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
@@ -59,6 +61,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         )),
         NoProxyConfig(),
         ExplodeConfig.None,
+        OrderFieldConfig(OrderFieldInserter.FieldName.some, OrderFieldInserter),
       )
       val config = Map(
         ENDPOINT_KEY                -> sinkConfig.url.toString,

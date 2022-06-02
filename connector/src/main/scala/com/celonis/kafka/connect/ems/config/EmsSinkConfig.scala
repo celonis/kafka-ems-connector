@@ -44,6 +44,7 @@ case class EmsSinkConfig(
   obfuscation:            Option[ObfuscationConfig],
   proxy:                  ProxyConfig,
   explode:                ExplodeConfig,
+  orderField:             OrderFieldConfig,
 )
 
 object EmsSinkConfig {
@@ -124,6 +125,7 @@ object EmsSinkConfig {
       obfuscation           <- ObfuscationConfig.extract(props)
       explodeConfig          = ExplodeConfig.extractExplode(props)
       proxyConfig           <- ProxyConfig.extractProxy(props)
+      orderConfig            = OrderFieldConfig.from(props, primaryKeys)
     } yield EmsSinkConfig(
       sinkName,
       url,
@@ -141,6 +143,7 @@ object EmsSinkConfig {
       obfuscation,
       proxyConfig,
       explodeConfig,
+      orderConfig,
     )
 
 }

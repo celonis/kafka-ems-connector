@@ -23,16 +23,12 @@ import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.config.ObfuscationConfig
+import com.celonis.kafka.connect.ems.config.OrderFieldConfig
 import com.celonis.kafka.connect.ems.conversion.DataConverter
-import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
+import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.FailedObfuscationException
-import com.celonis.kafka.connect.ems.model.Offset
-import com.celonis.kafka.connect.ems.model.Partition
-import com.celonis.kafka.connect.ems.model.Record
-import com.celonis.kafka.connect.ems.model.RecordMetadata
-import com.celonis.kafka.connect.ems.model.Topic
-import com.celonis.kafka.connect.ems.model.TopicPartition
+import com.celonis.kafka.connect.ems.model._
 import com.celonis.kafka.connect.ems.obfuscation.ObfuscationUtils.GenericRecordObfuscation
 import com.celonis.kafka.connect.ems.storage.EmsUploader
 import com.celonis.kafka.connect.ems.storage.PrimaryKeysValidator
@@ -60,12 +56,12 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private var pksValidator:             PrimaryKeysValidator     = _
   private var sinkName:                 String                   = _
 
-  private var maxRetries:  Int                       = 0
-  private var retriesLeft: Int                       = maxRetries
-  private var errorPolicy: ErrorPolicy               = ErrorPolicy.Retry
-  private var obfuscation: Option[ObfuscationConfig] = None
-
-  private var emsSinkConfigurator: EmsSinkConfigurator = new DefaultEmsSinkConfigurator
+  private var maxRetries:          Int                       = 0
+  private var retriesLeft:         Int                       = maxRetries
+  private var errorPolicy:         ErrorPolicy               = ErrorPolicy.Retry
+  private var obfuscation:         Option[ObfuscationConfig] = None
+  private var orderField:          OrderFieldConfig          = _
+  private var emsSinkConfigurator: EmsSinkConfigurator       = new DefaultEmsSinkConfigurator
 
   override def version(): String =
     JarManifest.from(getClass.getProtectionDomain.getCodeSource.getLocation)
@@ -81,6 +77,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
 
     val writers = Ref.unsafe[IO, Map[TopicPartition, Writer]](Map.empty)
     blockingExecutionContext = BlockingExecutionContext("io-http-blocking")
+
     writerManager =
       WriterManager.from[IO](
         config,
@@ -95,6 +92,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
                               Some(NonEmptyList.fromListUnsafe(config.primaryKeys.map(_.trim).filter(_.nonEmpty)))
                             else None,
                             config.proxy.createHttpClient(),
+                            config.orderField.name,
         ),
         writers,
       )
@@ -104,6 +102,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     errorPolicy  = config.errorPolicy
     pksValidator = new PrimaryKeysValidator(config.primaryKeys)
     obfuscation  = config.obfuscation
+    orderField   = config.orderField
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
@@ -115,7 +114,11 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         .toList
         .traverse { record =>
           for {
-            v <- IO.fromEither(DataConverter.apply(record.value()))
+            transformedValue <- IO.fromEither(orderField.inserter.add(record.value(),
+                                                                      record.kafkaPartition(),
+                                                                      record.kafkaOffset(),
+            ))
+            v <- IO.fromEither(DataConverter.apply(transformedValue))
             _ <- IO(logger.info("[{}] EmsSinkTask:put obfuscation={}", sinkName, obfuscation))
             value <- obfuscation.fold(IO.pure(v)) { o =>
               IO.fromEither(v.obfuscate(o).leftMap(FailedObfuscationException))
