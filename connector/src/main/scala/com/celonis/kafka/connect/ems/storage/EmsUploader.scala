@@ -45,7 +45,7 @@ class EmsUploader[F[_]](
   authorization:         String,
   targetTable:           String,
   connectionId:          Option[String],
-  clientId:              Option[String],
+  clientId:              String,
   fallbackVarcharLength: Option[Int],
   primaryKeys:           Option[NonEmptyList[String]],
   httpClient:            RawAsyncHttpClient,
@@ -164,7 +164,7 @@ object EmsUploader {
     base:                  URL,
     targetTable:           String,
     connectionId:          Option[String],
-    clientId:              Option[String],
+    clientId:              String,
     fallbackVarcharLength: Option[Int],
     pks:                   Option[String],
     orderableField:        Option[String],
@@ -174,7 +174,7 @@ object EmsUploader {
       case (builder, connection) => builder.queryParam(ConnectionId, connection)
     }
 
-    clientId.foreach(builder.queryParam(ClientId, _))
+    builder.queryParam(ClientId, clientId)
     fallbackVarcharLength.foreach(builder.queryParam(FallbackVarcharLength, _))
     pks.foreach(builder.queryParam(PrimaryKeys, _))
     orderableField.foreach(builder.queryParam(OrderFieldName, _))

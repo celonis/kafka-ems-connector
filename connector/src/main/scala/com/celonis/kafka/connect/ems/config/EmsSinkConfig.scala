@@ -32,7 +32,6 @@ case class EmsSinkConfig(
   url:                    URL,
   target:                 String,
   connectionId:           Option[String],
-  clientId:               Option[String],
   authorization:          AuthorizationHeader,
   errorPolicy:            ErrorPolicy,
   commitPolicy:           CommitPolicy,
@@ -120,7 +119,6 @@ object EmsSinkConfig {
       parquetConfig         <- ParquetConfig.extract(props)
       primaryKeys           <- extractPrimaryKeys(props)
       connectionId           = PropertiesHelper.getString(props, CONNECTION_ID_KEY).map(_.trim).filter(_.nonEmpty)
-      clientId               = PropertiesHelper.getString(props, CLIENT_ID_KEY).map(_.trim).filter(_.nonEmpty)
       fallbackVarCharLength <- extractFallbackVarcharLength(props)
       obfuscation           <- ObfuscationConfig.extract(props)
       explodeConfig          = ExplodeConfig.extractExplode(props)
@@ -131,7 +129,6 @@ object EmsSinkConfig {
       url,
       table,
       connectionId,
-      clientId,
       authorization,
       error,
       commitPolicy,

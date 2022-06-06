@@ -50,7 +50,6 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         new URL("https://teamA.realmB.celonis.cloud/continuous-batch-processing/api/v1/abc-pool/items"),
         "tableA",
         Some("id222"),
-        Some("client123"),
         AuthorizationHeader("AppKey 123"),
         Retry,
         policy,
@@ -79,7 +78,6 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         PRIMARY_KEYS_KEY            -> expected.primaryKeys.mkString(","),
         CONNECTION_ID_KEY           -> expected.connectionId.get,
         FALLBACK_VARCHAR_LENGTH_KEY -> expected.fallbackVarCharLengths.orNull,
-        CLIENT_ID_KEY               -> expected.clientId.orNull,
       )
       EmsSinkConfig.from(
         expected.sinkName,
@@ -177,14 +175,6 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     }
   }
 
-  test(s"returns default if $CLIENT_ID_KEY is missing") {
-    withMissingConfig(CLIENT_ID_KEY) {
-      case Left(_) => fail("should not fail")
-      case Right(value) => value.clientId shouldBe None
-        ()
-    }
-  }
-
   test(
     s"returns an default * obfuscation when $OBFUSCATION_TYPE_KEY is missing and $OBFUSCATED_FIELDS_KEY is present",
   ) {
@@ -237,7 +227,6 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         new URL("https://teamA.realmB.celonis.cloud/continuous-batch-processing/api/v1/abc-pool/items"),
         "tableA",
         Some("id11111"),
-        Some("client1212"),
         AuthorizationHeader("AppKey 123"),
         Retry,
         policy,
@@ -270,7 +259,6 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         PRIMARY_KEYS_KEY            -> sinkConfig.primaryKeys.mkString(","),
         CONNECTION_ID_KEY           -> sinkConfig.connectionId.get,
         FALLBACK_VARCHAR_LENGTH_KEY -> sinkConfig.fallbackVarCharLengths.map(_.toString).orNull,
-        CLIENT_ID_KEY               -> sinkConfig.clientId.orNull,
         OBFUSCATION_TYPE_KEY        -> "fix",
         OBFUSCATED_FIELDS_KEY       -> "a.b",
       ) - key
@@ -302,7 +290,6 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         new URL("https://teamA.realmB.celonis.cloud/continuous-batch-processing/api/v1/abc-pool/items"),
         "tableA",
         Some("id222"),
-        Some("client123"),
         AuthorizationHeader("AppKey 123"),
         Retry,
         policy,
@@ -331,7 +318,6 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         PRIMARY_KEYS_KEY            -> expected.primaryKeys.mkString(","),
         CONNECTION_ID_KEY           -> expected.connectionId.get,
         FALLBACK_VARCHAR_LENGTH_KEY -> expected.fallbackVarCharLengths.orNull,
-        CLIENT_ID_KEY               -> expected.clientId.orNull,
         ORDER_FIELD_NAME_KEY        -> orderFieldName,
       )
       EmsSinkConfig.from(
