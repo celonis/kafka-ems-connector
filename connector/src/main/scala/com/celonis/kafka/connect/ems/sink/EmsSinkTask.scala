@@ -86,7 +86,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
                             config.authorization.header,
                             config.target,
                             config.connectionId,
-                            s"CelonisKafka2Ems v$version",
+                            s"Kafka2Ems $version",
                             config.fallbackVarCharLengths,
                             if (config.primaryKeys.exists(_.trim.nonEmpty))
                               Some(NonEmptyList.fromListUnsafe(config.primaryKeys.map(_.trim).filter(_.nonEmpty)))
