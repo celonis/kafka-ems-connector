@@ -24,16 +24,20 @@ import java.net.URL
 import java.net.URLEncoder
 
 class EmsUploaderUriTests extends AnyFunSuite with Matchers {
+
+  private val testClientId        = "CelonisKafka2Ems vx.Test"
+  private val testClientIdEncoded = URLEncoder.encode(testClientId, "UTF-8")
+
   test("creates the URI without the connection") {
     EmsUploader.buildUri(new URL("https://foo.panda.com/api"),
                          "tableA",
                          None,
-                         None,
+                         testClientId,
                          None,
                          None,
                          None,
     ) shouldBe Uri.fromString(
-      s"https://foo.panda.com/api?${EmsUploader.TargetTable}=tableA",
+      s"https://foo.panda.com/api?${EmsUploader.TargetTable}=tableA&${EmsUploader.ClientId}=$testClientIdEncoded",
     ).getOrElse(fail("should parse"))
   }
 
@@ -41,35 +45,22 @@ class EmsUploaderUriTests extends AnyFunSuite with Matchers {
     EmsUploader.buildUri(new URL("https://foo.panda.com/api"),
                          "tableA",
                          Some("c1"),
-                         None,
-                         None,
-                         None,
-                         None,
-    ) shouldBe Uri.fromString(
-      s"https://foo.panda.com/api?${EmsUploader.TargetTable}=tableA&${EmsUploader.ConnectionId}=c1",
-    ).getOrElse(fail("should parse the URL"))
-  }
-
-  test("creates the URI with client id") {
-    EmsUploader.buildUri(new URL("https://foo.panda.com/api"),
-                         "tableA",
-                         None,
-                         Some("clientA"),
+                         testClientId,
                          None,
                          None,
                          None,
     ) shouldBe Uri.fromString(
-      s"https://foo.panda.com/api?${EmsUploader.TargetTable}=tableA&${EmsUploader.ClientId}=clientA",
+      s"https://foo.panda.com/api?${EmsUploader.TargetTable}=tableA&${EmsUploader.ConnectionId}=c1&${EmsUploader.ClientId}=$testClientIdEncoded",
     ).getOrElse(fail("should parse the URL"))
   }
 
   test("creates the URI with the pks") {
     val pks = "a"
     val actual =
-      EmsUploader.buildUri(new URL("https://foo.panda.com/api"), "tableA", None, Some("clientA"), None, Some(pks), None)
+      EmsUploader.buildUri(new URL("https://foo.panda.com/api"), "tableA", None, testClientId, None, Some(pks), None)
 
     val expected = Uri.fromString(
-      s"https://foo.panda.com/api?${EmsUploader.TargetTable}=tableA&${EmsUploader.ClientId}=clientA&${EmsUploader.PrimaryKeys}=${URLEncoder.encode(pks, "UTF-8")}",
+      s"https://foo.panda.com/api?${EmsUploader.TargetTable}=tableA&${EmsUploader.ClientId}=$testClientIdEncoded&${EmsUploader.PrimaryKeys}=${URLEncoder.encode(pks, "UTF-8")}",
     ).getOrElse(fail("should parse the URL"))
     actual shouldBe expected
   }
@@ -78,12 +69,12 @@ class EmsUploaderUriTests extends AnyFunSuite with Matchers {
     EmsUploader.buildUri(new URL("https://foo.panda.com/api"),
                          "tableA",
                          None,
-                         None,
+                         testClientId,
                          Some(89),
                          None,
                          None,
     ) shouldBe Uri.fromString(
-      s"https://foo.panda.com/api?${EmsUploader.TargetTable}=tableA&${EmsUploader.FallbackVarcharLength}=89",
+      s"https://foo.panda.com/api?${EmsUploader.TargetTable}=tableA&${EmsUploader.ClientId}=$testClientIdEncoded&${EmsUploader.FallbackVarcharLength}=89",
     ).getOrElse(fail("should parse the URL"))
   }
 
@@ -93,13 +84,13 @@ class EmsUploaderUriTests extends AnyFunSuite with Matchers {
     EmsUploader.buildUri(new URL("https://foo.panda.com/api"),
                          "tableA",
                          Some("connection1"),
-                         Some("ClientA"),
+                         testClientId,
                          Some(89),
                          Some(pks),
                          Some(sortable),
     ) shouldBe Uri.fromString(
-      s"https://foo.panda.com/api?${EmsUploader.TargetTable}=tableA&${EmsUploader.ConnectionId}=connection1&${EmsUploader.ClientId}=ClientA&${EmsUploader.FallbackVarcharLength}=89&${EmsUploader.PrimaryKeys}=${URLEncoder.encode(pks,
-                                                                                                                                                                                                                                   "UTF-8",
+      s"https://foo.panda.com/api?${EmsUploader.TargetTable}=tableA&${EmsUploader.ConnectionId}=connection1&${EmsUploader.ClientId}=$testClientIdEncoded&${EmsUploader.FallbackVarcharLength}=89&${EmsUploader.PrimaryKeys}=${URLEncoder.encode(pks,
+                                                                                                                                                                                                                                                "UTF-8",
       )}&${EmsUploader.OrderFieldName}=$sortable",
     ).getOrElse(fail("should parse the URL"))
   }

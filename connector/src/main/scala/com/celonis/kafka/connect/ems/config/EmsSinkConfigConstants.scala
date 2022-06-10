@@ -69,11 +69,6 @@ object EmsSinkConfigConstants {
     "The maximum number of times to re-attempt to write the records before the task is marked as failed."
   val NBR_OF_RETIRES_DEFAULT: Int = 10
 
-  val CLIENT_ID_KEY = s"$CONNECTOR_PREFIX.client.id"
-  val CLIENT_ID_DOC =
-    "Optional parameter representing the client unique identifier"
-  val CLIENT_ID_DEFAULT: String = null
-
   val ERROR_POLICY_KEY = s"$CONNECTOR_PREFIX.error.policy"
   val ERROR_POLICY_DOC: String =
     s"""

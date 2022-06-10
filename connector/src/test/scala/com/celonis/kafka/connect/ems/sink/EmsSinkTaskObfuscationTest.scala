@@ -47,7 +47,6 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         new URL("https://teamA.realmB.celonis.cloud/continuous-batch-processing/api/v1/abc-pool/items"),
         "tableA",
         Some("id11111"),
-        Some("client1212"),
         AuthorizationHeader("AppKey 123"),
         Retry,
         policy,
@@ -79,7 +78,6 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         PRIMARY_KEYS_KEY            -> sinkConfig.primaryKeys.mkString(","),
         CONNECTION_ID_KEY           -> sinkConfig.connectionId.get,
         FALLBACK_VARCHAR_LENGTH_KEY -> sinkConfig.fallbackVarCharLengths.map(_.toString).orNull,
-        CLIENT_ID_KEY               -> sinkConfig.clientId.orNull,
         OBFUSCATION_TYPE_KEY        -> "fix",
         OBFUSCATED_FIELDS_KEY       -> "b.x",
       )

@@ -17,9 +17,6 @@
 package com.celonis.kafka.connect.ems.config
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLIENT_ID_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLIENT_ID_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLIENT_ID_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_DOC
@@ -127,17 +124,6 @@ object EmsSinkConfigDef {
       4,
       ConfigDef.Width.MEDIUM,
       "Connection Id",
-    )
-    .define(
-      CLIENT_ID_KEY,
-      Type.STRING,
-      CLIENT_ID_DEFAULT,
-      Importance.HIGH,
-      CLIENT_ID_DOC,
-      "Connection",
-      5,
-      ConfigDef.Width.MEDIUM,
-      "Client Id",
     )
     .define(
       COMMIT_SIZE_KEY,
