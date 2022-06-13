@@ -60,15 +60,13 @@ class SchemaCompatibilityTests extends AnyFunSuite with KafkaConnectContainerPer
         record_v1.put("count", 999)
         record_v1.put("flag", false)
 
-        stringAvroProducer.send(new ProducerRecord(sourceTopic, record_v1))
-        stringAvroProducer.flush()
+        withStringAvroProducer(_.send(new ProducerRecord(sourceTopic, record_v1)))
 
         val record_v2 = new GenericData.Record(schema_v2)
         record_v2.put("count", 1000)
         record_v2.put("flag", false)
 
-        stringAvroProducer.send(new ProducerRecord(sourceTopic, record_v2))
-        stringAvroProducer.flush()
+        withStringAvroProducer(_.send(new ProducerRecord(sourceTopic, record_v2)))
 
         eventually(timeout(60 seconds), interval(1 seconds)) {
           mockServerClient.verify(emsRequestForTable(emsTable), VerificationTimes.atLeast(2))

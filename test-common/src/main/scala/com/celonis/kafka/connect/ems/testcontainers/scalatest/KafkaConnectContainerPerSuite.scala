@@ -100,7 +100,7 @@ trait KafkaConnectContainerPerSuite extends MockServerContainerPerSuite { this: 
     files.get(0)
   }
 
-  def createProducer[K, V](keySer: Class[_], valueSer: Class[_]): KafkaProducer[K, V] = {
+  def withProducer[K, V, A](keySer: Class[_], valueSer: Class[_])(f: KafkaProducer[K, V] => A): A = {
     val props = new Properties
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers)
     props.put(ProducerConfig.ACKS_CONFIG, "all")
@@ -108,15 +108,25 @@ trait KafkaConnectContainerPerSuite extends MockServerContainerPerSuite { this: 
     props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySer)
     props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSer)
     schemaRegistryInstance.foreach(s => props.put(SCHEMA_REGISTRY_URL_CONFIG, s.getSchemaRegistryUrl))
-    new KafkaProducer[K, V](props)
+    val producer = new KafkaProducer[K, V](props)
+    try {
+      f(producer)
+    } finally {
+      producer.close()
+    }
   }
 
-  def createConsumer(): KafkaConsumer[String, String] = {
+  def withConsumer[A](f: KafkaConsumer[String, String] => A): A = {
     val props = new Properties
     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers)
     props.put(ConsumerConfig.GROUP_ID_CONFIG, "cg-" + UUID.randomUUID())
     props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-    new KafkaConsumer[String, String](props, new StringDeserializer(), new StringDeserializer())
+    val consumer = new KafkaConsumer[String, String](props, new StringDeserializer(), new StringDeserializer())
+    try {
+      f(consumer)
+    } finally {
+      consumer.close()
+    }
   }
 
   /**
@@ -139,11 +149,11 @@ trait KafkaConnectContainerPerSuite extends MockServerContainerPerSuite { this: 
     allRecords.toList
   }
 
-  lazy val stringAvroProducer: KafkaProducer[String, Any] =
-    createProducer(
+  def withStringAvroProducer[A](f: KafkaProducer[String, Any] => A): A =
+    withProducer(
       classOf[StringSerializer],
       classOf[KafkaAvroSerializer],
-    )
+    )(f)
 
   def sendDummyAvroRecord(topic: String): Unit = {
     val valueSchema = SchemaBuilder.record("record").fields()
@@ -155,7 +165,7 @@ trait KafkaConnectContainerPerSuite extends MockServerContainerPerSuite { this: 
     record.put("a", "string")
     record.put("b", 1)
 
-    stringAvroProducer.send(new ProducerRecord(topic, record))
-    stringAvroProducer.flush()
+    withStringAvroProducer(_.send(new ProducerRecord(topic, record)))
+    ()
   }
 }

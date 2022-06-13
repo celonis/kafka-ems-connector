@@ -53,8 +53,7 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with M
         writeRecord.put("field1", "myfieldvalue")
         writeRecord.put("field2", randomInt)
 
-        stringAvroProducer.send(new ProducerRecord(sourceTopic, writeRecord))
-        stringAvroProducer.flush()
+        withStringAvroProducer(_.send(new ProducerRecord(sourceTopic, writeRecord)))
 
         eventually(timeout(60 seconds), interval(1 seconds)) {
           mockServerClient.verify(emsRequestForTable(emsTable), VerificationTimes.once())

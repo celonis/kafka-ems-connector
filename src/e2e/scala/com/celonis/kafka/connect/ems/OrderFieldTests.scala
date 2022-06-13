@@ -56,8 +56,7 @@ class OrderFieldTests extends AnyFunSuite with KafkaConnectContainerPerSuite wit
         writeRecord.put("field1", "myfieldvalue")
         writeRecord.put("field2", randomInt)
 
-        stringAvroProducer.send(new ProducerRecord(sourceTopic, writeRecord))
-        stringAvroProducer.flush()
+        withStringAvroProducer(_.send(new ProducerRecord(sourceTopic, writeRecord)))
 
         eventually(timeout(60 seconds), interval(1 seconds)) {
           mockServerClient.verify(emsRequestForTable(emsTable), VerificationTimes.once())
@@ -116,10 +115,11 @@ class OrderFieldTests extends AnyFunSuite with KafkaConnectContainerPerSuite wit
         writeRecord3.put("field1", "myvalue1")
         writeRecord3.put("field2", 3)
 
-        stringAvroProducer.send(new ProducerRecord(sourceTopic, writeRecord1))
-        stringAvroProducer.send(new ProducerRecord(sourceTopic, writeRecord2))
-        stringAvroProducer.send(new ProducerRecord(sourceTopic, writeRecord3))
-        stringAvroProducer.flush()
+        withStringAvroProducer { p =>
+          p.send(new ProducerRecord(sourceTopic, writeRecord1))
+          p.send(new ProducerRecord(sourceTopic, writeRecord2))
+          p.send(new ProducerRecord(sourceTopic, writeRecord3))
+        }
 
         eventually(timeout(60 seconds), interval(1 seconds)) {
           mockServerClient.verify(emsRequestForTable(emsTable), VerificationTimes.once())
@@ -183,8 +183,7 @@ class OrderFieldTests extends AnyFunSuite with KafkaConnectContainerPerSuite wit
         writeRecord.put("field1", "myfieldvalue")
         writeRecord.put("field2", 1)
 
-        stringAvroProducer.send(new ProducerRecord(sourceTopic, writeRecord))
-        stringAvroProducer.flush()
+        withStringAvroProducer(_.send(new ProducerRecord(sourceTopic, writeRecord)))
 
         eventually(timeout(60 seconds), interval(1 seconds)) {
           mockServerClient.verify(emsRequestForTable(emsTable), VerificationTimes.once())
