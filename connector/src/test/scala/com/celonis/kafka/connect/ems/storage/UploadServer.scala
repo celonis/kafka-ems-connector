@@ -29,7 +29,6 @@ import org.http4s.multipart.Part
 import cats.syntax.option._
 import java.io.File
 import java.util.UUID
-import scala.concurrent.ExecutionContext
 import scala.util.Try
 
 object UploadServer extends IOApp {
@@ -45,7 +44,7 @@ object UploadServer extends IOApp {
       }
       fileService = new StoredFileService[IO](Path.fromNioPath(new File(folder).toPath))
       routes      = new MultipartHttpEndpoint[IO](fileService, responseProvider, auth, table).service.orNotFound
-      exitCode <- BlazeServerBuilder[IO](ExecutionContext.global)
+      exitCode <- BlazeServerBuilder[IO]
         .bindLocal(port)
         .withHttpApp(routes)
         .serve

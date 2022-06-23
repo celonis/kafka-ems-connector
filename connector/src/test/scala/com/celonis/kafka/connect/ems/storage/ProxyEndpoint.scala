@@ -37,6 +37,7 @@ import org.http4s.Response
 import org.typelevel.ci.CIString
 
 import java.util.Base64
+import scala.annotation.nowarn
 import scala.util.Try
 
 class ProxyEndpoint[F[_]: Concurrent](
@@ -82,7 +83,7 @@ class ProxyEndpoint[F[_]: Concurrent](
     def handleProxyError(response: Response[F]): F[Throwable] =
       A.raiseError(new IllegalStateException(s"Failed ${response.status} (${response.body})"))
 
-    val clientResponse = AsyncHttpClient
+    val clientResponse = (AsyncHttpClient: @nowarn("cat=deprecation"))
       .fromClient(new DefaultAsyncHttpClient())
       .use(proxyUpload)
 

@@ -39,6 +39,7 @@ import org.typelevel.ci.CIString
 import java.io.File
 import java.net.URL
 import javax.ws.rs.core.UriBuilder
+import scala.annotation.nowarn
 
 class EmsUploader[F[_]](
   baseUrl:               URL,
@@ -84,7 +85,7 @@ class EmsUploader[F[_]](
       } yield response
     }
 
-    AsyncHttpClient.fromClient(httpClient).use(uploadWithClient)
+    AsyncHttpClient.fromClient(httpClient).use(uploadWithClient): @nowarn("cat=deprecation")
   }
 
   private def handleUploadError(response: Response[F], request: UploadRequest): F[Throwable] =

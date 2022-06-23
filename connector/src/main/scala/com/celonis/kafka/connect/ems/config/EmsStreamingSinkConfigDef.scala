@@ -15,22 +15,34 @@
  */
 
 package com.celonis.kafka.connect.ems.config
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
+
 import org.apache.kafka.common.config.ConfigDef
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
-object EmsSinkConfigDef {
+// TODO: dedupe with EmsSinkConfigDef
+object EmsStreamingSinkConfigDef {
   val config: ConfigDef = new ConfigDef()
     .define(
       ENDPOINT_KEY,
       Type.STRING,
       Importance.HIGH,
-      ENDPOINT_DOC,
+      ENDPOINT_DOC_STREAMING,
       "Connection",
       1,
       ConfigDef.Width.LONG,
       "Endpoint",
+    )
+    .define(
+      DATA_POOL_ID_KEY,
+      Type.STRING,
+      Importance.HIGH,
+      DATA_POOL_ID_DOC,
+      "Connection",
+      2,
+      ConfigDef.Width.LONG,
+      "Data Pool ID",
     )
     .define(
       AUTHORIZATION_KEY,
@@ -38,7 +50,7 @@ object EmsSinkConfigDef {
       Importance.HIGH,
       AUTHORIZATION_DOC,
       "Connection",
-      2,
+      3,
       ConfigDef.Width.MEDIUM,
       "Authorization Key",
     )
@@ -48,78 +60,30 @@ object EmsSinkConfigDef {
       Importance.HIGH,
       TARGET_TABLE_DOC,
       "Connection",
-      3,
+      4,
       ConfigDef.Width.MEDIUM,
       "Table",
     )
     .define(
-      CONNECTION_ID_KEY,
+      KEY_SCHEMA_KEY,
       Type.STRING,
-      CONNECTION_ID_DEFAULT,
+      KEY_SCHEMA_DEFAULT,
       Importance.HIGH,
-      CONNECTION_ID_DOC,
-      "Connection",
-      4,
-      ConfigDef.Width.MEDIUM,
-      "Connection Id",
-    )
-    .define(
-      COMMIT_SIZE_KEY,
-      Type.LONG,
-      Importance.HIGH,
-      COMMIT_SIZE_DOC,
-      "Commit",
-      1,
-      ConfigDef.Width.MEDIUM,
-      "File Size",
-    )
-    .define(
-      COMMIT_RECORDS_KEY,
-      Type.INT,
-      Importance.HIGH,
-      COMMIT_RECORDS_DOC,
-      "Commit",
-      2,
-      ConfigDef.Width.MEDIUM,
-      "Max records",
-    )
-    .define(
-      COMMIT_INTERVAL_KEY,
-      Type.LONG,
-      Importance.HIGH,
-      COMMIT_INTERVAL_DOC,
-      "Commit",
-      3,
-      ConfigDef.Width.MEDIUM,
-      "Time window",
-    )
-    .define(
-      TMP_DIRECTORY_KEY,
-      Type.STRING,
-      Importance.LOW,
-      TMP_DIRECTORY_DOC,
-    )
-    .define(
-      PRIMARY_KEYS_KEY,
-      Type.STRING,
-      PRIMARY_KEYS_DEFAULT,
-      Importance.LOW,
-      PRIMARY_KEYS_DOC,
+      KEY_SCHEMA_DOC,
       "Data",
       1,
       ConfigDef.Width.MEDIUM,
-      "Primary Keys",
+      "Key Schema",
     )
     .define(
-      FALLBACK_VARCHAR_LENGTH_KEY,
-      Type.INT,
-      FALLBACK_VARCHAR_LENGTH_DEFAULT,
-      Importance.LOW,
-      FALLBACK_VARCHAR_LENGTH_DOC,
+      VALUE_SCHEMA_KEY,
+      Type.STRING,
+      Importance.HIGH,
+      VALUE_SCHEMA_DOC,
       "Data",
       2,
       ConfigDef.Width.MEDIUM,
-      "String(VARCHAR) type size",
+      "Value Schema",
     )
     .define(
       ERROR_POLICY_KEY,
@@ -153,28 +117,6 @@ object EmsSinkConfigDef {
       3,
       ConfigDef.Width.LONG,
       ERROR_RETRY_INTERVAL,
-    )
-    .define(
-      PARQUET_FLUSH_KEY,
-      Type.INT,
-      PARQUET_FLUSH_DEFAULT,
-      Importance.MEDIUM,
-      PARQUET_FLUSH_DOC,
-      "Parquet",
-      1,
-      ConfigDef.Width.LONG,
-      PARQUET_FLUSH_KEY,
-    )
-    .define(
-      DEBUG_KEEP_TMP_FILES_KEY,
-      Type.BOOLEAN,
-      DEBUG_KEEP_TMP_FILES_DEFAULT,
-      Importance.LOW,
-      DEBUG_KEEP_TMP_FILES_DOC,
-      "Parquet",
-      2,
-      ConfigDef.Width.SHORT,
-      DEBUG_KEEP_TMP_FILES_KEY,
     )
     .define(
       OBFUSCATED_FIELDS_KEY,
@@ -297,15 +239,16 @@ object EmsSinkConfigDef {
       ConfigDef.Width.MEDIUM,
       EXPLODE_MODE_DOC,
     )
+
+  val taskConfig = new ConfigDef(config)
     .define(
-      ORDER_FIELD_NAME_KEY,
+      TARGET_TOPIC_KEY,
       Type.STRING,
-      null,
-      Importance.LOW,
-      EXPLODE_MODE_DOC,
+      Importance.HIGH,
+      TARGET_TOPIC_DOC,
       "Data",
       3,
       ConfigDef.Width.MEDIUM,
-      ORDER_FIELD_NAME_DOC,
+      "Target Topic",
     )
 }

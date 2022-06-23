@@ -34,6 +34,7 @@ import org.testcontainers.shaded.org.awaitility.Awaitility.await
 
 import java.util.concurrent.TimeUnit
 import scala.jdk.CollectionConverters._
+import scala.util.Try
 
 class KafkaConnectClient(kafkaConnectContainer: KafkaConnectContainer) {
 
@@ -83,7 +84,7 @@ class KafkaConnectClient(kafkaConnectContainer: KafkaConnectContainer) {
 
   def waitConnectorInRunningState(connectorName: String, timeoutSeconds: Long = 10L): Unit =
     await.atMost(timeoutSeconds, TimeUnit.SECONDS)
-      .until(() => getConnectorStatus(connectorName).connector.state.equals("RUNNING"))
+      .until(() => Try(getConnectorStatus(connectorName).connector.state.equals("RUNNING")).getOrElse[Boolean](false))
 
   def checkRequestSuccessful(response: HttpResponse): Unit =
     if (!isSuccess(response.getStatusLine.getStatusCode)) {

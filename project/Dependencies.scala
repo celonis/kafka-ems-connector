@@ -40,9 +40,10 @@ object Dependencies {
 
     val confluentVersion = "7.1.1"
 
-    val http4sVersion = "1.0.0-M27"
-    val avroVersion   = "1.11.0"
-    val avro4sVersion = "4.0.13"
+    val http4sVersion                = "0.23.11"
+    val http4sAsyncHttpClientVersion = "0.23.7" // setting this higher seems to break SOCKS proxy tests :-/
+    val avroVersion                  = "1.11.0"
+    val avro4sVersion                = "4.0.13"
 
     val catsVersion           = "2.7.0"
     val catsEffectVersion     = "3.3.11"
@@ -146,11 +147,11 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.databind"))
 
   val http4sDsl         = "org.http4s" %% "http4s-dsl"               % Versions.http4sVersion
-  val http4sAsyncClient = "org.http4s" %% "http4s-async-http-client" % Versions.http4sVersion
+  val http4sAsyncClient = "org.http4s" %% "http4s-async-http-client" % Versions.http4sAsyncHttpClientVersion
   val http4sBlazeServer = "org.http4s" %% "http4s-blaze-server"      % Versions.http4sVersion
   val http4sBlazeClient = "org.http4s" %% "http4s-blaze-client"      % Versions.http4sVersion
   val http4sCirce       = "org.http4s" %% "http4s-circe"             % Versions.http4sVersion
-  val http4s            = Seq(http4sDsl, http4sAsyncClient, http4sBlazeServer, http4sCirce)
+  val http4s            = Seq(http4sDsl, http4sAsyncClient, http4sBlazeClient, http4sBlazeServer, http4sCirce)
 
   lazy val avro   = "org.apache.avro"      % "avro"        % Versions.avroVersion
   lazy val avro4s = "com.sksamuel.avro4s" %% "avro4s-core" % Versions.avro4sVersion

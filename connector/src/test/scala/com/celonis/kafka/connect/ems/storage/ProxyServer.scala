@@ -22,8 +22,6 @@ import com.celonis.kafka.connect.ems.config.BasicAuthentication
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Server
 
-import scala.concurrent.ExecutionContext
-
 object ProxyServer {
   def resource[F[_]](
     proxyPort:     Int,
@@ -32,13 +30,12 @@ object ProxyServer {
     implicit
     A: Async[F],
   ): Resource[F, Server] =
-    BlazeServerBuilder[F](ExecutionContext.global)(A)
+    BlazeServerBuilder[F]
       .bindLocal(proxyPort)
       .withHttpApp(
         new ProxyEndpoint[F](
           authorization,
         ).service.orNotFound,
       )
-      .withWebSockets(true)
       .resource
 }

@@ -20,7 +20,6 @@ import cats.effect.Async
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.implicits._
 import org.http4s.server.Server
-import scala.concurrent.ExecutionContext
 
 object HttpServer {
   def resource[F[_]](
@@ -33,13 +32,12 @@ object HttpServer {
     implicit
     A: Async[F],
   ): Resource[F, Server] =
-    BlazeServerBuilder[F](ExecutionContext.global)(A)
+    BlazeServerBuilder[F]
       .bindLocal(port)
       .withHttpApp(new MultipartHttpEndpoint[F](fileService,
                                                 responseProvider,
                                                 authorization,
                                                 targetTable,
       ).service.orNotFound)
-      .withWebSockets(true)
       .resource
 }
