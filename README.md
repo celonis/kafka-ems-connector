@@ -93,6 +93,18 @@ connect.ems.debug.keep.parquet.files=false
 ```
 The full list of configuration keys can be found in the wiki.
 
+## Release Process
+
+The release process of the connector is automated through [github actions](.github/workflows/build-release.yml) which will be triggered after creating a new tag.
+
+The process is the following:
+```
+git tag -a vx.y.z -m "release description"
+git push origin vx.y.z
+```
+
+The release will be automatically generated after the action has finished successfully.
+
 
 ## Bugs and Feedback
 For bugs, questions and discussions please use the GitHub Issues.
