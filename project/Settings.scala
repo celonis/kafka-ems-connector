@@ -26,7 +26,7 @@ object Settings extends Dependencies {
     val snapshotTag      = sys.env.get("SNAPSHOT_TAG")
     (maybeVersion, maybeGithubRunId, snapshotTag) match {
       case (_, Some(patchVersion), _) => majorVersion + "." + patchVersion
-      case (Some(v), _,_)             => v
+      case (Some(v), _, _)            => v
       case (_, _, Some(snapshot))     => s"$snapshot-SNAPSHOT"
       case _                          => s"$nextSnapshotVersion-${snapshotTag.fold("SNAPSHOT")(t => s"$t-SNAPSHOT")}"
     }
