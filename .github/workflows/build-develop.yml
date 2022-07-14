@@ -205,6 +205,9 @@ jobs:
           printenv
 
       - name: Build assembly
+        env:
+          JVM_OPTS: -Xmx3200m
+          SNAPSHOT_TAG: ${{ github.sha }}
         run: |
           rm -rf target/ project/project/ project/target/
           pwd
@@ -214,8 +217,6 @@ jobs:
           # Debug logs
           echo "Files for 2.13"
           ls -lsa connector/target/scala-2.13
-        env:
-          JVM_OPTS: -Xmx3200m
 
   dev_e2e_test:
     runs-on: ubuntu-latest

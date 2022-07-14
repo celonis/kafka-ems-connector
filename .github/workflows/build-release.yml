@@ -160,6 +160,7 @@ jobs:
   release_build_and_cache_assembly:
     runs-on: ubuntu-latest
     needs:
+      - release_prepare_env
       - release_test
       - release_integration_test
     steps:
@@ -195,6 +196,9 @@ jobs:
           printenv
 
       - name: Build assembly
+        env:
+          JVM_OPTS: -Xmx3200m
+          VERSION: ${{ needs.release_prepare_env.outputs.branch_or_tag }}
         run: |
           rm -rf target/ project/project/ project/target/
           pwd
@@ -204,8 +208,6 @@ jobs:
           # Debug logs
           echo "Files for 2.13"
           ls -lsa connector/target/scala-2.13
-        env:
-          JVM_OPTS: -Xmx3200m
 
   release_e2e_test:
     runs-on: ubuntu-latest
