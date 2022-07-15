@@ -16,7 +16,7 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v2
 
-      - name: Extract BRANCH_OR_TAG, RELEASE_MODE and DRAFT_RELEASE,output to GITHUB_ENV
+      - name: Extract BRANCH_OR_TAG, RELEASE_MODE and DRAFT_RELEASE, output to GITHUB_ENV
         shell: bash
         run: |
           if [[ ${GITHUB_REF##*/} == "merge" ]];
@@ -41,9 +41,11 @@ jobs:
           else
              echo "RELEASE_MODE=false" >> $GITHUB_ENV
              echo "DRAFT_RELEASE=false" >> $GITHUB_ENV
-             git_hash=$(git rev-parse --short "$GITHUB_SHA")
-             echo "VERSION=${git_hash}" >> $GITHUB_ENV
+             echo "VERSION=${{ github.sha }}" >> $GITHUB_ENV
           fi
+          echo $RELEASE_MODE
+          echo $DRAFT_RELEASE
+          echo $VERSION
     outputs:
       version: ${{ env.VERSION }}
       branch_or_tag: ${{ env.BRANCH_OR_TAG }}
