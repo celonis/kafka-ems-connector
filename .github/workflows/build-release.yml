@@ -41,7 +41,8 @@ jobs:
           else
              echo "RELEASE_MODE=false" >> $GITHUB_ENV
              echo "DRAFT_RELEASE=false" >> $GITHUB_ENV
-             echo "VERSION=${{ github.sha }}" >> $GITHUB_ENV
+              git_hash=$(git rev-parse --short ${{ github.sha }})
+             echo "VERSION=$git_hash" >> $GITHUB_ENV
           fi
     outputs:
       version: ${{ env.VERSION }}
@@ -166,6 +167,7 @@ jobs:
     needs:
       - prepare_env
       - test
+      - scalafmt
       - integration_test
     steps:
       - name: Check out repository code
