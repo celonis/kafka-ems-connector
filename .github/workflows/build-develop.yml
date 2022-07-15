@@ -216,7 +216,6 @@ jobs:
           JVM_OPTS: -Xmx3200m
           SNAPSHOT_TAG: ${{ needs.prepare_env.outputs.version }}
         run: |
-          printenv
           rm -rf target/ project/project/ project/target/
           pwd
           sbt generateManifest
