@@ -41,9 +41,10 @@ jobs:
           else
              echo "RELEASE_MODE=false" >> $GITHUB_ENV
              echo "DRAFT_RELEASE=false" >> $GITHUB_ENV
-             git_hash=$(git rev-parse --short ${{ github.sha }})
-             echo "VERSION=$git_hash" >> $GITHUB_ENV
+             tag_sha=$(git describe --tags --always)
+             echo "VERSION=$tag_sha" >> $GITHUB_ENV
           fi
+
     outputs:
       version: ${{ env.VERSION }}
       branch_or_tag: ${{ env.BRANCH_OR_TAG }}
