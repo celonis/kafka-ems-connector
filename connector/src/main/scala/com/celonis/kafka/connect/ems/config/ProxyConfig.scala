@@ -18,27 +18,28 @@ package com.celonis.kafka.connect.ems.config
 
 import cats.syntax.either._
 import enumeratum._
-import org.asynchttpclient.AsyncHttpClient
-import org.asynchttpclient.DefaultAsyncHttpClient
-import org.asynchttpclient.DefaultAsyncHttpClientConfig
-import org.asynchttpclient.Realm
-import org.asynchttpclient.proxy.ProxyServer
-import org.asynchttpclient.proxy.{ ProxyType => AsyncProxyType }
 
-sealed abstract class ProxyType(val proxyType: AsyncProxyType) extends EnumEntry
+import java.net.InetSocketAddress
+import java.net.Proxy.{ Type => JavaProxyType }
+import java.net.ProxySelector
+import java.net.http.{ HttpClient => JavaHttpClient }
+import java.util.Base64
+
+sealed abstract class ProxyType(val proxyType: JavaProxyType) extends EnumEntry
 
 object ProxyType extends Enum[ProxyType] {
 
   val values = findValues
 
-  case object Http   extends ProxyType(AsyncProxyType.HTTP)
-  case object Socks4 extends ProxyType(AsyncProxyType.SOCKS_V4)
-  case object Socks5 extends ProxyType(AsyncProxyType.SOCKS_V5)
+  case object Http   extends ProxyType(JavaProxyType.HTTP)
+  case object Socks4 extends ProxyType(JavaProxyType.SOCKS)
+  case object Socks5 extends ProxyType(JavaProxyType.SOCKS)
 
 }
 
 sealed trait ProxyConfig {
-  def createHttpClient(): AsyncHttpClient
+  def createHttpClient():    JavaHttpClient
+  def headerAuthorization(): Option[String]
 }
 
 object ProxyConfig {
@@ -76,7 +77,9 @@ object ProxyConfig {
 }
 
 case class NoProxyConfig() extends ProxyConfig {
-  override def createHttpClient(): AsyncHttpClient = new DefaultAsyncHttpClient()
+  override def createHttpClient(): JavaHttpClient = JavaHttpClient.newHttpClient()
+
+  override def headerAuthorization(): Option[String] = Option.empty
 }
 
 case class ConfiguredProxyConfig(
@@ -86,28 +89,20 @@ case class ConfiguredProxyConfig(
   authentication: Option[BasicAuthentication],
 ) extends ProxyConfig {
 
-  def createProxyServer(): ProxyServer = {
-    val realmMaybe: Option[Realm] = authentication.map(_.createRealm())
-    new ProxyServer.Builder(host, port)
-      .setRealm(realmMaybe.orNull)
-      .setProxyType(proxyType.proxyType)
-      .build()
-  }
+  def createProxyServer(): ProxySelector =
+    ProxySelector.of(new InetSocketAddress(host, port))
 
-  def createHttpClient(): AsyncHttpClient = {
-    val asyncHttpClientConfig =
-      new DefaultAsyncHttpClientConfig.Builder().setProxyServer(createProxyServer()).build()
-    new DefaultAsyncHttpClient(asyncHttpClientConfig)
-  }
+  def createHttpClient(): JavaHttpClient =
+    JavaHttpClient.newBuilder().proxy(createProxyServer()).build()
+
+  override def headerAuthorization(): Option[String] = authentication.map(_.encode())
+
 }
 
 case class BasicAuthentication(
   username: String,
   password: String,
 ) {
-  def createRealm(): Realm =
-    new Realm.Builder(username, password)
-      .setUsePreemptiveAuth(true)
-      .setScheme(Realm.AuthScheme.BASIC)
-      .build()
+  def encode(): String =
+    "Basic " + new String(Base64.getEncoder.encode(s"$username:$password".getBytes()))
 }

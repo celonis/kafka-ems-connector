@@ -80,7 +80,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 "CelonisKafka2Ems vx.Test",
                                 None,
                                 None,
-                                NoProxyConfig().createHttpClient(),
+                                NoProxyConfig(),
                                 None,
             ),
           )
@@ -134,7 +134,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 "CelonisKafka2Ems vx.Test",
                                 None,
                                 None,
-                                NoProxyConfig().createHttpClient(),
+                                NoProxyConfig(),
                                 None,
             ),
           )
@@ -198,7 +198,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 "CelonisKafka2Ems vx.Test",
                                 None,
                                 None,
-                                ConfiguredProxyConfig("localhost", proxyPort, ProxyType.Http, None).createHttpClient(),
+                                ConfiguredProxyConfig("localhost", proxyPort, ProxyType.Http, None),
                                 None,
             ),
           )
@@ -258,7 +258,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
               "CelonisKafka2Ems vx.Test",
               None,
               None,
-              ConfiguredProxyConfig("localhost", proxyPort, ProxyType.Http, proxyAuth).createHttpClient(),
+              ConfiguredProxyConfig("localhost", proxyPort, ProxyType.Http, proxyAuth),
               None,
             ),
           )

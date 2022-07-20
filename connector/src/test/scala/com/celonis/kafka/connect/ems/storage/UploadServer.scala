@@ -45,7 +45,8 @@ object UploadServer extends IOApp {
       }
       fileService = new StoredFileService[IO](Path.fromNioPath(new File(folder).toPath))
       routes      = new MultipartHttpEndpoint[IO](fileService, responseProvider, auth, table).service.orNotFound
-      exitCode <- BlazeServerBuilder[IO](ExecutionContext.global)
+      exitCode <- BlazeServerBuilder[IO]
+        .withExecutionContext(ExecutionContext.global)
         .bindLocal(port)
         .withHttpApp(routes)
         .serve

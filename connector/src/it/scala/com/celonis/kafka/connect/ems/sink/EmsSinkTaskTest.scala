@@ -125,6 +125,7 @@ class EmsSinkTaskTest extends AnyFunSuite with MockServerContainerPerSuite with 
   }
 
   private def waitForParquetFile(connectorName: String, sourceTopic: String): File = {
+    log.info("WAITING FOR PARQUET FILE")
     val file = new File(s"/tmp/$connectorName/$sourceTopic/1/1.parquet")
     eventually {
       assert(file.exists())

@@ -19,6 +19,7 @@ package com.celonis.kafka.connect.ems.storage
 import cats.data.NonEmptyList
 import cats.effect.kernel.Async
 import cats.implicits._
+import com.celonis.kafka.connect.ems.config.ProxyConfig
 import com.celonis.kafka.connect.ems.errors.UploadFailedException
 import com.celonis.kafka.connect.ems.storage.EmsUploader.ChunkSize
 import com.celonis.kafka.connect.ems.storage.EmsUploader.buildUri
@@ -26,12 +27,11 @@ import com.typesafe.scalalogging.StrictLogging
 import fs2.io.file.Files
 import fs2.io.file.Flags
 import fs2.io.file.Path
-import org.asynchttpclient.{ AsyncHttpClient => RawAsyncHttpClient }
 import org.http4s._
-import org.http4s.asynchttpclient.client.AsyncHttpClient
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
+import org.http4s.jdkhttpclient.JdkHttpClient
 import org.http4s.multipart.Multipart
 import org.http4s.multipart.Part
 import org.typelevel.ci.CIString
@@ -39,6 +39,7 @@ import org.typelevel.ci.CIString
 import java.io.File
 import java.net.URL
 import javax.ws.rs.core.UriBuilder
+import scala.annotation.nowarn
 
 class EmsUploader[F[_]](
   baseUrl:               URL,
@@ -48,7 +49,7 @@ class EmsUploader[F[_]](
   clientId:              String,
   fallbackVarcharLength: Option[Int],
   primaryKeys:           Option[NonEmptyList[String]],
-  httpClient:            RawAsyncHttpClient,
+  proxyConfig:           ProxyConfig,
   maybeOrderFieldName:   Option[String],
 )(
   implicit
@@ -56,6 +57,8 @@ class EmsUploader[F[_]](
 ) extends Uploader[F]
     with Http4sClientDsl[F]
     with StrictLogging {
+
+  //def toRawHeader(k: CIString, v: String): Header.Raw = (k, v)
 
   override def upload(uploadRequest: UploadRequest): F[EmsUploadResponse] = {
     val fileName =
@@ -68,14 +71,14 @@ class EmsUploader[F[_]](
                          Files[F].readAll(Path.fromNioPath(uploadRequest.file.toPath), ChunkSize, Flags.Read),
         ),
       )
-      val pks       = primaryKeys.map(nel => nel.mkString_(","))
-      val multipart = Multipart[F](attributes)
-      val uri       = buildUri(baseUrl, targetTable, connectionId, clientId, fallbackVarcharLength, pks, maybeOrderFieldName)
+      val pks                                  = primaryKeys.map(nel => nel.mkString_(","))
+      val uri                                  = buildUri(baseUrl, targetTable, connectionId, clientId, fallbackVarcharLength, pks, maybeOrderFieldName)
+      @nowarn("cat=deprecation") val multipart = Multipart[F](attributes)
 
       val request: Request[F] = Method.POST.apply(
         multipart,
         uri,
-        multipart.headers.headers :+ Header.Raw(CIString("Authorization"), authorization),
+        buildHeadersList(multipart),
       )
 
       for {
@@ -84,7 +87,16 @@ class EmsUploader[F[_]](
       } yield response
     }
 
-    AsyncHttpClient.fromClient(httpClient).use(uploadWithClient)
+    JdkHttpClient(proxyConfig.createHttpClient()).use(uploadWithClient)
+  }
+
+  private def buildHeadersList(multipart: Multipart[F]) = {
+    val rawHeaders  = multipart.headers.headers
+    val rawHeaders2 = rawHeaders :+ Header.Raw(CIString("Authorization"), authorization)
+    val rawHeaders3 = rawHeaders2 :++ proxyConfig.headerAuthorization().map(header =>
+      Header.Raw(CIString("Proxy-Authorization"), header),
+    )
+    rawHeaders3
   }
 
   private def handleUploadError(response: Response[F], request: UploadRequest): F[Throwable] =

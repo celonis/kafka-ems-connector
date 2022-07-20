@@ -91,7 +91,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
                             if (config.primaryKeys.exists(_.trim.nonEmpty))
                               Some(NonEmptyList.fromListUnsafe(config.primaryKeys.map(_.trim).filter(_.nonEmpty)))
                             else None,
-                            config.proxy.createHttpClient(),
+                            config.proxy,
                             config.orderField.name,
         ),
         writers,

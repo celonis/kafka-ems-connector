@@ -23,8 +23,6 @@ import com.celonis.kafka.connect.ems.config.BasicAuthentication
 import com.celonis.kafka.connect.ems.storage.EmsUploadResponse._
 import com.typesafe.scalalogging.LazyLogging
 import fs2.io.file.AccessDeniedException
-import org.asynchttpclient.DefaultAsyncHttpClient
-import org.http4s.asynchttpclient.client.AsyncHttpClient
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.client.Client
@@ -34,8 +32,10 @@ import org.http4s.Header
 import org.http4s.HttpRoutes
 import org.http4s.Request
 import org.http4s.Response
+import org.http4s.jdkhttpclient.JdkHttpClient
 import org.typelevel.ci.CIString
 
+import java.net.http.HttpClient
 import java.util.Base64
 import scala.util.Try
 
@@ -82,8 +82,7 @@ class ProxyEndpoint[F[_]: Concurrent](
     def handleProxyError(response: Response[F]): F[Throwable] =
       A.raiseError(new IllegalStateException(s"Failed ${response.status} (${response.body})"))
 
-    val clientResponse = AsyncHttpClient
-      .fromClient(new DefaultAsyncHttpClient())
+    val clientResponse = JdkHttpClient(HttpClient.newHttpClient())
       .use(proxyUpload)
 
     Ok(clientResponse)
