@@ -18,11 +18,11 @@ package com.celonis.kafka.connect.ems.config
 
 import cats.syntax.either._
 import enumeratum._
+import okhttp3.OkHttpClient
 
 import java.net.InetSocketAddress
+import java.net.Proxy
 import java.net.Proxy.{ Type => JavaProxyType }
-import java.net.ProxySelector
-import java.net.http.{ HttpClient => JavaHttpClient }
 import java.util.Base64
 
 sealed abstract class ProxyType(val proxyType: JavaProxyType) extends EnumEntry
@@ -38,7 +38,7 @@ object ProxyType extends Enum[ProxyType] {
 }
 
 sealed trait ProxyConfig {
-  def createHttpClient():    JavaHttpClient
+  def createHttpClient():    OkHttpClient
   def headerAuthorization(): Option[String]
 }
 
@@ -77,7 +77,7 @@ object ProxyConfig {
 }
 
 case class NoProxyConfig() extends ProxyConfig {
-  override def createHttpClient(): JavaHttpClient = JavaHttpClient.newHttpClient()
+  override def createHttpClient(): OkHttpClient = new OkHttpClient()
 
   override def headerAuthorization(): Option[String] = Option.empty
 }
@@ -89,11 +89,13 @@ case class ConfiguredProxyConfig(
   authentication: Option[BasicAuthentication],
 ) extends ProxyConfig {
 
-  def createProxyServer(): ProxySelector =
-    ProxySelector.of(new InetSocketAddress(host, port))
+  def createProxyServer(): Proxy = {
+    val proxyAddr = new InetSocketAddress(host, port)
+    new Proxy(proxyType.proxyType, proxyAddr)
+  }
 
-  def createHttpClient(): JavaHttpClient =
-    JavaHttpClient.newBuilder().proxy(createProxyServer()).build()
+  def createHttpClient(): OkHttpClient =
+    new OkHttpClient.Builder().proxy(createProxyServer()).build()
 
   override def headerAuthorization(): Option[String] = authentication.map(_.encode())
 

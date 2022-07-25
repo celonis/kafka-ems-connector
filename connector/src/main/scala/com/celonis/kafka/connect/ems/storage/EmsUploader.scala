@@ -20,6 +20,7 @@ import cats.data.NonEmptyList
 import cats.effect.kernel.Async
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.ProxyConfig
+import com.celonis.kafka.connect.ems.config.ProxyIO
 import com.celonis.kafka.connect.ems.errors.UploadFailedException
 import com.celonis.kafka.connect.ems.storage.EmsUploader.ChunkSize
 import com.celonis.kafka.connect.ems.storage.EmsUploader.buildUri
@@ -31,7 +32,6 @@ import org.http4s._
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
-import org.http4s.jdkhttpclient.JdkHttpClient
 import org.http4s.multipart.Multipart
 import org.http4s.multipart.Part
 import org.typelevel.ci.CIString
@@ -87,7 +87,7 @@ class EmsUploader[F[_]](
       } yield response
     }
 
-    JdkHttpClient(proxyConfig.createHttpClient()).use(uploadWithClient)
+    ProxyIO.createHttpClient(proxyConfig.createHttpClient()).use(uploadWithClient)
   }
 
   private def buildHeadersList(multipart: Multipart[F]) = {
