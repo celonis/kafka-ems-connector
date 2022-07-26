@@ -17,10 +17,10 @@
 package com.celonis.kafka.connect.ems.storage
 
 import cats.data.NonEmptyList
+import cats.effect.Resource
 import cats.effect.kernel.Async
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.ProxyConfig
-import com.celonis.kafka.connect.ems.config.ProxyIO
 import com.celonis.kafka.connect.ems.errors.UploadFailedException
 import com.celonis.kafka.connect.ems.storage.EmsUploader.ChunkSize
 import com.celonis.kafka.connect.ems.storage.EmsUploader.buildUri
@@ -28,12 +28,14 @@ import com.typesafe.scalalogging.StrictLogging
 import fs2.io.file.Files
 import fs2.io.file.Flags
 import fs2.io.file.Path
+import okhttp3.OkHttpClient
 import org.http4s._
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.multipart.Multipart
 import org.http4s.multipart.Part
+import org.http4s.okhttp.client.OkHttpBuilder
 import org.typelevel.ci.CIString
 
 import java.io.File
@@ -57,8 +59,6 @@ class EmsUploader[F[_]](
 ) extends Uploader[F]
     with Http4sClientDsl[F]
     with StrictLogging {
-
-  //def toRawHeader(k: CIString, v: String): Header.Raw = (k, v)
 
   override def upload(uploadRequest: UploadRequest): F[EmsUploadResponse] = {
     val fileName =
@@ -87,17 +87,18 @@ class EmsUploader[F[_]](
       } yield response
     }
 
-    ProxyIO.createHttpClient(proxyConfig.createHttpClient()).use(uploadWithClient)
+    createHttpClient(proxyConfig.createHttpClient()).use(uploadWithClient)
   }
 
-  private def buildHeadersList(multipart: Multipart[F]) = {
-    val rawHeaders  = multipart.headers.headers
-    val rawHeaders2 = rawHeaders :+ Header.Raw(CIString("Authorization"), authorization)
-    val rawHeaders3 = rawHeaders2 :++ proxyConfig.headerAuthorization().map(header =>
-      Header.Raw(CIString("Proxy-Authorization"), header),
-    )
-    rawHeaders3
-  }
+  def createHttpClient(
+    okHttpClient: OkHttpClient,
+  ): Resource[F, Client[F]] =
+    OkHttpBuilder[F](okHttpClient).resource
+
+  private def buildHeadersList(multipart: Multipart[F]) =
+    (multipart.headers.headers :+
+      Header.Raw(CIString("Authorization"), authorization)) ++
+      proxyConfig.authorizationHeader().map(header => Header.Raw(CIString("Proxy-Authorization"), header)).toList
 
   private def handleUploadError(response: Response[F], request: UploadRequest): F[Throwable] =
     response.status match {

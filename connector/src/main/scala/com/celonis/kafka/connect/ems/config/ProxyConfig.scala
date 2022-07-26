@@ -18,14 +18,29 @@ package com.celonis.kafka.connect.ems.config
 
 import cats.syntax.either._
 import enumeratum._
+import okhttp3.Credentials
 import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.Route
+import okhttp3.{ Authenticator => OkHttpAuthenticator }
 
 import java.net.InetSocketAddress
+import java.net.PasswordAuthentication
 import java.net.Proxy
 import java.net.Proxy.{ Type => JavaProxyType }
+import java.net.{ Authenticator => JavaAuthenticator }
 import java.util.Base64
 
-sealed abstract class ProxyType(val proxyType: JavaProxyType) extends EnumEntry
+case class BasicAuthentication(
+  username: String,
+  password: String,
+) {
+  def encode(): String =
+    "Basic " + new String(Base64.getEncoder.encode(s"$username:$password".getBytes()))
+}
+
+sealed abstract class ProxyType(val javaProxyType: JavaProxyType) extends EnumEntry
 
 object ProxyType extends Enum[ProxyType] {
 
@@ -34,12 +49,11 @@ object ProxyType extends Enum[ProxyType] {
   case object Http   extends ProxyType(JavaProxyType.HTTP)
   case object Socks4 extends ProxyType(JavaProxyType.SOCKS)
   case object Socks5 extends ProxyType(JavaProxyType.SOCKS)
-
 }
 
 sealed trait ProxyConfig {
   def createHttpClient():    OkHttpClient
-  def headerAuthorization(): Option[String]
+  def authorizationHeader(): Option[String]
 }
 
 object ProxyConfig {
@@ -79,7 +93,7 @@ object ProxyConfig {
 case class NoProxyConfig() extends ProxyConfig {
   override def createHttpClient(): OkHttpClient = new OkHttpClient()
 
-  override def headerAuthorization(): Option[String] = Option.empty
+  override def authorizationHeader(): Option[String] = Option.empty
 }
 
 case class ConfiguredProxyConfig(
@@ -89,22 +103,45 @@ case class ConfiguredProxyConfig(
   authentication: Option[BasicAuthentication],
 ) extends ProxyConfig {
 
+  private val javaProxyType = proxyType.javaProxyType
+
   def createProxyServer(): Proxy = {
     val proxyAddr = new InetSocketAddress(host, port)
-    new Proxy(proxyType.proxyType, proxyAddr)
+    new Proxy(proxyType.javaProxyType, proxyAddr)
   }
 
-  def createHttpClient(): OkHttpClient =
-    new OkHttpClient.Builder().proxy(createProxyServer()).build()
+  def createHttpClient(): OkHttpClient = {
 
-  override def headerAuthorization(): Option[String] = authentication.map(_.encode())
+    val httpClientBuilder = new OkHttpClient.Builder().proxy(createProxyServer())
+    authentication match {
+      case Some(auth) if javaProxyType == JavaProxyType.HTTP  => configureHttpProxyAuth(httpClientBuilder, auth)
+      case Some(auth) if javaProxyType == JavaProxyType.SOCKS => configureSocksProxyAuth(auth)
+      case _                                                  => // nothing
+    }
+    httpClientBuilder.build()
+  }
 
-}
+  private def configureSocksProxyAuth(auth: BasicAuthentication): Unit =
+    JavaAuthenticator.setDefault(
+      new JavaAuthenticator() {
+        override def getPasswordAuthentication: PasswordAuthentication =
+          Option.when(getRequestingHost.equalsIgnoreCase(host) && getRequestingPort == port) {
+            new PasswordAuthentication(auth.username, auth.password.toCharArray)
+          }.orNull
+      },
+    )
 
-case class BasicAuthentication(
-  username: String,
-  password: String,
-) {
-  def encode(): String =
-    "Basic " + new String(Base64.getEncoder.encode(s"$username:$password".getBytes()))
+  private def configureHttpProxyAuth(httpClientBuilder: OkHttpClient.Builder, auth: BasicAuthentication) =
+    httpClientBuilder.proxyAuthenticator(
+      new OkHttpAuthenticator() {
+        override def authenticate(route: Route, response: Response): Request = {
+          val credential = Credentials.basic(auth.username, auth.password)
+          response.request().newBuilder()
+            .header("Proxy-Authorization", credential)
+            .build()
+        }
+      },
+    )
+
+  override def authorizationHeader(): Option[String] = authentication.map(_.encode())
 }
