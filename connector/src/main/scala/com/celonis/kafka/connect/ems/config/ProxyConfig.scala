@@ -24,13 +24,13 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.Route
-import okhttp3.{Authenticator => OkHttpAuthenticator}
+import okhttp3.{ Authenticator => OkHttpAuthenticator }
 
 import java.net.InetSocketAddress
 import java.net.PasswordAuthentication
 import java.net.Proxy
-import java.net.Proxy.{Type => JavaProxyType}
-import java.net.{Authenticator => JavaAuthenticator}
+import java.net.Proxy.{ Type => JavaProxyType }
+import java.net.{ Authenticator => JavaAuthenticator }
 import java.util.Base64
 import java.util.concurrent.TimeUnit
 
@@ -93,7 +93,8 @@ object ProxyConfig {
 }
 
 case class NoProxyConfig() extends ProxyConfig {
-  override def createHttpClient(): OkHttpClient = new OkHttpClient()
+  override def createHttpClient(): OkHttpClient =
+    new OkHttpClient.Builder().connectionPool(new ConnectionPool(0, 500, TimeUnit.MILLISECONDS)).build()
 
   override def authorizationHeader(): Option[String] = Option.empty
 }
@@ -114,7 +115,9 @@ case class ConfiguredProxyConfig(
 
   def createHttpClient(): OkHttpClient = {
 
-    val httpClientBuilder = new OkHttpClient.Builder().connectionPool(new ConnectionPool(0, 500, TimeUnit.MILLISECONDS)).proxy(createProxyServer())
+    val httpClientBuilder = new OkHttpClient.Builder().connectionPool(
+      new ConnectionPool(0, 500, TimeUnit.MILLISECONDS),
+    ).proxy(createProxyServer())
     authentication match {
       case Some(auth) if javaProxyType == JavaProxyType.HTTP  => configureHttpProxyAuth(httpClientBuilder, auth)
       case Some(auth) if javaProxyType == JavaProxyType.SOCKS => configureSocksProxyAuth(auth)
