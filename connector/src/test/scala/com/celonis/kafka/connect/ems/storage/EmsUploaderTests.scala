@@ -21,7 +21,7 @@ import cats.effect.kernel.Resource
 import cats.effect.unsafe.implicits.global
 import cats.syntax.option._
 import com.celonis.kafka.connect.ems.config.BasicAuthentication
-import com.celonis.kafka.connect.ems.config.NoProxyConfig
+import com.celonis.kafka.connect.ems.config.UnproxiedHttpClientConfig
 import com.celonis.kafka.connect.ems.errors.UploadFailedException
 import com.celonis.kafka.connect.ems.model.Offset
 import com.celonis.kafka.connect.ems.model.Partition
@@ -29,7 +29,8 @@ import com.celonis.kafka.connect.ems.model.Topic
 import org.http4s.Status.Forbidden
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import com.celonis.kafka.connect.ems.config.ConfiguredProxyConfig
+import com.celonis.kafka.connect.ems.config.ProxiedHttpClientConfig
+import com.celonis.kafka.connect.ems.config.PoolingConfig
 import com.celonis.kafka.connect.ems.config.ProxyType
 
 import java.io.File
@@ -37,8 +38,20 @@ import java.io.FileOutputStream
 import java.net.URL
 import java.util.UUID
 import scala.collection.immutable.Queue
-
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
+  CLOSE_EVERY_CONNECTION_DEFAULT_VALUE => CLOSE_CONN_DEFAULT,
+}
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
+  CONNECTION_POOL_KEEPALIVE_MILLIS_DEFAULT_VALUE => KEEPALIVE_DEFAULT,
+}
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
+  CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE => MAX_IDLE_DEFAULT,
+}
 class EmsUploaderTests extends AnyFunSuite with Matchers {
+
+  private val defaultPoolingConfig: PoolingConfig =
+    PoolingConfig(MAX_IDLE_DEFAULT, KEEPALIVE_DEFAULT, CLOSE_CONN_DEFAULT)
+
   test("uploads the file") {
     val port             = 21212
     val auth             = "this is auth"
@@ -80,7 +93,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 "CelonisKafka2Ems vx.Test",
                                 None,
                                 None,
-                                NoProxyConfig(),
+                                UnproxiedHttpClientConfig(defaultPoolingConfig),
                                 None,
             ),
           )
@@ -134,7 +147,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                                 "CelonisKafka2Ems vx.Test",
                                 None,
                                 None,
-                                NoProxyConfig(),
+                                UnproxiedHttpClientConfig(defaultPoolingConfig),
                                 None,
             ),
           )
@@ -191,15 +204,16 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
       case (_, _, file) =>
         for {
           uploader <- IO(
-            new EmsUploader[IO](new URL(s"http://localhost:$serverPort$path"),
-                                auth,
-                                targetTable,
-                                Some("id2"),
-                                "CelonisKafka2Ems vx.Test",
-                                None,
-                                None,
-                                ConfiguredProxyConfig("localhost", proxyPort, ProxyType.Http, None),
-                                None,
+            new EmsUploader[IO](
+              new URL(s"http://localhost:$serverPort$path"),
+              auth,
+              targetTable,
+              Some("id2"),
+              "CelonisKafka2Ems vx.Test",
+              None,
+              None,
+              ProxiedHttpClientConfig(defaultPoolingConfig, "localhost", proxyPort, ProxyType.Http, None),
+              None,
             ),
           )
           response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
@@ -258,7 +272,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
               "CelonisKafka2Ems vx.Test",
               None,
               None,
-              ConfiguredProxyConfig("localhost", proxyPort, ProxyType.Http, proxyAuth),
+              ProxiedHttpClientConfig(defaultPoolingConfig, "localhost", proxyPort, ProxyType.Http, proxyAuth),
               None,
             ),
           )

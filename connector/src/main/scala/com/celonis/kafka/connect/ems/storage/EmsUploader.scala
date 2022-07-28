@@ -20,7 +20,7 @@ import cats.data.NonEmptyList
 import cats.effect.Resource
 import cats.effect.kernel.Async
 import cats.implicits._
-import com.celonis.kafka.connect.ems.config.ProxyConfig
+import com.celonis.kafka.connect.ems.config.HttpClientConfig
 import com.celonis.kafka.connect.ems.errors.UploadFailedException
 import com.celonis.kafka.connect.ems.storage.EmsUploader.ChunkSize
 import com.celonis.kafka.connect.ems.storage.EmsUploader.buildUri
@@ -51,7 +51,7 @@ class EmsUploader[F[_]](
   clientId:              String,
   fallbackVarcharLength: Option[Int],
   primaryKeys:           Option[NonEmptyList[String]],
-  proxyConfig:           ProxyConfig,
+  proxyConfig:           HttpClientConfig,
   maybeOrderFieldName:   Option[String],
 )(
   implicit
@@ -98,7 +98,10 @@ class EmsUploader[F[_]](
   private def buildHeadersList(multipart: Multipart[F]) =
     (multipart.headers.headers :+
       Header.Raw(CIString("Authorization"), authorization)) ++
-      proxyConfig.authorizationHeader().map(header => Header.Raw(CIString("Proxy-Authorization"), header)).toList
+      proxyConfig.authorizationHeader().map(header => Header.Raw(CIString("Proxy-Authorization"), header)).toList ++
+      Option.when(proxyConfig.getPoolingConfig().closeConn)(
+        Header.Raw(CIString("Connection"), "Close"),
+      ).toList
 
   private def handleUploadError(response: Response[F], request: UploadRequest): F[Throwable] =
     response.status match {

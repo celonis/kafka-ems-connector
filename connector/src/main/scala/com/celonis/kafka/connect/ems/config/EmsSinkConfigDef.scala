@@ -17,6 +17,9 @@
 package com.celonis.kafka.connect.ems.config
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLOSE_EVERY_CONNECTION_DEFAULT_VALUE
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLOSE_EVERY_CONNECTION_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLOSE_EVERY_CONNECTION_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_DOC
@@ -26,6 +29,11 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_K
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_ID_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_ID_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_ID_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_POOL_KEEPALIVE_MILLIS_DEFAULT_VALUE
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_POOL_KEEPALIVE_MILLIS_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_POOL_KEEPALIVE_MILLIS_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_POOL_MAX_IDLE_CONNECTIONS_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_KEY
@@ -369,6 +377,39 @@ object EmsSinkConfigDef {
       3,
       ConfigDef.Width.MEDIUM,
       ORDER_FIELD_NAME_DOC,
+    )
+    .define(
+      CONNECTION_POOL_MAX_IDLE_CONNECTIONS_KEY,
+      Type.INT,
+      5,
+      Importance.LOW,
+      CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DOC,
+      "Pool",
+      1,
+      ConfigDef.Width.MEDIUM,
+      CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DOC,
+    )
+    .define(
+      CONNECTION_POOL_KEEPALIVE_MILLIS_KEY,
+      Type.LONG,
+      CONNECTION_POOL_KEEPALIVE_MILLIS_DEFAULT_VALUE,
+      Importance.LOW,
+      CONNECTION_POOL_KEEPALIVE_MILLIS_DOC,
+      "Pool",
+      2,
+      ConfigDef.Width.LONG,
+      CONNECTION_POOL_KEEPALIVE_MILLIS_DOC,
+    )
+    .define(
+      CLOSE_EVERY_CONNECTION_KEY,
+      Type.BOOLEAN,
+      CLOSE_EVERY_CONNECTION_DEFAULT_VALUE,
+      Importance.LOW,
+      CLOSE_EVERY_CONNECTION_DOC,
+      "Pool",
+      3,
+      ConfigDef.Width.MEDIUM,
+      CLOSE_EVERY_CONNECTION_DOC,
     )
 }
 

@@ -20,6 +20,15 @@ import cats.data.NonEmptyList
 import cats.implicits.catsSyntaxOptionId
 import cats.syntax.either._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
+  CLOSE_EVERY_CONNECTION_DEFAULT_VALUE => CLOSE_CONN_DEFAULT,
+}
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
+  CONNECTION_POOL_KEEPALIVE_MILLIS_DEFAULT_VALUE => KEEPALIVE_DEFAULT,
+}
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
+  CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE => MAX_IDLE_DEFAULT,
+}
 import com.celonis.kafka.connect.ems.conversion.NoOpOrderFieldInserter
 import com.celonis.kafka.connect.ems.conversion.OrderFieldInserter
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
@@ -40,6 +49,10 @@ import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 class EmsSinkConfigTest extends AnyFunSuite with Matchers {
+
+  private val defaultPoolingConfig: PoolingConfig =
+    PoolingConfig(MAX_IDLE_DEFAULT, KEEPALIVE_DEFAULT, CLOSE_CONN_DEFAULT)
+
   test(s"returns the configuration") {
     val policy = DefaultCommitPolicy(1000000L, 10.seconds.toMillis, 1000)
     val dir    = new File(UUID.randomUUID().toString)
@@ -59,7 +72,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         List("a", "b"),
         Some(512),
         None,
-        NoProxyConfig(),
+        UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
         OrderFieldConfig(OrderFieldInserter.FieldName.some, OrderFieldInserter),
       )
@@ -238,7 +251,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         Some(ObfuscationConfig(FixObfuscation(5, '*'),
                                NonEmptyList.of(ObfuscatedField(NonEmptyList.fromListUnsafe(List("a", "b")))),
         )),
-        NoProxyConfig(),
+        UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
         OrderFieldConfig(OrderFieldInserter.FieldName.some, OrderFieldInserter),
       )
@@ -264,7 +277,6 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
       ) - key
 
       (Try {
-        import scala.collection.compat._
         EmsSinkConfigDef.config.parse(inputMap.view.mapValues(_.toString).toMap.asJava).asScala.toMap
       }: @scala.annotation.nowarn("msg=Unused import")).toEither.leftMap(_.getMessage)
         .foreach { connectInputMap =>
@@ -299,7 +311,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         List("a", "b"),
         Some(512),
         None,
-        NoProxyConfig(),
+        UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
         OrderFieldConfig(orderFieldName.some, NoOpOrderFieldInserter),
       )

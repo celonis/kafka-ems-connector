@@ -32,12 +32,24 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
+  CLOSE_EVERY_CONNECTION_DEFAULT_VALUE => CLOSE_CONN_DEFAULT,
+}
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
+  CONNECTION_POOL_KEEPALIVE_MILLIS_DEFAULT_VALUE => KEEPALIVE_DEFAULT,
+}
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
+  CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE => MAX_IDLE_DEFAULT,
+}
 import java.net.URL
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
 class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingDirectory {
+
+  private val defaultPoolingConfig: PoolingConfig =
+    PoolingConfig(MAX_IDLE_DEFAULT, KEEPALIVE_DEFAULT, CLOSE_CONN_DEFAULT)
+
   test("failed obfuscation raises an exception") {
     withDir { dir =>
       val policy = DefaultCommitPolicy(1000000L, 10.seconds.toMillis, 1000)
@@ -58,7 +70,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         Some(ObfuscationConfig(FixObfuscation(5, '*'),
                                NonEmptyList.of(ObfuscatedField(NonEmptyList.fromListUnsafe(List("a", "b")))),
         )),
-        NoProxyConfig(),
+        UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
         OrderFieldConfig(OrderFieldInserter.FieldName.some, OrderFieldInserter),
       )

@@ -18,7 +18,6 @@ package com.celonis.kafka.connect.ems.config
 
 import cats.syntax.either._
 import enumeratum._
-import okhttp3.ConnectionPool
 import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -32,7 +31,6 @@ import java.net.Proxy
 import java.net.Proxy.{ Type => JavaProxyType }
 import java.net.{ Authenticator => JavaAuthenticator }
 import java.util.Base64
-import java.util.concurrent.TimeUnit
 
 case class BasicAuthentication(
   username: String,
@@ -53,15 +51,24 @@ object ProxyType extends Enum[ProxyType] {
   case object Socks5 extends ProxyType(JavaProxyType.SOCKS)
 }
 
-sealed trait ProxyConfig {
-  def createHttpClient():    OkHttpClient
+sealed trait HttpClientConfig {
+
+  final def createHttpClient(): OkHttpClient = {
+    val builder = new OkHttpClient.Builder().connectionPool(getPoolingConfig().toConnectionPool())
+    customiseHttpClient(builder).build()
+  }
+
+  protected def customiseHttpClient(builder: OkHttpClient.Builder): OkHttpClient.Builder = builder
+
   def authorizationHeader(): Option[String]
+
+  def getPoolingConfig(): PoolingConfig
 }
 
-object ProxyConfig {
+object HttpClientConfig {
   import EmsSinkConfigConstants._
 
-  def extractProxyAuth(props: Map[String, _]): Either[String, Option[BasicAuthentication]] =
+  protected def extractProxy(props: Map[String, _]): Either[String, Option[BasicAuthentication]] =
     PropertiesHelper.getString(props, PROXY_AUTHENTICATION_KEY) match {
       case Some("BASIC") => {
           for {
@@ -73,7 +80,7 @@ object ProxyConfig {
       case None        => None.asRight
     }
 
-  def extractProxy(props: Map[String, _]): Either[String, ProxyConfig] = {
+  def extractHttpClient(props: Map[String, _]): Either[String, HttpClientConfig] = {
     for {
       host <- PropertiesHelper.getString(props, PROXY_HOST_KEY)
       port <- PropertiesHelper.getInt(props, PROXY_PORT_KEY)
@@ -86,25 +93,25 @@ object ProxyConfig {
     }
   }
     .map {
-      case (host, port, proxyType) => ProxyConfig.extractProxyAuth(props)
-          .map(maybeAuth => ConfiguredProxyConfig(host, port, proxyType, maybeAuth))
+      case (host, port, proxyType) => HttpClientConfig.extractProxy(props)
+          .map(maybeAuth => ProxiedHttpClientConfig(PoolingConfig.extract(props), host, port, proxyType, maybeAuth))
     }
-    .getOrElse(NoProxyConfig().asRight)
+    .getOrElse(UnproxiedHttpClientConfig(PoolingConfig.extract(props)).asRight)
 }
 
-case class NoProxyConfig() extends ProxyConfig {
-  override def createHttpClient(): OkHttpClient =
-    new OkHttpClient.Builder().connectionPool(new ConnectionPool(0, 500, TimeUnit.MILLISECONDS)).build()
-
+case class UnproxiedHttpClientConfig(poolingConfig: PoolingConfig) extends HttpClientConfig {
   override def authorizationHeader(): Option[String] = Option.empty
+
+  override def getPoolingConfig(): PoolingConfig = poolingConfig
 }
 
-case class ConfiguredProxyConfig(
+case class ProxiedHttpClientConfig(
+  poolingConfig:  PoolingConfig,
   host:           String,
   port:           Int,
   proxyType:      ProxyType,
   authentication: Option[BasicAuthentication],
-) extends ProxyConfig {
+) extends HttpClientConfig {
 
   private val javaProxyType = proxyType.javaProxyType
 
@@ -113,18 +120,12 @@ case class ConfiguredProxyConfig(
     new Proxy(proxyType.javaProxyType, proxyAddr)
   }
 
-  def createHttpClient(): OkHttpClient = {
-
-    val httpClientBuilder = new OkHttpClient.Builder().connectionPool(
-      new ConnectionPool(0, 500, TimeUnit.MILLISECONDS),
-    ).proxy(createProxyServer())
+  override def customiseHttpClient(builder: OkHttpClient.Builder): OkHttpClient.Builder =
     authentication match {
-      case Some(auth) if javaProxyType == JavaProxyType.HTTP  => configureHttpProxyAuth(httpClientBuilder, auth)
-      case Some(auth) if javaProxyType == JavaProxyType.SOCKS => configureSocksProxyAuth(auth)
-      case _                                                  => // nothing
+      case Some(auth) if javaProxyType == JavaProxyType.HTTP  => configureHttpProxyAuth(builder, auth)
+      case Some(auth) if javaProxyType == JavaProxyType.SOCKS => configureSocksProxyAuth(auth); builder
+      case _                                                  => builder
     }
-    httpClientBuilder.build()
-  }
 
   private def configureSocksProxyAuth(auth: BasicAuthentication): Unit =
     JavaAuthenticator.setDefault(
@@ -149,4 +150,6 @@ case class ConfiguredProxyConfig(
     )
 
   override def authorizationHeader(): Option[String] = authentication.map(_.encode())
+
+  override def getPoolingConfig(): PoolingConfig = poolingConfig
 }
