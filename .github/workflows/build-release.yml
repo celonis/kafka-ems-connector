@@ -10,11 +10,13 @@ env:
   CONNECTOR_FOLDER: 'celonis-kafka-connect-ems'
 
 jobs:
-  release_prepare_env:
+  prepare_env:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Extract BRANCH_OR_TAG, RELEASE_MODE and DRAFT_RELEASE,output to GITHUB_ENV
         shell: bash
@@ -31,16 +33,22 @@ jobs:
           then
               echo "RELEASE_MODE=true" >> $GITHUB_ENV
               echo "DRAFT_RELEASE=false" >> $GITHUB_ENV
+              echo "VERSION=${output:1}" >> $GITHUB_ENV
+          
           elif [[ ${output} =~ ^v[0-9]\.[0-9]\.[0-9]+(-(alpha|beta|rc)(\.[0-9]+)?)?(\+[A-Za-z0-9.]+)?$ ]];
           then
               echo "RELEASE_MODE=true" >> $GITHUB_ENV
               echo "DRAFT_RELEASE=true" >> $GITHUB_ENV
-
+              echo "VERSION=${output:1}" >> $GITHUB_ENV
           else
              echo "RELEASE_MODE=false" >> $GITHUB_ENV
              echo "DRAFT_RELEASE=false" >> $GITHUB_ENV
+             tag_sha=$(git describe --tags --always)
+             echo "VERSION=$tag_sha" >> $GITHUB_ENV
           fi
+
     outputs:
+      version: ${{ env.VERSION }}
       branch_or_tag: ${{ env.BRANCH_OR_TAG }}
       release_mode: ${{ env.RELEASE_MODE }}
       draft_release: ${{ env.DRAFT_RELEASE }}
@@ -91,10 +99,10 @@ jobs:
           sbt dumpLicenseReport
           cat target/license-reports/kafka-ems-connector-licenses.csv >> NOTICE
 
-  release_test:
+  test:
     runs-on: ubuntu-latest
     needs:
-      - release_prepare_env
+      - prepare_env
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
@@ -124,10 +132,10 @@ jobs:
           check_name: connector-test-results
           comment_mode: off
 
-  release_integration_test:
+  integration_test:
     runs-on: ubuntu-latest
     needs:
-      - release_prepare_env
+      - prepare_env
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
@@ -157,11 +165,13 @@ jobs:
           check_name: connector-it-results
           comment_mode: off
 
-  release_build_and_cache_assembly:
+  build_and_cache_assembly:
     runs-on: ubuntu-latest
     needs:
-      - release_test
-      - release_integration_test
+      - prepare_env
+      - test
+      - scalafmt
+      - integration_test
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
@@ -195,6 +205,9 @@ jobs:
           printenv
 
       - name: Build assembly
+        env:
+          JVM_OPTS: -Xmx3200m
+          VERSION: ${{ needs.prepare_env.outputs.version }}
         run: |
           rm -rf target/ project/project/ project/target/
           pwd
@@ -204,13 +217,11 @@ jobs:
           # Debug logs
           echo "Files for 2.13"
           ls -lsa connector/target/scala-2.13
-        env:
-          JVM_OPTS: -Xmx3200m
 
-  release_e2e_test:
+  e2e_test:
     runs-on: ubuntu-latest
     needs:
-      - release_build_and_cache_assembly
+      - build_and_cache_assembly
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
@@ -247,13 +258,13 @@ jobs:
           check_name: connector-e2e-results
           comment_mode: off
 
-  release_package:
+  package:
     runs-on: ubuntu-latest
     needs:
-      - release_prepare_env
-      - release_e2e_test
+      - prepare_env
+      - e2e_test
     env:
-      BRANCH_OR_TAG: '${{ needs.release_prepare_env.outputs.branch_or_tag }}'
+      BRANCH_OR_TAG: '${{ needs.prepare_env.outputs.branch_or_tag }}'
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
@@ -300,16 +311,16 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       always() &&
-      needs.release_prepare_env.outputs.release_mode == 'true' &&
-      needs.release_prepare_env.result == 'success' &&
-      needs.release_package.result == 'success'
+      needs.prepare_env.outputs.release_mode == 'true' &&
+      needs.prepare_env.result == 'success' &&
+      needs.package.result == 'success'
     needs:
-      - release_prepare_env
-      - release_package
+      - prepare_env
+      - package
     env:
-      BRANCH_OR_TAG: '${{ needs.release_prepare_env.outputs.branch_or_tag }}'
-      RELEASE_MODE: '${{ needs.release_prepare_env.outputs.release_mode }}'
-      DRAFT_RELEASE: '${{ needs.release_prepare_env.outputs.draft_release }}'
+      BRANCH_OR_TAG: '${{ needs.prepare_env.outputs.branch_or_tag }}'
+      RELEASE_MODE: '${{ needs.prepare_env.outputs.release_mode }}'
+      DRAFT_RELEASE: '${{ needs.prepare_env.outputs.draft_release }}'
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v2

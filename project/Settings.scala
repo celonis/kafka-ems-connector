@@ -24,10 +24,11 @@ object Settings extends Dependencies {
     val maybeGithubRunId = sys.env.get("github_run_id")
     val maybeVersion     = sys.env.get("VERSION")
     val snapshotTag      = sys.env.get("SNAPSHOT_TAG")
-    (maybeVersion, maybeGithubRunId) match {
-      case (_, Some(patchVersion)) => majorVersion + "." + patchVersion
-      case (Some(v), _)            => v
-      case _                       => s"$nextSnapshotVersion-${snapshotTag.fold("SNAPSHOT")(t => s"$t-SNAPSHOT")}"
+    (maybeVersion, maybeGithubRunId, snapshotTag) match {
+      case (_, Some(patchVersion), _) => majorVersion + "." + patchVersion
+      case (Some(v), _, _)            => v
+      case (_, _, Some(snapshot))     => s"$snapshot-SNAPSHOT"
+      case _                          => s"$nextSnapshotVersion-${snapshotTag.fold("SNAPSHOT")(t => s"$t-SNAPSHOT")}"
     }
   }
 
