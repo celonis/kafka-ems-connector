@@ -25,7 +25,7 @@ import java.util.jar.JarFile
 import scala.jdk.CollectionConverters._
 
 class JarManifest(private val map: Map[String, String]) extends AnyVal {
-  def version: Option[String] = map.get("version")
+  def version: Option[String] = map.get("Implementation-Version")
 }
 
 object JarManifest {
