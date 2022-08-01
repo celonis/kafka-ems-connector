@@ -55,10 +55,6 @@ plugin.path=/usr/local/share/kafka/plugins
 To create the connector follow the steps provided [here](https://docs.aws.amazon.com/msk/latest/developerguide/msk-connect-connectors.html). 
 The steps involved will require installing a custom connector and for that follow this [link](https://docs.aws.amazon.com/msk/latest/developerguide/msk-connect-plugins.html) and use the connector release jar
 
-### Confluent 
-
-Our connector is available on [Confluent Hub](https://docs.confluent.io/home/connect/self-managed/install.html#). Follow the instructions [here](https://docs.confluent.io/home/connect/self-managed/install.html#) to enable the EMS Kafka Connect sink.
-
 ### Azure Event Hub 
 
 If you're running Event Hub, you can leverage Kafka Connect and the EMS Sink plugin to load data into the EMS platform. 
