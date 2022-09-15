@@ -21,9 +21,9 @@ import scala.util.Try
 object VersionVerification extends App {
 
   Try(args(0)).toOption match {
-    case Some(unexpectedVersion) if unexpectedVersion.trim != Version.implementationVersion =>
+    case Some(expectedVersion) if expectedVersion.trim != Version.implementationVersion =>
       System.err.println(
-        s"Version check failed.  Expected : ${Version.implementationVersion}, but was $unexpectedVersion",
+        s"Version check failed.  Expected : $expectedVersion, but was ${Version.implementationVersion} ",
       )
       System.exit(1)
     case _ =>
