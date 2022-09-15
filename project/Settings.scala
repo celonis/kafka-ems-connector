@@ -316,6 +316,7 @@ object Settings extends Dependencies {
             case PathList(ps @ _*) if ps.last == "module-info.class" => MergeStrategy.discard
             case _                                                   => MergeStrategy.first
           },
+          assembly / mainClass := Some("com.celonis.kafka.connect.ems.utils.VersionVerification"),
         ),
       )
   }

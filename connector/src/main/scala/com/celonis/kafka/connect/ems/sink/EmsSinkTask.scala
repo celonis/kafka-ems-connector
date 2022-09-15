@@ -25,8 +25,8 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.config.ObfuscationConfig
 import com.celonis.kafka.connect.ems.config.OrderFieldConfig
 import com.celonis.kafka.connect.ems.conversion.DataConverter
-import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
+import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.errors.FailedObfuscationException
 import com.celonis.kafka.connect.ems.model._
 import com.celonis.kafka.connect.ems.obfuscation.ObfuscationUtils.GenericRecordObfuscation
@@ -34,7 +34,7 @@ import com.celonis.kafka.connect.ems.storage.EmsUploader
 import com.celonis.kafka.connect.ems.storage.PrimaryKeysValidator
 import com.celonis.kafka.connect.ems.storage.Writer
 import com.celonis.kafka.connect.ems.storage.WriterManager
-import com.celonis.kafka.connect.ems.utils.JarManifest
+import com.celonis.kafka.connect.ems.utils.Version
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
@@ -63,14 +63,12 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private var orderField:          OrderFieldConfig          = _
   private var emsSinkConfigurator: EmsSinkConfigurator       = new DefaultEmsSinkConfigurator
 
-  override def version(): String =
-    JarManifest.from(getClass.getProtectionDomain.getCodeSource.getLocation)
-      .version.getOrElse("unknown")
+  override def version(): String = Version.implementationVersion
 
   override def start(props: util.Map[String, String]): Unit = {
     sinkName = emsSinkConfigurator.getSinkName(props)
 
-    logger.debug(s"[{}] EmsSinkTask.start", sinkName)
+    logger.debug(s"[{}] EmsSinkTask.start {}", sinkName, Version.implementationVersion)
     val config: EmsSinkConfig = emsSinkConfigurator.getEmsSinkConfig(props)
 
     maybeSetErrorInterval(config)
