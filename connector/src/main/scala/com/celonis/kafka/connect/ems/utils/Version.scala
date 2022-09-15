@@ -16,11 +16,9 @@
 
 package com.celonis.kafka.connect.ems.utils
 
-class Version {}
-
 object Version {
 
-  private def appPkg: Package = classOf[Version].getPackage
+  private def appPkg: Package = classOf[Version.type].getPackage
 
   val implementationVersion: String = Option(appPkg.getImplementationVersion).getOrElse("Unknown")
 
