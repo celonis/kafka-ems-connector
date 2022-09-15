@@ -222,6 +222,7 @@ jobs:
           pwd
           sbt generateManifest
           sbt "project connector;set assembly / test := {}" assembly
+          java -jar connector/target/scala-2.13/*.jar $SNAPSHOT_TAG-SNAPSHOT
 
           # Debug logs
           echo "Files for 2.13"
