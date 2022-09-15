@@ -140,4 +140,15 @@ object EmsSinkConfigConstants {
   val ORDER_FIELD_NAME_DOC =
     s"The name of a sortable field present in the data data. If it's not provided the connector injects its own."
 
+  val CONNECTION_POOL_MAX_IDLE_CONNECTIONS_KEY           = s"$CONNECTOR_PREFIX.pool.max.idle"
+  val CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DOC           = "Connection pool - Max idle connections"
+  val CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE = 5
+
+  val CONNECTION_POOL_KEEPALIVE_MILLIS_KEY           = s"$CONNECTOR_PREFIX.pool.keepalive"
+  val CONNECTION_POOL_KEEPALIVE_MILLIS_DOC           = "Connection pool - Keep Alive Millis"
+  val CONNECTION_POOL_KEEPALIVE_MILLIS_DEFAULT_VALUE = 300000L
+
+  val CLOSE_EVERY_CONNECTION_KEY           = s"$CONNECTOR_PREFIX.pool.explicit.close"
+  val CLOSE_EVERY_CONNECTION_DOC           = "Connection pool - Explicitly close connections"
+  val CLOSE_EVERY_CONNECTION_DEFAULT_VALUE = false
 }

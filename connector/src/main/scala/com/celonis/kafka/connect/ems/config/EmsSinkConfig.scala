@@ -41,7 +41,7 @@ case class EmsSinkConfig(
   primaryKeys:            List[String],
   fallbackVarCharLengths: Option[Int],
   obfuscation:            Option[ObfuscationConfig],
-  proxy:                  ProxyConfig,
+  http:                   HttpClientConfig,
   explode:                ExplodeConfig,
   orderField:             OrderFieldConfig,
 )
@@ -122,7 +122,7 @@ object EmsSinkConfig {
       fallbackVarCharLength <- extractFallbackVarcharLength(props)
       obfuscation           <- ObfuscationConfig.extract(props)
       explodeConfig          = ExplodeConfig.extractExplode(props)
-      proxyConfig           <- ProxyConfig.extractProxy(props)
+      proxyConfig           <- HttpClientConfig.extractHttpClient(props)
       orderConfig            = OrderFieldConfig.from(props, primaryKeys)
     } yield EmsSinkConfig(
       sinkName,

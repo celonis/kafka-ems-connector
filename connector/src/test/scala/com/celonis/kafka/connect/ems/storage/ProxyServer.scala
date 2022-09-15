@@ -32,13 +32,13 @@ object ProxyServer {
     implicit
     A: Async[F],
   ): Resource[F, Server] =
-    BlazeServerBuilder[F](ExecutionContext.global)(A)
+    BlazeServerBuilder[F]
+      .withExecutionContext(ExecutionContext.global)
       .bindLocal(proxyPort)
       .withHttpApp(
         new ProxyEndpoint[F](
           authorization,
         ).service.orNotFound,
       )
-      .withWebSockets(true)
       .resource
 }

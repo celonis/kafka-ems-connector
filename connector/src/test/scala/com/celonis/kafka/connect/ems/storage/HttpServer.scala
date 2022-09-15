@@ -33,13 +33,13 @@ object HttpServer {
     implicit
     A: Async[F],
   ): Resource[F, Server] =
-    BlazeServerBuilder[F](ExecutionContext.global)(A)
+    BlazeServerBuilder[F]
+      .withExecutionContext(ExecutionContext.global)
       .bindLocal(port)
       .withHttpApp(new MultipartHttpEndpoint[F](fileService,
                                                 responseProvider,
                                                 authorization,
                                                 targetTable,
       ).service.orNotFound)
-      .withWebSockets(true)
       .resource
 }
