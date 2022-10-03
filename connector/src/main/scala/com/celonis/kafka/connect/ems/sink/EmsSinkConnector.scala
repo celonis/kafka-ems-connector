@@ -17,7 +17,7 @@
 package com.celonis.kafka.connect.ems.sink
 
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigDef
-import com.celonis.kafka.connect.ems.utils.JarManifest
+import com.celonis.kafka.connect.ems.utils.Version
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
@@ -29,17 +29,16 @@ class EmsSinkConnector extends SinkConnector {
 
   val logger: Logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
-  private val manifest = JarManifest.from(getClass.getProtectionDomain.getCodeSource.getLocation)
   private var props: util.Map[String, String] = _
 
-  override def version(): String = manifest.version.getOrElse("Unknown")
+  override def version(): String = Version.implementationVersion
 
   override def taskClass(): Class[_ <: Task] = classOf[EmsSinkTask]
 
   override def config(): ConfigDef = EmsSinkConfigDef.config
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Creating EMS sink connector")
+    logger.info(s"Creating EMS sink connector ${Version.implementationVersion}")
     this.props = props
   }
 
