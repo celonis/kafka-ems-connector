@@ -67,9 +67,9 @@ object Dependencies {
 
     val wiremockJre8Version = "2.25.1"
     val parquetVersion      = "1.12.2"
-    val hadoopVersion       = "3.2.3"
+    val hadoopVersion       = "3.2.4"
 
-    val nettyVersion = "4.1.68.Final"
+    val nettyVersion = "4.1.77.Final"
 
     val nimbusJoseJwtVersion = "9.22"
 
