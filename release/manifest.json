@@ -1,8 +1,8 @@
 {
   "name" : "kafka-connect-ems",
   "version" : "<project.version>",
-  "title" : "EMS Sink Connector for Apache Kafka",
-  "description" : "The official EMS Kafka sink connector",
+  "title" : "Celonis EMS Sink Connector for Apache Kafka",
+  "description" : "The official Celonis EMS Kafka sink connector",
   "owner" : {
     "username" : "celonis",
     "name" : "EMS",
