@@ -24,7 +24,7 @@
   },
   "logo" : "assets/celonis-logo.png",
   "documentation_url" : "https://github.com/celonis/kafka-ems-connector/blob/main/README.md",
-  "source_url" : "https://github.com/celonis/kafka-ems-connector/main",
+  "source_url" : "https://github.com/celonis/kafka-ems-connector/",
   "docker_image" : { },
   "license" : [{
     "name" : "The Apache License, Version 2.0",
