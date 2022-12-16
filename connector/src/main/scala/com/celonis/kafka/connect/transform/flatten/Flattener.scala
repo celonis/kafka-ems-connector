@@ -26,7 +26,7 @@ object Flattener extends LazyLogging {
     * Flattens a Kafka Connect record value
     *
     * @param value A kafka connect record value
-    * @param maybeFlattenedSchema an optional, flattened schema (i.e. the representation of target record shape).
+    * @param flattenedSchema a flattened schema (i.e. the representation of target record shape).
     * @param config
     * @return
     */

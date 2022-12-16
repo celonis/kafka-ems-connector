@@ -3,40 +3,86 @@
  */
 package com.celonis.kafka.connect.transform.flatten
 
-import cats.implicits.catsSyntaxEitherId
-import cats.implicits.catsSyntaxOptionId
 import com.celonis.kafka.connect.transform.FlattenConfig
 import com.celonis.kafka.connect.transform.SchemaLeafNode
 import com.celonis.kafka.connect.transform.clean.PathCleaner.cleanPath
 import org.apache.kafka.connect.data.Schema.Type._
+import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 
+import scala.jdk.CollectionConverters._
+
 object SchemaFlattener {
 
-  def flatten(maybeSchema: Option[Schema])(implicit config: FlattenConfig): Either[String, Option[Schema]] =
-    (maybeSchema, maybeSchema.map(_.`type`())) match {
-      case (_, Some(INT16))   => maybeSchema.asRight
-      case (_, Some(INT32))   => maybeSchema.asRight
-      case (_, Some(INT64))   => maybeSchema.asRight
-      case (_, Some(FLOAT32)) => maybeSchema.asRight
-      case (_, Some(FLOAT64)) => maybeSchema.asRight
-      case (_, Some(BOOLEAN)) => maybeSchema.asRight
-      case (_, Some(STRING))  => maybeSchema.asRight
-      case (_, Some(BYTES))   => maybeSchema.asRight
-      //TOP level array schema is handled as an optional string?
-      case (_, Some(ARRAY)) =>
-        if (config.discardCollections)
-          None.asRight
-        else
-          Schema.OPTIONAL_STRING_SCHEMA.some.asRight
-      case (_, Some(MAP)) =>
-          maybeSchema.asRight
+  private implicit class SchemaBuilderExt(sb: SchemaBuilder)(implicit config: FlattenConfig) {
+    def mergeFields(schema: Schema): SchemaBuilder =
+      if (schema.`type`() != STRUCT)
+        sb
+      else
+        schema.fields().asScala.foldLeft(sb) { (sb, field) =>
+          sb.field(field.name(), field.schema())
+        }
+  }
 
-      case (Some(schema), Some(STRUCT)) => flattenStructSchema(schema).some.asRight
-      case (_, None)                    => Option.empty.asRight
-      case other                        => s"Unexpected type $other".asLeft
-    }
+  private implicit class FieldExt(field: Field) {
+    def discardCollectionAsPerConfig(implicit config: FlattenConfig): Boolean =
+      config.discardCollections && Set(MAP, ARRAY).contains(field.schema().`type`())
+  }
+
+  def flatten(schema: Schema)(implicit config: FlattenConfig): Schema = {
+    def go(path: Vector[String])(schema: Schema): Schema =
+      schema.`type`() match {
+        case INT8 | INT16 | INT32 | INT64 | FLOAT32 | FLOAT64 | BOOLEAN | STRING | BYTES =>
+          asOptionalPrimitive(schema)
+
+        case ARRAY | MAP =>
+          if (path.isEmpty)
+            schema
+          else
+            Schema.OPTIONAL_STRING_SCHEMA
+
+        case STRUCT =>
+          schema.fields().asScala.filterNot(_.discardCollectionAsPerConfig).foldLeft(SchemaBuilder.struct()) {
+            (sb, field) =>
+              val fieldPath  = path :+ field.name()
+              val fieldName  = fieldNameFromPath(fieldPath)
+              val fieldValue = go(fieldPath)(field.schema())
+
+              if (fieldValue.`type`() == STRUCT)
+                sb.mergeFields(fieldValue)
+              else
+                sb.field(fieldName, fieldValue)
+
+          }.build()
+
+        case other =>
+          throw new IllegalArgumentException(s"Unexpected schema type $other")
+      }
+
+    go(Vector.empty)(schema)
+  }
+
+  private def asOptionalPrimitive(schema: Schema): Schema =
+    if (schema.isOptional || schema.`type`().isPrimitive)
+      primitiveOptionals.getOrElse(schema.`type`(), throw new IllegalArgumentException("Expected primitive"))
+    else
+      schema
+
+  private val primitiveOptionals = Map(
+    INT8    -> Schema.OPTIONAL_INT8_SCHEMA,
+    INT16   -> Schema.OPTIONAL_INT16_SCHEMA,
+    INT32   -> Schema.OPTIONAL_INT32_SCHEMA,
+    INT64   -> Schema.OPTIONAL_INT64_SCHEMA,
+    FLOAT32 -> Schema.OPTIONAL_FLOAT32_SCHEMA,
+    FLOAT64 -> Schema.OPTIONAL_FLOAT64_SCHEMA,
+    BOOLEAN -> Schema.OPTIONAL_BOOLEAN_SCHEMA,
+    STRING  -> Schema.OPTIONAL_STRING_SCHEMA,
+    BYTES   -> Schema.OPTIONAL_BYTES_SCHEMA,
+  )
+
+  private def fieldNameFromPath(path: Vector[String])(implicit config: FlattenConfig) =
+    cleanPath(path).mkString("_")
 
   def flattenStructSchema(schema: Schema)(implicit config: FlattenConfig): Schema =
     StructSchemaFlattener.flatten(Seq.empty, schema).foldLeft(SchemaBuilder.struct()) {

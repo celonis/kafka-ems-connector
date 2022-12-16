@@ -3,24 +3,79 @@ package com.celonis.kafka.connect.transform.flatten
 import com.celonis.kafka.connect.transform.FlattenConfig
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
-import cats.syntax.either._
+
+import scala.collection.mutable
 
 class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
-  test("flattens a schema with a nested struct") {
-    implicit val config: FlattenConfig = FlattenConfig()
+  val primitiveFixtures = List(
+    1                    -> SchemaBuilder.int8(),
+    2                    -> SchemaBuilder.int16(),
+    3                    -> SchemaBuilder.int32(),
+    4                    -> SchemaBuilder.int64(),
+    5.0                  -> SchemaBuilder.float32(),
+    6.0                  -> SchemaBuilder.float64(),
+    false                -> SchemaBuilder.bool(),
+    "hello"              -> SchemaBuilder.string(),
+    Array(0x1, 0x0, 0x1) -> SchemaBuilder.bytes(),
+  )
+
+  val collectionFixtures = List(
+    mutable.HashMap("hello" -> true) -> SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BOOLEAN_SCHEMA).build(),
+    List("hello", "world") -> SchemaBuilder.array(Schema.STRING_SCHEMA).build(),
+  )
+
+  implicit val config: FlattenConfig = FlattenConfig()
+
+  test("flattens a schema making all primitives optional") {
+
+    primitiveFixtures.foreach {
+      case (_, primitiveSchema) =>
+        val schema = SchemaBuilder.struct()
+          .field("a_primitive", primitiveSchema)
+          .field(
+            "nested",
+            SchemaBuilder.struct().field("deeper",
+                                         SchemaBuilder.struct().field("a_bool", Schema.BOOLEAN_SCHEMA).schema(),
+            ).build(),
+          )
+          .build()
+
+        val expected: Schema = SchemaBuilder
+          .struct()
+          .field("a_primitive", primitiveSchema.optional().build())
+          .field("nested_deeper_a_bool", SchemaBuilder.bool().optional().build())
+          .build()
+
+        withClue(s"expected schema fields ${expected.fields()} for primitive $primitiveSchema") {
+          assertResult(expected) {
+            SchemaFlattener.flatten(schema)
+          }
+        }
+    }
+  }
+
+  test("turns arrays and maps into optional string fields") {
     val schema = SchemaBuilder.struct()
-      .field("an_int", SchemaBuilder.int8().build())
-      .field("nested", SchemaBuilder.struct().field("a_bool", SchemaBuilder.bool()).build())
+      .field("an_array", SchemaBuilder.array(Schema.STRING_SCHEMA).build())
+      .field(
+        "nested",
+        SchemaBuilder.struct().field(
+          "deeper",
+          SchemaBuilder.struct().field("a_map", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT16_SCHEMA)).schema(),
+        ).build(),
+      )
       .build()
 
-    val expected: Schema = SchemaBuilder
-      .struct()
-      .field("an_int", SchemaBuilder.int8().optional().build())
-      .field("nested_a_bool", SchemaBuilder.bool().optional().build())
+    val expected = SchemaBuilder.struct()
+      .field("an_array", Schema.OPTIONAL_STRING_SCHEMA)
+      .field(
+        "nested_deeper_a_map",
+        Schema.OPTIONAL_STRING_SCHEMA,
+      )
       .build()
 
     assertResult(expected) {
-      SchemaFlattener.flatten(Some(schema)).valueOr(fail(_)).getOrElse(fail("some schema expected"))
+      SchemaFlattener.flatten(schema)
     }
   }
 
@@ -47,16 +102,20 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
       .build()
 
     assertResult(expected) {
-      SchemaFlattener.flatten(Some(schema)).valueOr(fail(_)).getOrElse(fail("some schema expected"))
+      SchemaFlattener.flatten(schema)
     }
   }
 
-  test("shouldn't flatten a top-level map when discardCollections is set") {
+  test("leaves a top-level collection untouched even when discardCollections is set") {
     implicit val config = FlattenConfig().copy(discardCollections = true)
 
-    val schema = SchemaBuilder.map(SchemaBuilder.string().build(), SchemaBuilder.string().build()).build()
-    assertResult(schema) {
-      SchemaFlattener.flatten(Some(schema)).valueOr(fail(_)).getOrElse("schema expected")
+    collectionFixtures.foreach {
+      case (_, schema) =>
+        withClue(s"expected $schema to be unchanged") {
+          assertResult(schema) {
+            SchemaFlattener.flatten(schema)
+          }
+        }
     }
   }
 }
