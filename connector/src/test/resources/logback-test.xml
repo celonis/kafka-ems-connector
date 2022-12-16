@@ -13,4 +13,9 @@
     </root>
 
     <logger name="com.celonis.kafka.connect.ems" level="ERROR"/>
+    <logger name="org.apache.kafka.connect.json" level="WARN" />
+    <logger name="org.apache.kafka.common.config.AbstractConfig" level="WARN" />
+    <logger name="io.confluent.connect.avro.AvroDataConfig" level="WARN" />
+    <logger name="org.apache.hadoop.io.compress" level="WARN" />
+    <logger name="org.http4s.blaze" level="WARN" />
 </configuration>
