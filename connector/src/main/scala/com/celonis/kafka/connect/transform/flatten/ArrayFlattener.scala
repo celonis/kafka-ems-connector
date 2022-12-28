@@ -3,7 +3,7 @@
  */
 package com.celonis.kafka.connect.transform.flatten
 
-import com.celonis.kafka.connect.transform.FlattenConfig
+import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.celonis.kafka.connect.transform.LeafNode
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.connect.data.Schema
@@ -29,8 +29,8 @@ object ArrayFlattener extends LazyLogging {
     possiblyNullList: util.List[_],
     schema:           Option[Schema],
   )(
-    implicit
-    config: FlattenConfig,
+               implicit
+               config: FlattenerConfig,
   ): Seq[LeafNode] =
     if (config.discardCollections)
       Nil

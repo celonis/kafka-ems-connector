@@ -3,7 +3,7 @@
  */
 package com.celonis.kafka.connect.transform.flatten
 
-import com.celonis.kafka.connect.transform.FlattenConfig
+import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.celonis.kafka.connect.transform.clean.PathCleaner.cleanPath
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.scalalogging.LazyLogging
@@ -32,8 +32,8 @@ object Flattener extends LazyLogging {
     value:           AnyRef,
     flattenedSchema: Schema,
   )(
-    implicit
-    config: FlattenConfig,
+               implicit
+               config: FlattenerConfig,
   ): AnyRef = {
     def go(path: Seq[String], value: AnyRef): Vector[FieldNode] =
       value match {

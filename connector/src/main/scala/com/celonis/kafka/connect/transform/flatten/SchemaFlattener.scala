@@ -3,7 +3,7 @@
  */
 package com.celonis.kafka.connect.transform.flatten
 
-import com.celonis.kafka.connect.transform.FlattenConfig
+import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.celonis.kafka.connect.transform.clean.PathCleaner.cleanPath
 import org.apache.kafka.connect.data.Schema.Type._
 import org.apache.kafka.connect.data.Field
@@ -14,7 +14,7 @@ import scala.jdk.CollectionConverters._
 
 object SchemaFlattener {
 
-  private implicit class SchemaBuilderExt(sb: SchemaBuilder)(implicit config: FlattenConfig) {
+  private implicit class SchemaBuilderExt(sb: SchemaBuilder)(implicit config: FlattenerConfig) {
     def mergeFields(schema: Schema): SchemaBuilder =
       if (schema.`type`() != STRUCT)
         sb
@@ -25,11 +25,11 @@ object SchemaFlattener {
   }
 
   private implicit class FieldExt(field: Field) {
-    def discardCollectionAsPerConfig(implicit config: FlattenConfig): Boolean =
+    def discardCollectionAsPerConfig(implicit config: FlattenerConfig): Boolean =
       config.discardCollections && Set(MAP, ARRAY).contains(field.schema().`type`())
   }
 
-  def flatten(schema: Schema)(implicit config: FlattenConfig): Schema = {
+  def flatten(schema: Schema)(implicit config: FlattenerConfig): Schema = {
     def go(path: Vector[String])(schema: Schema): Schema =
       schema.`type`() match {
         case INT8 | INT16 | INT32 | INT64 | FLOAT32 | FLOAT64 | BOOLEAN | STRING | BYTES =>
@@ -80,7 +80,7 @@ object SchemaFlattener {
     BYTES   -> Schema.OPTIONAL_BYTES_SCHEMA,
   )
 
-  private[flatten] def fieldNameFromPath(path: Vector[String])(implicit config: FlattenConfig) =
+  private[flatten] def fieldNameFromPath(path: Vector[String])(implicit config: FlattenerConfig) =
     cleanPath(path).mkString("_")
 
 }

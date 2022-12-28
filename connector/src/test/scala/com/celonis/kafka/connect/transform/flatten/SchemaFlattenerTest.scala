@@ -1,6 +1,6 @@
 package com.celonis.kafka.connect.transform.flatten
 
-import com.celonis.kafka.connect.transform.FlattenConfig
+import com.celonis.kafka.connect.transform.FlattenerConfig
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.errors.SchemaBuilderException
@@ -25,7 +25,7 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
     List("hello", "world") -> SchemaBuilder.array(Schema.STRING_SCHEMA).build(),
   )
 
-  implicit val config: FlattenConfig = FlattenConfig()
+  implicit val config: FlattenerConfig = FlattenerConfig()
 
   test("flattens a schema making all primitives optional") {
 
@@ -81,7 +81,7 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
   }
 
   test("drops arrays/maps when discardCollections is set") {
-    implicit val config = FlattenConfig().copy(discardCollections = true)
+    implicit val config = FlattenerConfig().copy(discardCollections = true)
 
     val nestedSchema = SchemaBuilder.struct().name("AStruct")
       .field("a_nested_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).build())
@@ -108,7 +108,7 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
   }
 
   test("leaves a top-level collection untouched even when discardCollections is set") {
-    implicit val config = FlattenConfig().copy(discardCollections = true)
+    implicit val config = FlattenerConfig().copy(discardCollections = true)
 
     collectionFixtures.foreach {
       case (_, schema) =>
@@ -122,7 +122,7 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
 
   test("discards path fragments when 'keyDiscard' is set") {
 
-    implicit val config = FlattenConfig().copy(keyDiscard = Set("a_struct"))
+    implicit val config = FlattenerConfig().copy(keyDiscard = Set("a_struct"))
 
     val nestedSchema = SchemaBuilder.struct().name("AStruct")
       .field("a_nested_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).build())
@@ -149,7 +149,7 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
   }
 
   test("throws an error when the discarded is a top-level primitive") {
-    implicit val config = FlattenConfig().copy(keyDiscard = Set("a_string"))
+    implicit val config = FlattenerConfig().copy(keyDiscard = Set("a_string"))
 
     val schema = SchemaBuilder.struct()
       .field("a_string", SchemaBuilder.string().schema())

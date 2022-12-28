@@ -3,7 +3,7 @@
  */
 package com.celonis.kafka.connect.transform.flatten
 
-import com.celonis.kafka.connect.transform.FlattenConfig
+import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.celonis.kafka.connect.transform.SchemaLeafNode
 import com.celonis.kafka.connect.transform.flatten.LogicalTypes.logicalTypeSchemas
 import org.apache.kafka.connect.data.Schema.Type._
@@ -28,8 +28,8 @@ object StructSchemaFlattener {
   )
 
   private def complexExtractors(
-    implicit
-    config: FlattenConfig,
+                                 implicit
+                                 config: FlattenerConfig,
   ): Map[Schema.Type, (Schema, Seq[String]) => Seq[SchemaLeafNode]] = Map(
     (ARRAY,
      (_, path) =>
@@ -42,7 +42,7 @@ object StructSchemaFlattener {
     (STRUCT, (schema, path) => StructSchemaFlattener.flatten(path, schema)),
   )
 
-  def flatten(path: Seq[String], schemaToFlatten: Schema)(implicit config: FlattenConfig): Seq[SchemaLeafNode] = {
+  def flatten(path: Seq[String], schemaToFlatten: Schema)(implicit config: FlattenerConfig): Seq[SchemaLeafNode] = {
     for {
       schema      <- Option(schemaToFlatten)
       fields      <- Try(schema.fields()).toOption

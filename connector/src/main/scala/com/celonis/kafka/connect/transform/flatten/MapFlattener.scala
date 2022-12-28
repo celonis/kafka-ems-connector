@@ -3,7 +3,7 @@
  */
 package com.celonis.kafka.connect.transform.flatten
 
-import com.celonis.kafka.connect.transform.FlattenConfig
+import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.celonis.kafka.connect.transform.LeafNode
 import com.celonis.kafka.connect.transform.Node
 import org.apache.kafka.connect.data.Struct
@@ -13,7 +13,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 
 object MapFlattener {
 
-  def flatten(path: Seq[String], possiblyNullMap: Map[_, _])(implicit config: FlattenConfig): Seq[Node] =
+  def flatten(path: Seq[String], possiblyNullMap: Map[_, _])(implicit config: FlattenerConfig): Seq[Node] =
     if (config.discardCollections)
       Nil
     else

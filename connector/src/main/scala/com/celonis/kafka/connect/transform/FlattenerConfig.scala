@@ -47,7 +47,7 @@ object CaseTransform extends Enum[CaseTransform] {
 
 }
 
-case class FlattenConfig(
+case class FlattenerConfig(
   keyDiscard:            Set[String]           = Set.empty[String],
   keyRetainAfter:        Option[String]        = Option.empty,
   keyRetainBefore:       Option[String]        = Option.empty,
@@ -58,7 +58,7 @@ case class FlattenConfig(
   discardCollections: Boolean = false,
 )
 
-object FlattenConfig {
+object FlattenerConfig {
   final val DiscardKey           = "discard"
   final val RetainAfterKey       = "retainAfter"
   final val RetainBeforeKey      = "retainBefore"
@@ -126,7 +126,7 @@ object FlattenConfig {
       "Discard array and map fields at any level of depth",
     )
 
-  def apply(confMap: util.Map[String, _]): FlattenConfig = {
+  def apply(confMap: util.Map[String, _]): FlattenerConfig = {
     val abstractConfig     = new AbstractConfig(configDef, confMap)
     val discardKey         = abstractConfig.getList(DiscardKey)
     val retainAfter        = Option(abstractConfig.getString(RetainAfterKey))
@@ -138,7 +138,7 @@ object FlattenConfig {
     val caseTransform =
       Option(abstractConfig.getString(TransformCaseKey)).flatMap(CaseTransform.withNameInsensitiveOption)
 
-    FlattenConfig(
+    FlattenerConfig(
       discardKey.asScala.toSet,
       retainAfter,
       retainBefore,

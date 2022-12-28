@@ -14,13 +14,13 @@ import java.util
 
 class FlattenTransformer[R <: ConnectRecord[R]] extends Transformation[R] with LazyLogging {
 
-  private implicit var transformerConfig: FlattenConfig = FlattenConfig()
+  private implicit var transformerConfig: FlattenerConfig = FlattenerConfig()
 
   override def config(): ConfigDef =
-    FlattenConfig.configDef
+    FlattenerConfig.configDef
 
   override def configure(configs: util.Map[String, _]): Unit =
-    transformerConfig = FlattenConfig(configs)
+    transformerConfig = FlattenerConfig(configs)
 
   override def apply(record: R): R = {
     val value       = record.value()

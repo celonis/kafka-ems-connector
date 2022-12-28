@@ -3,9 +3,9 @@
  */
 package com.celonis.kafka.connect.transform
 
-import com.celonis.kafka.connect.transform.FlattenConfig.DiscardKey
-import com.celonis.kafka.connect.transform.FlattenConfig.RetainAfterKey
-import com.celonis.kafka.connect.transform.FlattenConfig.TransformCaseKey
+import com.celonis.kafka.connect.transform.FlattenerConfig.DiscardKey
+import com.celonis.kafka.connect.transform.FlattenerConfig.RetainAfterKey
+import com.celonis.kafka.connect.transform.FlattenerConfig.TransformCaseKey
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.Field

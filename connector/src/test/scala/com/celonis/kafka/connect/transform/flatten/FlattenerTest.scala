@@ -1,7 +1,7 @@
 package com.celonis.kafka.connect.transform.flatten
 
 import com.celonis.kafka.connect.transform.CaseTransform
-import com.celonis.kafka.connect.transform.FlattenConfig
+import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
@@ -13,7 +13,7 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
 class FlattenerTest extends AnyFunSuite {
-  val config: FlattenConfig = FlattenConfig()
+  val config: FlattenerConfig = FlattenerConfig()
 
   test("flattens a nested field") {
 
@@ -85,7 +85,7 @@ class FlattenerTest extends AnyFunSuite {
   }
 
   test("drops arrays/maps when 'discardCollections' is set") {
-    val config: FlattenConfig = FlattenConfig().copy(discardCollections = true)
+    val config: FlattenerConfig = FlattenerConfig().copy(discardCollections = true)
 
     val nestedSchema = SchemaBuilder.struct().name("AStruct")
       .field("a_nested_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).build())
@@ -128,7 +128,7 @@ class FlattenerTest extends AnyFunSuite {
   }
 
   test("leaves top level collections untouched when 'discardCollections' is set") {
-    implicit val config: FlattenConfig = FlattenConfig().copy(discardCollections = true)
+    implicit val config: FlattenerConfig = FlattenerConfig().copy(discardCollections = true)
     case class TestData(label: String, value: AnyRef, flattenedSchema: Schema)
 
     val mapValue:   java.util.Map[String, Int] = mutable.HashMap("x" -> 22).asJava
@@ -153,7 +153,7 @@ class FlattenerTest extends AnyFunSuite {
   }
 
   test("honours the transformCase key") {
-    implicit val config: FlattenConfig = FlattenConfig().copy(keyCaseTransformation = Some(CaseTransform.ToUpperCase))
+    implicit val config: FlattenerConfig = FlattenerConfig().copy(keyCaseTransformation = Some(CaseTransform.ToUpperCase))
 
     val nestedSchema = SchemaBuilder.struct().name("AStruct")
       .field("a_nested_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).build())
