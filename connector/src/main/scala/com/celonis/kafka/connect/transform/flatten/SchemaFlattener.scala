@@ -4,7 +4,6 @@
 package com.celonis.kafka.connect.transform.flatten
 
 import com.celonis.kafka.connect.transform.FlattenConfig
-import com.celonis.kafka.connect.transform.SchemaLeafNode
 import com.celonis.kafka.connect.transform.clean.PathCleaner.cleanPath
 import org.apache.kafka.connect.data.Schema.Type._
 import org.apache.kafka.connect.data.Field
@@ -81,13 +80,7 @@ object SchemaFlattener {
     BYTES   -> Schema.OPTIONAL_BYTES_SCHEMA,
   )
 
-  private def fieldNameFromPath(path: Vector[String])(implicit config: FlattenConfig) =
+  private[flatten] def fieldNameFromPath(path: Vector[String])(implicit config: FlattenConfig) =
     cleanPath(path).mkString("_")
-
-  def flattenStructSchema(schema: Schema)(implicit config: FlattenConfig): Schema =
-    StructSchemaFlattener.flatten(Seq.empty, schema).foldLeft(SchemaBuilder.struct()) {
-      case (s: SchemaBuilder, node: SchemaLeafNode) =>
-        s.field(cleanPath(node.path).mkString("_"), node.value)
-    }.build()
 
 }

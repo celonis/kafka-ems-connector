@@ -3,7 +3,8 @@
  */
 package com.celonis.kafka.connect.transform
 
-import com.celonis.kafka.connect.transform.flatten.{Flattener, SchemaFlattener}
+import com.celonis.kafka.connect.transform.flatten.Flattener
+import com.celonis.kafka.connect.transform.flatten.SchemaFlattener
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.ConnectRecord
@@ -27,14 +28,14 @@ class FlattenTransformer[R <: ConnectRecord[R]] extends Transformation[R] with L
 
     maybeSchema.map { schema =>
       val newValueSchema = SchemaFlattener.flatten(schema)
-      val newValue       = Flattener.flatten(value, Some(newValueSchema))
+      val newValue       = Flattener.flatten(value, newValueSchema)
       record.newRecord(
         record.topic,
         record.kafkaPartition(),
         record.keySchema(),
         record.key(),
         newValueSchema,
-        newValue.getOrElse(null),
+        newValue,
         record.timestamp(),
       )
 

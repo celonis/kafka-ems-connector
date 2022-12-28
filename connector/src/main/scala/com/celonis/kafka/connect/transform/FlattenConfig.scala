@@ -1,12 +1,18 @@
 package com.celonis.kafka.connect.transform
 
-import enumeratum.{Enum, EnumEntry}
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
-import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
+import enumeratum.Enum
+import enumeratum.EnumEntry
+import org.apache.kafka.common.config.AbstractConfig
+import org.apache.kafka.common.config.ConfigDef
+import org.apache.kafka.common.config.ConfigDef.Importance
+import org.apache.kafka.common.config.ConfigDef.Type
 
 import java.util
-import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
-import scala.util.{Failure, Success, Try}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 sealed trait CaseTransform extends EnumEntry {
   def transform(in: String): String
@@ -46,9 +52,10 @@ case class FlattenConfig(
   keyRetainAfter:        Option[String]        = Option.empty,
   keyRetainBefore:       Option[String]        = Option.empty,
   keyCaseTransformation: Option[CaseTransform] = Option.empty,
-  deduplicateKeys:       Boolean               = false,
-  filterNulls:           Boolean               = true,
-  discardCollections:    Boolean               = false,
+  //It is completely undefined what duplicated value will be picked
+  deduplicateKeys:    Boolean = false,
+  filterNulls:        Boolean = true,
+  discardCollections: Boolean = false,
 )
 
 object FlattenConfig {
@@ -61,6 +68,9 @@ object FlattenConfig {
   final val DiscardCollections   = "discardCollections"
 
   def configDef = new ConfigDef()
+  //NOTE: rewriting keys is problematic as it can lead to duplicates.
+  //I think we should only allow the possibility to include an explicit whitelist
+  //of paths instead.
     .define(
       DiscardKey,
       Type.LIST,
@@ -68,6 +78,7 @@ object FlattenConfig {
       Importance.LOW,
       "List of complete strings to remove if found in the path of the field name",
     )
+    //TODO: DROP!
     .define(
       RetainAfterKey,
       Type.STRING,
@@ -75,6 +86,7 @@ object FlattenConfig {
       Importance.LOW,
       "Configure to retain all text after a given string if found in the key name",
     )
+    //TODO: DROP!
     .define(
       RetainBeforeKey,
       Type.STRING,
@@ -82,6 +94,7 @@ object FlattenConfig {
       Importance.LOW,
       "Configure to retain all text before a given string if found in the key name",
     )
+    //TODO: DROP!
     .define(
       TransformCaseKey,
       Type.STRING,
@@ -89,6 +102,7 @@ object FlattenConfig {
       Importance.LOW,
       "Perform a case transformation on the key value. The options are 'ToUpperCase', 'ToLowerCase', 'UpperCaseFirst' and 'LowerCaseFirst'",
     )
+    //TODO: DROP!. what's the logic whereby we would chose why some fields are picked instead than others
     .define(
       DeduplicateInPathKey,
       Type.BOOLEAN,
@@ -96,6 +110,7 @@ object FlattenConfig {
       Importance.LOW,
       "Duplicate keys in path",
     )
+    //TODO: DROP! This is entirely useless when considering that, once in EMS, the field will have to be mapped to a table column
     .define(
       FilterNulls,
       Type.BOOLEAN,

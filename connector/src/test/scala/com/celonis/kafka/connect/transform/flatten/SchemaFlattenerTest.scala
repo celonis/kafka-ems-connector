@@ -3,6 +3,7 @@ package com.celonis.kafka.connect.transform.flatten
 import com.celonis.kafka.connect.transform.FlattenConfig
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.errors.SchemaBuilderException
 
 import scala.collection.mutable
 
@@ -116,6 +117,47 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
             SchemaFlattener.flatten(schema)
           }
         }
+    }
+  }
+
+  test("discards path fragments when 'keyDiscard' is set") {
+
+    implicit val config = FlattenConfig().copy(keyDiscard = Set("a_struct"))
+
+    val nestedSchema = SchemaBuilder.struct().name("AStruct")
+      .field("a_nested_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).build())
+      .field("a_nested_array", SchemaBuilder.array(SchemaBuilder.string()).build())
+      .field("a_bool", SchemaBuilder.bool().build())
+      .build()
+
+    val schema = SchemaBuilder.struct()
+      .field("a_string", SchemaBuilder.string().schema())
+      .field("a_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).schema())
+      .field("an_array", SchemaBuilder.array(SchemaBuilder.string()).schema())
+      .field("a_struct", nestedSchema)
+      .build()
+
+    val expected = SchemaBuilder
+      .struct()
+      .field("a_string", SchemaBuilder.string().optional().build())
+      .field("a_bool", SchemaBuilder.bool().optional().build())
+      .build()
+
+    assertResult(expected) {
+      SchemaFlattener.flatten(schema)
+    }
+  }
+
+  test("throws an error when the discarded is a top-level primitive") {
+    implicit val config = FlattenConfig().copy(keyDiscard = Set("a_string"))
+
+    val schema = SchemaBuilder.struct()
+      .field("a_string", SchemaBuilder.string().schema())
+      .field("a_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).schema())
+      .build()
+
+    assertThrows[SchemaBuilderException] {
+      SchemaFlattener.flatten(schema)
     }
   }
 }

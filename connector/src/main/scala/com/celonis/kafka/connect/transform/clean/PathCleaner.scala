@@ -13,15 +13,19 @@ object PathCleaner {
     config.keyRetainBefore.map(find => str.substring(str.indexOf(find) - 1)).getOrElse(str)
 
   def cleanPath(path: Seq[String])(implicit config: FlattenConfig): Seq[String] =
-    deduplicate(path
-      .filterNot(config.keyDiscard.contains)
-      .map(retainBefore)
-      .map(retainAfter)
-      .map(changeCase))
+    deduplicate(
+      path
+        .filterNot(config.keyDiscard.contains)
+        //^ TODO: is this correctly handled? shouldn't discarding a key be handled when building the struct?
+        .map(retainBefore)
+        .map(retainAfter)
+        .map(changeCase),
+    )
 
   private def changeCase(str: String)(implicit config: FlattenConfig): String =
     config.keyCaseTransformation.map(transform => transform.transform(str)).getOrElse(str)
 
+  //TODO: why is this needed? How come we end up with duplicate paths?
   private def deduplicate(path: Seq[String])(implicit config: FlattenConfig): Seq[String] =
     if (config.deduplicateKeys) {
       mutable.LinkedHashSet.from(path).toSeq
