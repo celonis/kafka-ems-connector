@@ -1,10 +1,10 @@
 package com.celonis.kafka.connect.transform
 
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants
-import org.apache.kafka.common.config.AbstractConfig
-import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.common.config.ConfigDef.Importance
-import org.apache.kafka.common.config.ConfigDef.Type
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
+import com.celonis.kafka.connect.ems.config.PropertiesHelper
+import cats.syntax.either._
+import cats.instances.option._
+import cats.syntax.apply._
 
 case class FlattenerConfig(
   discardCollections: Boolean                                = false,
@@ -12,57 +12,32 @@ case class FlattenerConfig(
 )
 
 object FlattenerConfig {
-  case class JsonBlobChunks(maxChunks: Int, emsVarcharLength: Int)
-  case object FallbackVarcharLengthRequired extends Throwable {
-    private val prefix = "transform.flatten"
-    override val getMessage =
-      s"$prefix.${JsonBlobMaxChunks} supplied without a $prefix.$FallbackVarcharLength value. Please try supplying a value for both these keys."
-  }
+  case class JsonBlobChunks(chunks: Int, fallbackVarcharLength: Int)
 
-  final val DiscardCollections    = "collections.discard"
-  final val JsonBlobMaxChunks     = "jsonblob.chunks.max"
-  final val FallbackVarcharLength = "fallback.varchar.length"
-
-  def configDef = new ConfigDef()
-    .define(
-      DiscardCollections,
-      Type.BOOLEAN,
-      false,
-      Importance.MEDIUM,
-      "Discard array and map fields at any level of depth",
-    )
-    .define(
-      JsonBlobMaxChunks,
-      Type.INT,
-      null,
-      Importance.MEDIUM,
-      "Encodes the record into a JSON blob broken down into N VARCHAR fields (e.g. `payload_chunk1`, `payload_chunk2`, `...`, `payload_chunkN`).",
-    )
-    //TODO: add validator
-    .define(
-      FallbackVarcharLength,
-      Type.INT,
-      null,
-      Importance.HIGH,
-      EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_DOC,
-    )
-
-  def apply(confMap: java.util.Map[String, _]): FlattenerConfig = {
-    val abstractConfig     = new AbstractConfig(configDef, confMap)
-    val discardCollections = abstractConfig.getBoolean(DiscardCollections)
-    val jsonBlobMaxChunks  = Option(abstractConfig.getInt(JsonBlobMaxChunks)).map(_.toInt)
-    val jsonBlobConfig = jsonBlobMaxChunks.map { maxChunks =>
-      Option(abstractConfig.getInt(FallbackVarcharLength)).map { varcharLength =>
-        JsonBlobChunks(maxChunks, varcharLength.toInt)
-      }.getOrElse(
-        throw FallbackVarcharLengthRequired,
-      )
-
+  def extract(props: Map[String, _], fallbackVarcharLength: Option[Int]): Either[String, Option[FlattenerConfig]] = {
+    import PropertiesHelper._
+    (getBoolean(props, FLATTENER_ENABLE_KEY).getOrElse(false),
+     getBoolean(props, FLATTENER_DISCARD_COLLECTIONS_KEY).getOrElse(false),
+     getInt(props, FLATTENER_JSONBLOB_CHUNKS_KEY),
+     fallbackVarcharLength,
+    ) match {
+      case (false, true, _, _) =>
+        requiredKeyMissingErrorMsg(FLATTENER_ENABLE_KEY)(FLATTENER_DISCARD_COLLECTIONS_KEY).asLeft
+      case (false, _, Some(_), _) =>
+        requiredKeyMissingErrorMsg(FLATTENER_ENABLE_KEY)(FLATTENER_JSONBLOB_CHUNKS_KEY).asLeft
+      case (_, _, Some(_), None) =>
+        requiredKeyMissingErrorMsg(FALLBACK_VARCHAR_LENGTH_KEY)(FLATTENER_JSONBLOB_CHUNKS_KEY).asLeft
+      case (true, discardCollections, maybeNumChunks, _) =>
+        Some(FlattenerConfig(
+          discardCollections,
+          (maybeNumChunks, fallbackVarcharLength).mapN(JsonBlobChunks),
+        )).asRight
+      case _ =>
+        None.asRight
     }
-
-    FlattenerConfig(
-      discardCollections,
-      jsonBlobConfig,
-    )
   }
+
+  private def requiredKeyMissingErrorMsg(missingKey: String)(key: String) =
+    s"Configuration key $key was supplied without setting required key $missingKey . Please supply a value for both keys."
+
 }

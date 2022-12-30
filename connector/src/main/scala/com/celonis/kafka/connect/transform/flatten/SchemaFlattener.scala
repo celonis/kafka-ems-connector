@@ -65,7 +65,7 @@ object SchemaFlattener {
   }
 
   private[flatten] def payloadChunksSchema(config: JsonBlobChunks): Schema =
-    (1 to config.maxChunks).foldLeft(SchemaBuilder.struct()) { (builder, idx) =>
+    (1 to config.chunks).foldLeft(SchemaBuilder.struct()) { (builder, idx) =>
       builder.field(s"payload_chunk$idx", Schema.OPTIONAL_STRING_SCHEMA)
     }.schema()
 

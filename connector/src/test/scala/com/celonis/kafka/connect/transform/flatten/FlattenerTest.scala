@@ -152,7 +152,7 @@ class FlattenerTest extends AnyFunSuite {
 
   test("serialises a records into multiple JSON chunks when JsonBlobChunks config is set") {
     implicit val config: FlattenerConfig =
-      FlattenerConfig().copy(jsonBlobChunks = Some(JsonBlobChunks(maxChunks = 3, emsVarcharLength = 20)))
+      FlattenerConfig().copy(jsonBlobChunks = Some(JsonBlobChunks(chunks = 3, fallbackVarcharLength = 20)))
 
     val schema = SchemaBuilder.struct()
       .field("a_string", SchemaBuilder.string().schema())
@@ -183,8 +183,8 @@ class FlattenerTest extends AnyFunSuite {
     implicit val config: FlattenerConfig = {
       FlattenerConfig().copy(
         jsonBlobChunks = Some(JsonBlobChunks(
-          maxChunks        = 3,
-          emsVarcharLength = 2,
+          chunks        = 3,
+          fallbackVarcharLength = 2,
         )), //^ record byte size will be greater than 3*2 = 6 bytes!
       )
     }

@@ -6,9 +6,13 @@ package com.celonis.kafka.connect.transform.flatten
 import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.kafka.connect.data.{Field, Schema, Struct}
+import org.apache.kafka.connect.data.Field
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.json.JsonConverter
 import org.apache.kafka.connect.storage.ConverterType
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_KEY
 
 import java.nio.charset.StandardCharsets
 import java.util
@@ -18,7 +22,7 @@ object Flattener extends LazyLogging {
   case class MisconfiguredJsonBlobMaxChunks(configuredChunksSize: Int, blobByteSize: Int, emsVarcharLength: Int)
       extends Throwable {
     override def getMessage: String =
-      s"Configured value ${configuredChunksSize} for ${FlattenerConfig.JsonBlobMaxChunks} is insufficient! Current JSON blob length: $blobByteSize, Ems VARCHAR Length: ${emsVarcharLength}"
+      s"Configured value set for $FLATTENER_JSONBLOB_CHUNKS_KEY [$configuredChunksSize] is not appropriate for the supplied $FALLBACK_VARCHAR_LENGTH_KEY value [$emsVarcharLength]. Please consider increasing either of the two."
   }
 
   private val jacksonMapper = new ObjectMapper()
