@@ -1,11 +1,9 @@
 package com.celonis.kafka.connect.transform.flatten
 
-import com.celonis.kafka.connect.transform.CaseTransform
 import com.celonis.kafka.connect.transform.FlattenerConfig
-import com.fasterxml.jackson.databind.ObjectMapper
-import org.apache.kafka.connect.data.SchemaBuilder
-import org.apache.kafka.connect.data.Struct
-import org.apache.kafka.connect.data.Schema
+import com.celonis.kafka.connect.transform.FlattenerConfig.JsonBlobChunks
+import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.DataException
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -152,33 +150,57 @@ class FlattenerTest extends AnyFunSuite {
     }
   }
 
-  test("honours the transformCase key") {
-    implicit val config: FlattenerConfig = FlattenerConfig().copy(keyCaseTransformation = Some(CaseTransform.ToUpperCase))
-
-    val nestedSchema = SchemaBuilder.struct().name("AStruct")
-      .field("a_nested_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).build())
-      .build()
-
-    val nested = new Struct(nestedSchema)
-    nested.put("a_nested_map", mutable.HashMap("x" -> "y").asJava)
+  test("serialises a records into multiple JSON chunks when JsonBlobChunks config is set") {
+    implicit val config: FlattenerConfig =
+      FlattenerConfig().copy(jsonBlobChunks = Some(JsonBlobChunks(maxChunks = 3, emsVarcharLength = 20)))
 
     val schema = SchemaBuilder.struct()
-      .field("a_struct", nestedSchema)
+      .field("a_string", SchemaBuilder.string().schema())
+      .field("a_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).schema())
       .build()
 
     val struct = new Struct(schema)
-    struct.put("a_struct", nested)
+    struct.put("a_string", "hello")
+    struct.put("a_map", Map("hi" -> "there").asJava)
 
-    val flatSchema = SchemaBuilder
-      .struct()
-      .field("A_STRUCT_A_NESTED_MAP", Schema.OPTIONAL_STRING_SCHEMA)
-      .build()
+    val result =
+      Flattener.flatten(struct, SchemaFlattener.payloadChunksSchema(config.jsonBlobChunks.get)).asInstanceOf[Struct]
 
-    val result = Flattener.flatten(struct, flatSchema)(config).asInstanceOf[Struct]
-    assertResult("""{"x":"y"}""") {
-      result.get("A_STRUCT_A_NESTED_MAP")
+    val om           = new ObjectMapper()
+    val expectedJson = om.createObjectNode
+    expectedJson.put("a_string", "hello")
+    expectedJson.putObject("a_map").put("hi", "there")
+
+    val payload_chunks = (1 to 3).flatMap(n => Option(result.get(s"payload_chunk$n"))).mkString
+    val parsedPayload  = om.readValue(payload_chunks, classOf[JsonNode])
+
+    assertResult(expectedJson)(parsedPayload)
+    assertResult(List("payload_chunk1", "payload_chunk2", "payload_chunk3"))(
+      result.schema().fields().asScala.map(_.name()),
+    )
+  }
+  test("raises an error if maxChunks in JsonBlobChunkConfig is insufficient") {
+    implicit val config: FlattenerConfig = {
+      FlattenerConfig().copy(
+        jsonBlobChunks = Some(JsonBlobChunks(
+          maxChunks        = 3,
+          emsVarcharLength = 2,
+        )), //^ record byte size will be greater than 3*2 = 6 bytes!
+      )
     }
 
-    assertThrows[DataException](result.get("A_STRUCT"))
+    val schema = SchemaBuilder.struct()
+      .field("a_string", SchemaBuilder.string().schema())
+      .field("a_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).schema())
+      .build()
+
+    val struct = new Struct(schema)
+    struct.put("a_string", "hello")
+    struct.put("a_map", Map("hi" -> "there").asJava)
+
+    assertThrows[Flattener.MisconfiguredJsonBlobMaxChunks](Flattener.flatten(
+      struct,
+      SchemaFlattener.payloadChunksSchema(config.jsonBlobChunks.get),
+    ))
   }
 }

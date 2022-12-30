@@ -4,7 +4,7 @@
 package com.celonis.kafka.connect.transform.flatten
 
 import com.celonis.kafka.connect.transform.FlattenerConfig
-import com.celonis.kafka.connect.transform.clean.PathCleaner.cleanPath
+import FlattenerConfig.JsonBlobChunks
 import org.apache.kafka.connect.data.Schema.Type._
 import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Schema
@@ -59,8 +59,15 @@ object SchemaFlattener {
           throw new IllegalArgumentException(s"Unexpected schema type $other")
       }
 
-    go(Vector.empty)(schema)
+    config.jsonBlobChunks.fold(go(Vector.empty)(schema)) {
+      payloadChunksSchema
+    }
   }
+
+  private[flatten] def payloadChunksSchema(config: JsonBlobChunks): Schema =
+    (1 to config.maxChunks).foldLeft(SchemaBuilder.struct()) { (builder, idx) =>
+      builder.field(s"payload_chunk$idx", Schema.OPTIONAL_STRING_SCHEMA)
+    }.schema()
 
   private def asOptionalPrimitive(schema: Schema): Schema =
     if (schema.isOptional || schema.`type`().isPrimitive)
@@ -80,7 +87,7 @@ object SchemaFlattener {
     BYTES   -> Schema.OPTIONAL_BYTES_SCHEMA,
   )
 
-  private[flatten] def fieldNameFromPath(path: Vector[String])(implicit config: FlattenerConfig) =
-    cleanPath(path).mkString("_")
+  private[flatten] def fieldNameFromPath(path: Vector[String]) =
+    path.mkString("_")
 
 }

@@ -1,9 +1,8 @@
 package com.celonis.kafka.connect.transform.flatten
 
 import com.celonis.kafka.connect.transform.FlattenerConfig
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.SchemaBuilder
-import org.apache.kafka.connect.errors.SchemaBuilderException
+import com.celonis.kafka.connect.transform.FlattenerConfig.JsonBlobChunks
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
 
 import scala.collection.mutable
 
@@ -120,43 +119,23 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
     }
   }
 
-  test("discards path fragments when 'keyDiscard' is set") {
-
-    implicit val config = FlattenerConfig().copy(keyDiscard = Set("a_struct"))
-
-    val nestedSchema = SchemaBuilder.struct().name("AStruct")
-      .field("a_nested_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).build())
-      .field("a_nested_array", SchemaBuilder.array(SchemaBuilder.string()).build())
-      .field("a_bool", SchemaBuilder.bool().build())
-      .build()
+  test("generates a schema based on the configured jsonBlobChunks maxChunks value") {
+    implicit val config =
+      FlattenerConfig().copy(jsonBlobChunks = Some(JsonBlobChunks(maxChunks = 3, emsVarcharLength = 5)))
 
     val schema = SchemaBuilder.struct()
       .field("a_string", SchemaBuilder.string().schema())
       .field("a_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).schema())
       .field("an_array", SchemaBuilder.array(SchemaBuilder.string()).schema())
-      .field("a_struct", nestedSchema)
       .build()
 
-    val expected = SchemaBuilder
-      .struct()
-      .field("a_string", SchemaBuilder.string().optional().build())
-      .field("a_bool", SchemaBuilder.bool().optional().build())
+    val expected = SchemaBuilder.struct()
+      .field("payload_chunk1", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("payload_chunk2", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("payload_chunk3", Schema.OPTIONAL_STRING_SCHEMA)
       .build()
 
     assertResult(expected) {
-      SchemaFlattener.flatten(schema)
-    }
-  }
-
-  test("throws an error when the discarded is a top-level primitive") {
-    implicit val config = FlattenerConfig().copy(keyDiscard = Set("a_string"))
-
-    val schema = SchemaBuilder.struct()
-      .field("a_string", SchemaBuilder.string().schema())
-      .field("a_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).schema())
-      .build()
-
-    assertThrows[SchemaBuilderException] {
       SchemaFlattener.flatten(schema)
     }
   }

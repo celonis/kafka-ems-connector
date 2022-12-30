@@ -3,9 +3,6 @@
  */
 package com.celonis.kafka.connect.transform
 
-import com.celonis.kafka.connect.transform.FlattenerConfig.DiscardKey
-import com.celonis.kafka.connect.transform.FlattenerConfig.RetainAfterKey
-import com.celonis.kafka.connect.transform.FlattenerConfig.TransformCaseKey
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.Field
@@ -17,17 +14,13 @@ import org.scalatest.OptionValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.jdk.CollectionConverters.SeqHasAsJava
-import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters._
 
 class FlattenTransformerTest extends AnyFunSuite with Matchers with OptionValues with LazyLogging {
   private val smt = new FlattenTransformer[SinkRecord]()
+
   smt.configure(
-    scala.collection.Map[String, Any](
-      DiscardKey       -> List("array", "int", "string").asJava,
-      RetainAfterKey   -> ".",
-      TransformCaseKey -> "LowerCaseFirst",
-    ).asJava,
+    scala.collection.Map[String, Any]().asJava,
   )
 
   private val Topic     = "MyTopic"
@@ -121,23 +114,6 @@ class FlattenTransformerTest extends AnyFunSuite with Matchers with OptionValues
     )
   }
 
-  test("should flatten arrays within a map") {
-    val map = Map[String, AnyRef](
-      "name"      -> "Dave",
-      "sensorIds" -> List(1234, 5678).asJava,
-      "fishIds"   -> List(List("cod", "salmon").asJava, List("gold", "tuna").asJava).asJava,
-    ).asJava
-
-    val record: SinkRecord =
-      new SinkRecord(Topic, Partition, KeySchema, Key, null, map, Offset, 1641566630831L, TimestampType.CREATE_TIME)
-    val transformed = smt.apply(record)
-    checkCommonFields(transformed)
-
-    transformed.value().toString should be(
-      "{name=Dave, sensorIds=[1234,5678], fishIds=[[\"cod\",\"salmon\"],[\"gold\",\"tuna\"]]}",
-    )
-  }
-
   test("should operate correctly with null values present") {
     val record: SinkRecord = new SinkRecord(Topic,
                                             Partition,
@@ -157,21 +133,30 @@ class FlattenTransformerTest extends AnyFunSuite with Matchers with OptionValues
     )
   }
 
-  test("blow up on primitives") {
-    val record: SinkRecord = new SinkRecord(Topic,
-      Partition,
-      KeySchema,
-      Key,
-      TestRecordSchema,
-      TestNullRecord,
-      Offset,
-      1641566630831L,
-      TimestampType.CREATE_TIME,
-    )
-    val transformed = smt.apply(record)
-    checkCommonFields(transformed)
-
-
+  test("performs no transformation when value is a primitive") {
+    List(
+      Schema.OPTIONAL_STRING_SCHEMA                                  -> null,
+      Schema.OPTIONAL_STRING_SCHEMA                                  -> "hello",
+      Schema.INT32_SCHEMA                                            -> 123,
+      Schema.OPTIONAL_BOOLEAN_SCHEMA                                 -> true,
+      SchemaBuilder.array(Schema.STRING_SCHEMA)                      -> Array("a", "b", "c"),
+      SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT32_SCHEMA) -> Map("x" -> 5.5f).asJava,
+    ).foreach {
+      case (schema, value) =>
+        val record: SinkRecord = new SinkRecord(Topic,
+                                                Partition,
+                                                KeySchema,
+                                                Key,
+                                                schema,
+                                                value,
+                                                Offset,
+                                                1641566630831L,
+                                                TimestampType.CREATE_TIME,
+        )
+        val transformed = smt.apply(record)
+        checkCommonFields(transformed)
+        assertResult(value)(transformed.value())
+    }
   }
 
   private def checkCommonFields(transformed: SinkRecord) = {
@@ -181,5 +166,4 @@ class FlattenTransformerTest extends AnyFunSuite with Matchers with OptionValues
     transformed.keySchema() should be(KeySchema)
     transformed.key() shouldBe Key
   }
-
 }
