@@ -3,11 +3,11 @@
  */
 package com.celonis.kafka.connect.transform
 
-import com.celonis.kafka.connect.transform.flatten.Flattener
-import com.celonis.kafka.connect.transform.flatten.SchemaFlattener
+import com.celonis.kafka.connect.transform.flatten.{ChunkedJsonBlob, Flattener, SchemaFlattener}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.ConnectRecord
+import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.transforms.Transformation
 
 import java.util
@@ -22,6 +22,19 @@ class FlattenTransformer[R <: ConnectRecord[R]] extends Transformation[R] with L
   override def configure(configs: util.Map[String, _]): Unit =
     transformerConfig = FlattenerConfig(configs)
 
+  private implicit class RecordExt(record: R) {
+    def newRecordWith(value: AnyRef, schema: Schema): R =
+      record.newRecord(
+        record.topic,
+        record.kafkaPartition(),
+        record.keySchema(),
+        record.key(),
+        schema,
+        value,
+        record.timestamp(),
+      )
+  }
+
   override def apply(record: R): R = {
     val value       = record.value()
     val maybeSchema = Option(record.valueSchema())
@@ -29,17 +42,21 @@ class FlattenTransformer[R <: ConnectRecord[R]] extends Transformation[R] with L
     maybeSchema.map { schema =>
       val newValueSchema = SchemaFlattener.flatten(schema)
       val newValue       = Flattener.flatten(value, newValueSchema)
-      record.newRecord(
-        record.topic,
-        record.kafkaPartition(),
-        record.keySchema(),
-        record.key(),
-        newValueSchema,
+
+      record.newRecordWith(
         newValue,
-        record.timestamp(),
+        newValueSchema,
       )
 
-    }.getOrElse(record)
+    }.getOrElse {
+      transformerConfig.jsonBlobChunks.fold(record) { implicit jsonBlobConfig =>
+        val newValue = ChunkedJsonBlob.asConnectData(value)
+        record.newRecordWith(
+          newValue,
+          newValue.schema(),
+        )
+      }
+    }
   }
 
   override def close(): Unit = {}
