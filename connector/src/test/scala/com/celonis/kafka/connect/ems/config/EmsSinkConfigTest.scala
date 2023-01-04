@@ -75,6 +75,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
         OrderFieldConfig(OrderFieldInserter.FieldName.some, OrderFieldInserter),
+        None,
       )
 
       val inputMap: Map[String, _] = Map(
@@ -254,6 +255,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
         OrderFieldConfig(OrderFieldInserter.FieldName.some, OrderFieldInserter),
+        None,
       )
 
       val inputMap: Map[String, _] = Map(
@@ -314,6 +316,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
         OrderFieldConfig(orderFieldName.some, NoOpOrderFieldInserter),
+        None,
       )
 
       val inputMap: Map[String, _] = Map(

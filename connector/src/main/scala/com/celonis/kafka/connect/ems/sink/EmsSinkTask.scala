@@ -35,9 +35,14 @@ import com.celonis.kafka.connect.ems.storage.PrimaryKeysValidator
 import com.celonis.kafka.connect.ems.storage.Writer
 import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.Version
+import com.celonis.kafka.connect.transform.FlattenerConfig
+import com.celonis.kafka.connect.transform.flatten.Flattener
+import com.celonis.kafka.connect.transform.flatten.SchemaFlattener
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
@@ -58,10 +63,11 @@ class EmsSinkTask extends SinkTask with StrictLogging {
 
   private var maxRetries:          Int                       = 0
   private var retriesLeft:         Int                       = maxRetries
+  private var flattenerConfig:     Option[FlattenerConfig]   = Option.empty[FlattenerConfig]
   private var errorPolicy:         ErrorPolicy               = ErrorPolicy.Retry
   private var obfuscation:         Option[ObfuscationConfig] = None
   private var orderField:          OrderFieldConfig          = _
-  private var emsSinkConfigurator: EmsSinkConfigurator       = new DefaultEmsSinkConfigurator
+  private val emsSinkConfigurator: EmsSinkConfigurator       = new DefaultEmsSinkConfigurator
 
   override def version(): String = Version.implementationVersion
 
@@ -95,12 +101,13 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         writers,
       )
 
-    maxRetries   = config.retries.retries
-    retriesLeft  = maxRetries
-    errorPolicy  = config.errorPolicy
-    pksValidator = new PrimaryKeysValidator(config.primaryKeys)
-    obfuscation  = config.obfuscation
-    orderField   = config.orderField
+    maxRetries      = config.retries.retries
+    retriesLeft     = maxRetries
+    errorPolicy     = config.errorPolicy
+    pksValidator    = new PrimaryKeysValidator(config.primaryKeys)
+    obfuscation     = config.obfuscation
+    orderField      = config.orderField
+    flattenerConfig = config.flattenerConfig
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
@@ -111,12 +118,20 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         .filter(_.value() != null)
         .toList
         .traverse { record =>
+          val recordValue = maybeFlattenValue(record.value(), record.valueSchema())
+
           for {
-            transformedValue <- IO.fromEither(orderField.inserter.add(record.value(),
+            transformedValue <- IO.fromEither(orderField.inserter.add(recordValue,
                                                                       record.kafkaPartition(),
                                                                       record.kafkaOffset(),
             ))
+            _ <- IO(
+              logger.info(
+                s"Got data: ${transformedValue} (of type ${transformedValue.getClass}). Original schema: ${record.valueSchema().fields()}. Transformed schema: ${recordValue.asInstanceOf[Struct].schema().fields()}",
+              ),
+            )
             v <- IO.fromEither(DataConverter.apply(transformedValue))
+            _ <- IO(logger.info(s"Got transformed value: $v"))
             _ <- IO(logger.info("[{}] EmsSinkTask:put obfuscation={}", sinkName, obfuscation))
             value <- obfuscation.fold(IO.pure(v)) { o =>
               IO.fromEither(v.obfuscate(o).leftMap(FailedObfuscationException))
@@ -227,8 +242,11 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     writerManager            = null
   }
 
-  private[ems] def withEmsSinkConfigurator(configurator: EmsSinkConfigurator): Unit =
-    emsSinkConfigurator = configurator
+  private def maybeFlattenValue(value: AnyRef, valueSchema: Schema): AnyRef =
+    flattenerConfig.fold(value) { implicit config: FlattenerConfig =>
+      val flatSchema = SchemaFlattener.flatten(valueSchema)
+      Flattener.flatten(value, flatSchema)
+    }
 
   private def maybeSetErrorInterval(config: EmsSinkConfig): Unit =
     //if error policy is retry set retry interval
