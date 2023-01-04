@@ -12,7 +12,7 @@ case class FlattenerConfig(
 )
 
 object FlattenerConfig {
-  case class JsonBlobChunks(maxChunks: Int, emsVarcharLength: Int)
+  case class JsonBlobChunks(chunkFields: Int, emsVarcharLength: Int)
   case object FallbackVarcharLengthRequired extends Throwable {
     private val prefix = "transform.flatten"
     override val getMessage =
