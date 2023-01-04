@@ -164,7 +164,7 @@ class FlattenerTest extends AnyFunSuite {
     struct.put("a_map", Map("hi" -> "there").asJava)
 
     val result =
-      Flattener.flatten(struct, SchemaFlattener.payloadChunksSchema(config.jsonBlobChunks.get)).asInstanceOf[Struct]
+      Flattener.flatten(struct, ChunkedJsonBlob.schema(config.jsonBlobChunks.get)).asInstanceOf[Struct]
 
     val om           = new ObjectMapper()
     val expectedJson = om.createObjectNode
@@ -198,9 +198,9 @@ class FlattenerTest extends AnyFunSuite {
     struct.put("a_string", "hello")
     struct.put("a_map", Map("hi" -> "there").asJava)
 
-    assertThrows[Flattener.MisconfiguredJsonBlobMaxChunks](Flattener.flatten(
+    assertThrows[ChunkedJsonBlob.MisconfiguredJsonBlobMaxChunks](Flattener.flatten(
       struct,
-      SchemaFlattener.payloadChunksSchema(config.jsonBlobChunks.get),
+      ChunkedJsonBlob.schema(config.jsonBlobChunks.get),
     ))
   }
 }

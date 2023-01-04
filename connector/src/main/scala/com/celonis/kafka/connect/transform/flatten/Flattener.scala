@@ -6,24 +6,12 @@ package com.celonis.kafka.connect.transform.flatten
 import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.kafka.connect.data.Field
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.Struct
-import org.apache.kafka.connect.json.JsonConverter
-import org.apache.kafka.connect.storage.ConverterType
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_KEY
+import org.apache.kafka.connect.data.{Field, Schema, Struct}
 
-import java.nio.charset.StandardCharsets
 import java.util
 import scala.jdk.CollectionConverters._
 
 object Flattener extends LazyLogging {
-  case class MisconfiguredJsonBlobMaxChunks(configuredChunksSize: Int, blobByteSize: Int, emsVarcharLength: Int)
-      extends Throwable {
-    override def getMessage: String =
-      s"Configured value set for $FLATTENER_JSONBLOB_CHUNKS_KEY [$configuredChunksSize] is not appropriate for the supplied $FALLBACK_VARCHAR_LENGTH_KEY value [$emsVarcharLength]. Please consider increasing either of the two."
-  }
 
   private val jacksonMapper = new ObjectMapper()
 
@@ -75,33 +63,12 @@ object Flattener extends LazyLogging {
           val fieldName = field.path.mkString("_")
           struct.put(fieldName, field.value)
         },
-      ) {
-        case FlattenerConfig.JsonBlobChunks(maxChunks, emsVarcharLength) =>
-          val struct        = value.asInstanceOf[Struct]
-          val jsonBlobBytes = jsonConverter.fromConnectData("some-topic", struct.schema(), struct)
-          val numChunks     = jsonBlobBytes.length / emsVarcharLength
-          if (numChunks > maxChunks)
-            throw MisconfiguredJsonBlobMaxChunks(maxChunks, jsonBlobBytes.length, emsVarcharLength)
-          else
-            jsonBlobBytes.grouped(emsVarcharLength).zipWithIndex.foldLeft(newStruct) {
-              case (newStruct, (jsonBlobChunk, idx)) =>
-                newStruct.put(s"payload_chunk${idx + 1}", new String(jsonBlobChunk, StandardCharsets.UTF_8))
-            }
+      ) { implicit blobConfig =>
+        ChunkedJsonBlob.asConnectData(value)
       }
     }
   }
 
-  private[flatten] lazy val jsonConverter = {
-    val converter = new JsonConverter()
-    converter.configure(
-      Map(
-        "converter.type" -> ConverterType.VALUE.getName,
-        "schemas.enable" -> "false",
-      ).asJava,
-    )
-    converter
-
-  }
 
   private def isCollectionOrMap(value: AnyRef): Boolean =
     value.isInstanceOf[util.Collection[_]] || value.isInstanceOf[util.Map[_, _]]
