@@ -20,7 +20,7 @@ object ChunkedJsonBlob {
       s"Configured value ${configuredChunksSize} for ${FLATTENER_JSONBLOB_CHUNKS_KEY} is insufficient! Current JSON blob length: $blobByteSize, Ems VARCHAR Length: ${emsVarcharLength}."
   }
 
-  def schema(config: JsonBlobChunks): Schema =
+  private [flatten] def schema(config: JsonBlobChunks): Schema =
     (1 to config.chunks).foldLeft(SchemaBuilder.struct()) { (builder, idx) =>
       builder.field(s"payload_chunk$idx", Schema.OPTIONAL_STRING_SCHEMA)
     }.schema()

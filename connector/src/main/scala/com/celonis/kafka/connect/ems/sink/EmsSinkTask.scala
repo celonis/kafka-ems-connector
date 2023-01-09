@@ -17,29 +17,41 @@
 package com.celonis.kafka.connect.ems.sink
 
 import cats.data.NonEmptyList
-import cats.effect.{IO, Ref}
+import cats.effect.IO
+import cats.effect.Ref
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
-import com.celonis.kafka.connect.ems.config.{EmsSinkConfig, ObfuscationConfig, OrderFieldConfig}
+import com.celonis.kafka.connect.ems.config.EmsSinkConfig
+import com.celonis.kafka.connect.ems.config.ObfuscationConfig
+import com.celonis.kafka.connect.ems.config.OrderFieldConfig
 import com.celonis.kafka.connect.ems.conversion.DataConverter
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
-import com.celonis.kafka.connect.ems.errors.{ErrorPolicy, FailedObfuscationException}
+import com.celonis.kafka.connect.ems.errors.ErrorPolicy
+import com.celonis.kafka.connect.ems.errors.FailedObfuscationException
 import com.celonis.kafka.connect.ems.model._
 import com.celonis.kafka.connect.ems.obfuscation.ObfuscationUtils.GenericRecordObfuscation
-import com.celonis.kafka.connect.ems.storage.{EmsUploader, PrimaryKeysValidator, Writer, WriterManager}
+import com.celonis.kafka.connect.ems.storage.EmsUploader
+import com.celonis.kafka.connect.ems.storage.PrimaryKeysValidator
+import com.celonis.kafka.connect.ems.storage.Writer
+import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.Version
 import com.celonis.kafka.connect.transform.FlattenerConfig
-import com.celonis.kafka.connect.transform.flatten.{ChunkedJsonBlob, Flattener, SchemaFlattener}
+import com.celonis.kafka.connect.transform.flatten.ChunkedJsonBlob
+import com.celonis.kafka.connect.transform.flatten.Flattener
+import com.celonis.kafka.connect.transform.flatten.SchemaFlattener
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
-import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
+import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
-import java.util.concurrent.{ExecutorService, Executors}
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContextExecutor
 import scala.jdk.CollectionConverters._
 
 class EmsSinkTask extends SinkTask with StrictLogging {
@@ -114,7 +126,6 @@ class EmsSinkTask extends SinkTask with StrictLogging {
                                                                       record.kafkaOffset(),
             ))
             v <- IO.fromEither(DataConverter.apply(transformedValue))
-            _ <- IO(logger.info(s"Got transformed value: $v"))
             _ <- IO(logger.info("[{}] EmsSinkTask:put obfuscation={}", sinkName, obfuscation))
             value <- obfuscation.fold(IO.pure(v)) { o =>
               IO.fromEither(v.obfuscate(o).leftMap(FailedObfuscationException))
@@ -228,11 +239,14 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private def maybeFlattenValue(value: AnyRef, valueSchema: Option[Schema]): AnyRef =
     flattenerConfig.fold(value) { implicit config: FlattenerConfig =>
       valueSchema.fold {
+        //If no schema is available (e.g. schemaless JSON payload) and jsonBlobChunks config is set
+        //encode the record as a chunked JSON blob
         config.jsonBlobChunks.fold(value) { implicit jsonBlobConfig =>
           ChunkedJsonBlob.asConnectData(value)
         }
 
       } { valueSchema =>
+        //otherwise, flatten the schema and then the record value
         val flatSchema = SchemaFlattener.flatten(valueSchema)
         Flattener.flatten(value, flatSchema)
       }
