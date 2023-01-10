@@ -2,7 +2,8 @@ package com.celonis.kafka.connect.transform.flatten
 
 import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.celonis.kafka.connect.transform.FlattenerConfig.JsonBlobChunks
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
 
 import scala.collection.mutable
 

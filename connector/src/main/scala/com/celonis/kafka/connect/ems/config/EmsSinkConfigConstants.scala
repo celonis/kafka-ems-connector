@@ -155,12 +155,12 @@ object EmsSinkConfigConstants {
   val FLATTENER_ENABLE_KEY = s"${CONNECTOR_PREFIX}.flattener.enable"
   val FLATTENER_ENABLE_DOC =
     s"Enable flattening of nested records. This is likely to be needed if the source data contains nested objects or collections."
-  val FLATTENER_ENABLE_DEFAULT = false //OR should it be true by default?
+  val FLATTENER_ENABLE_DEFAULT = false
 
   val FLATTENER_DISCARD_COLLECTIONS_KEY = s"${CONNECTOR_PREFIX}.flattener.collections.discard"
   val FLATTENER_DISCARD_COLLECTIONS_DOC =
     "Discard array and map fields at any level of depth. Note that the default handling of collections by the flattener function is to JSON-encode them as nullable STRING fields."
-  val FLATTENER_DISCARD_COLLECTIONS_DEFAULT = false //OR should it be true by default?
+  val FLATTENER_DISCARD_COLLECTIONS_DEFAULT = false
 
   val FLATTENER_JSONBLOB_CHUNKS_KEY = s"${CONNECTOR_PREFIX}.flattener.jsonblob.chunks"
   val FLATTENER_JSONBLOB_CHUNKS_DOC =

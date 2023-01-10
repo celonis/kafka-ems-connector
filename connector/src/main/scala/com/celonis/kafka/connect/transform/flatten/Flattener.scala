@@ -6,7 +6,9 @@ package com.celonis.kafka.connect.transform.flatten
 import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.kafka.connect.data.{Field, Schema, Struct}
+import org.apache.kafka.connect.data.Field
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 
 import java.util
 import scala.jdk.CollectionConverters._
@@ -68,7 +70,6 @@ object Flattener extends LazyLogging {
       }
     }
   }
-
 
   private def isCollectionOrMap(value: AnyRef): Boolean =
     value.isInstanceOf[util.Collection[_]] || value.isInstanceOf[util.Map[_, _]]

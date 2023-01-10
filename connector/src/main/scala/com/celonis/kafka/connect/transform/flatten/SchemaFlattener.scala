@@ -5,7 +5,9 @@ package com.celonis.kafka.connect.transform.flatten
 
 import com.celonis.kafka.connect.transform.FlattenerConfig
 import org.apache.kafka.connect.data.Schema.Type._
-import org.apache.kafka.connect.data.{Field, Schema, SchemaBuilder}
+import org.apache.kafka.connect.data.Field
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
 
 import scala.jdk.CollectionConverters._
 

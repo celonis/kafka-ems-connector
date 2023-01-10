@@ -2,8 +2,11 @@ package com.celonis.kafka.connect.transform.flatten
 
 import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.celonis.kafka.connect.transform.FlattenerConfig.JsonBlobChunks
-import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.DataException
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -183,7 +186,7 @@ class FlattenerTest extends AnyFunSuite {
     implicit val config: FlattenerConfig = {
       FlattenerConfig().copy(
         jsonBlobChunks = Some(JsonBlobChunks(
-          chunks        = 3,
+          chunks                = 3,
           fallbackVarcharLength = 2,
         )), //^ record byte size will be greater than 3*2 = 6 bytes!
       )
