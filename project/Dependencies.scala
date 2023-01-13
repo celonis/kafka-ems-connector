@@ -129,7 +129,6 @@ object Dependencies {
 
   val classGraph = "io.github.classgraph" % "classgraph" % Versions.classGraphVersions
 
-
   lazy val kafkaConnectJson = "org.apache.kafka" % "connect-json" % Versions.kafkaVersion % "provided"
 
   lazy val confluentAvroConverter = ("io.confluent" % "kafka-connect-avro-converter" % Versions.confluentVersion)
