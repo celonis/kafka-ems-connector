@@ -17,7 +17,7 @@ import org.scalatest.matchers.should.Matchers
 import scala.jdk.CollectionConverters._
 
 class FlattenTransformerTest extends AnyFunSuite with Matchers with OptionValues with LazyLogging {
-  private val smt = new FlattenTransformer[SinkRecord]()
+  private val smt = new EmsFlattenTransformer[SinkRecord]()
 
   smt.configure(
     scala.collection.Map[String, Any]().asJava,

@@ -12,7 +12,7 @@ import org.apache.kafka.connect.transforms.Transformation
 
 import java.util
 
-class FlattenTransformer[R <: ConnectRecord[R]] extends Transformation[R] with LazyLogging {
+class EmsFlattenTransformer[R <: ConnectRecord[R]] extends Transformation[R] with LazyLogging {
 
   private implicit var transformerConfig: FlattenerConfig = FlattenerConfig()
 
