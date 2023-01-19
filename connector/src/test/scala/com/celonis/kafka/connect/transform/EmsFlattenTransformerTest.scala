@@ -3,6 +3,7 @@
  */
 package com.celonis.kafka.connect.transform
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.Field
@@ -16,7 +17,7 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.jdk.CollectionConverters._
 
-class FlattenTransformerTest extends AnyFunSuite with Matchers with OptionValues with LazyLogging {
+class EmsFlattenTransformerTest extends AnyFunSuite with Matchers with OptionValues with LazyLogging {
   private val smt = new EmsFlattenTransformer[SinkRecord]()
 
   smt.configure(
@@ -159,6 +160,24 @@ class FlattenTransformerTest extends AnyFunSuite with Matchers with OptionValues
     }
   }
 
+  test("infers a schema if none is provided") {
+    val rawJson =
+      """
+        |{"hello": {"I": "am_a_nested", "object": true, "with": ["an","array", "of-strings"]}}
+        |""".stripMargin
+    val om    = new ObjectMapper()
+    val value = om.readValue(rawJson, classOf[java.util.Map[String, AnyRef]])
+
+    val record: SinkRecord =
+      new SinkRecord(Topic, Partition, KeySchema, Key, null, value, Offset, 1641566630831L, TimestampType.CREATE_TIME)
+    val transformed = smt.apply(record)
+    val struct      = transformed.value().asInstanceOf[Struct]
+    checkCommonFields(transformed)
+    assertResult("am_a_nested")(struct.get("hello_I"))
+    assertResult(true)(struct.get("hello_object"))
+    assertResult("""["an","array","of-strings"]""")(struct.get("hello_with"))
+  }
+
   private def checkCommonFields(transformed: SinkRecord) = {
     transformed.topic() should be(Topic)
     transformed.kafkaPartition() should be(Partition)
@@ -166,4 +185,5 @@ class FlattenTransformerTest extends AnyFunSuite with Matchers with OptionValues
     transformed.keySchema() should be(KeySchema)
     transformed.key() shouldBe Key
   }
+
 }

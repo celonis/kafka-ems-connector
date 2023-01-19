@@ -2,8 +2,11 @@ package com.celonis.kafka.connect.transform.flatten
 
 import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.celonis.kafka.connect.transform.FlattenerConfig.JsonBlobChunks
-import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.DataException
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -183,7 +186,7 @@ class FlattenerTest extends AnyFunSuite {
     implicit val config: FlattenerConfig = {
       FlattenerConfig().copy(
         jsonBlobChunks = Some(JsonBlobChunks(
-          chunkFields        = 3,
+          chunkFields      = 3,
           emsVarcharLength = 2,
         )), //^ record byte size will be greater than 3*2 = 6 bytes!
       )
@@ -203,4 +206,33 @@ class FlattenerTest extends AnyFunSuite {
       ChunkedJsonBlob.schema(config.jsonBlobChunks.get),
     ))
   }
+
+  test("when the schema is inferred, flattens nested maps instead than json-encoding them") {
+    val nestedMap = Map[String, Any](
+      "some" -> Map[String, Any](
+        "nested-string" -> "a-string",
+        "nested-array"  -> List("a", "b", "c").asJava,
+        "nested-map"    -> Map[String, Any]("one-more-level" -> true),
+      ),
+    )
+
+    val flattenedSchema = SchemaBuilder.struct()
+      .field("some_nested-string", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("some_nested-array", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("some_nested-map_one-more-level", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+      .build()
+
+    val expected = Map[String, Any](
+      "some_nested-string"             -> "a-string",
+      "some_nested-array"              -> """["a","b","c"]""",
+      "some_nested-map_one-more-level" -> true,
+    )
+
+    assertResult(expected)(
+      Flattener.flatten(nestedMap, flattenedSchema, schemaIsInferred = true)(FlattenerConfig()).asInstanceOf[
+        java.util.Map[String, Any],
+      ].asScala.toMap,
+    )
+  }
+
 }
