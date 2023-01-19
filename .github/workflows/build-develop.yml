@@ -43,7 +43,7 @@ jobs:
           else
              echo "RELEASE_MODE=false" >> $GITHUB_ENV
              echo "DRAFT_RELEASE=false" >> $GITHUB_ENV
-             tag_sha=$(git describe --tags --always)
+             tag_sha=$(git describe --tags --always --match='v[0-9]*')
              echo "VERSION=$tag_sha" >> $GITHUB_ENV
           fi
 
