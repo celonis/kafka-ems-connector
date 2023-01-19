@@ -206,4 +206,33 @@ class FlattenerTest extends AnyFunSuite {
       ChunkedJsonBlob.schema(config.jsonBlobChunks.get),
     ))
   }
+
+  test("when the schema is inferred, flattens nested maps instead than json-encoding them") {
+    val nestedMap = Map[String, Any](
+      "some" -> Map[String, Any](
+        "nested-string" -> "a-string",
+        "nested-array"  -> List("a", "b", "c").asJava,
+        "nested-map"    -> Map[String, Any]("one-more-level" -> true),
+      ),
+    )
+
+    val flattenedSchema = SchemaBuilder.struct()
+      .field("some_nested-string", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("some_nested-array", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("some_nested-map_one-more-level", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+      .build()
+
+    val expected = Map[String, Any](
+      "some_nested-string"             -> "a-string",
+      "some_nested-array"              -> """["a","b","c"]""",
+      "some_nested-map_one-more-level" -> true,
+    )
+
+    assertResult(expected)(
+      Flattener.flatten(nestedMap, flattenedSchema, schemaIsInferred = true)(FlattenerConfig()).asInstanceOf[
+        java.util.Map[String, Any],
+      ].asScala.toMap,
+    )
+  }
+
 }

@@ -25,7 +25,7 @@ object ChunkedJsonBlob {
       builder.field(s"payload_chunk$idx", Schema.OPTIONAL_STRING_SCHEMA)
     }.schema()
 
-  def asConnectData(value: AnyRef)(implicit config: JsonBlobChunks): Struct = {
+  def asConnectData(value: Any)(implicit config: JsonBlobChunks): Struct = {
     val FlattenerConfig.JsonBlobChunks(maxChunks, emsVarcharLength) = config
 
     val jsonBlobBytes = value match {

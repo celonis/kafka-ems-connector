@@ -36,13 +36,13 @@ import com.celonis.kafka.connect.ems.storage.Writer
 import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.Version
 import com.celonis.kafka.connect.transform.FlattenerConfig
+import com.celonis.kafka.connect.transform.SchemaInference
 import com.celonis.kafka.connect.transform.flatten.ChunkedJsonBlob
 import com.celonis.kafka.connect.transform.flatten.Flattener
 import com.celonis.kafka.connect.transform.flatten.SchemaFlattener
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
-import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
@@ -118,7 +118,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         .filter(_.value() != null)
         .toList
         .traverse { record =>
-          val recordValue = maybeFlattenValue(record.value(), Option(record.valueSchema()))
+          val recordValue = maybeFlattenValue(record)
 
           for {
             transformedValue <- IO.fromEither(orderField.inserter.add(recordValue,
@@ -236,7 +236,11 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     writerManager            = null
   }
 
-  private def maybeFlattenValue(value: AnyRef, valueSchema: Option[Schema]): AnyRef =
+  private def maybeFlattenValue(record: SinkRecord): Any = {
+    val value = record.value()
+    val valueSchema = Option(record.valueSchema()).map(_ -> false)
+      .orElse(SchemaInference(value).map(_ -> true))
+
     flattenerConfig.fold(value) { implicit config: FlattenerConfig =>
       valueSchema.fold {
         //If no schema is available (e.g. schemaless JSON payload) and jsonBlobChunks config is set
@@ -245,12 +249,14 @@ class EmsSinkTask extends SinkTask with StrictLogging {
           ChunkedJsonBlob.asConnectData(value)
         }
 
-      } { valueSchema =>
-        //otherwise, flatten the schema and then the record value
-        val flatSchema = SchemaFlattener.flatten(valueSchema)
-        Flattener.flatten(value, flatSchema)
+      } {
+        case (valueSchema, schemaIsInferred) =>
+          //otherwise, flatten the schema and then the record value
+          val flatSchema = SchemaFlattener.flatten(valueSchema)
+          Flattener.flatten(value, flatSchema, schemaIsInferred)
       }
     }
+  }
 
   private def maybeSetErrorInterval(config: EmsSinkConfig): Unit =
     //if error policy is retry set retry interval
