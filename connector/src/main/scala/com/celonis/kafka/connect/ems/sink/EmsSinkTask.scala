@@ -242,16 +242,14 @@ class EmsSinkTask extends SinkTask with StrictLogging {
       .orElse(SchemaInference(value).map(_ -> true))
 
     flattenerConfig.fold(value) { implicit config: FlattenerConfig =>
-      valueSchema.fold {
-        //If no schema is available (e.g. schemaless JSON payload) and jsonBlobChunks config is set
-        //encode the record as a chunked JSON blob
-        config.jsonBlobChunks.fold(value) { implicit jsonBlobConfig =>
-          ChunkedJsonBlob.asConnectData(value)
-        }
-
-      } {
+      //                 ^ do nothing if flattener is not enabled
+      config.jsonBlobChunks.map { implicit chunksConfig: FlattenerConfig.JsonBlobChunks =>
+        //when flattener and json-blob chunking are both enabled, encode the payload verbatim as JSON chunks
+        ChunkedJsonBlob.asConnectData(value)
+      } getOrElse valueSchema.fold(value) {
+        //                         ^ do nothing if flattener is enabled but no schema has been provided or inferred.
         case (valueSchema, schemaIsInferred) =>
-          //otherwise, flatten the schema and then the record value
+          //flatten the schema and then the record value
           val flatSchema = SchemaFlattener.flatten(valueSchema)
           Flattener.flatten(value, flatSchema, schemaIsInferred)
       }
