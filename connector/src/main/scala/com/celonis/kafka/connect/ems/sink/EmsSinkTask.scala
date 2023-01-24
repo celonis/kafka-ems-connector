@@ -74,7 +74,12 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     sinkName = emsSinkConfigurator.getSinkName(props)
 
-    logger.debug(s"[{}] EmsSinkTask.start {}", sinkName, Version.implementationVersion)
+    logger.debug(
+      s"[{}] EmsSinkTask.start {}. Git head commit: {}",
+      sinkName,
+      Version.implementationVersion,
+      com.celonis.kafka.connect.BuildInfo.gitHeadCommit,
+    )
     val config: EmsSinkConfig = emsSinkConfigurator.getEmsSinkConfig(props)
 
     maybeSetErrorInterval(config)

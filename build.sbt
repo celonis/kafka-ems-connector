@@ -45,6 +45,7 @@ lazy val `test-common` = project.in(file("test-common"))
   )
 
 lazy val connector = project.in(file("connector"))
+  .enablePlugins(BuildInfoPlugin)
   .settings(
     modulesSettings ++
       Seq(
@@ -55,6 +56,12 @@ lazy val connector = project.in(file("connector"))
         excludeDependencies += ExclusionRule("javax.ws.rs", "javax.ws.rs-api"),
         libraryDependencies += "jakarta.ws.rs" % "jakarta.ws.rs-api" % "2.1.6",
         publish / skip := true,
+        buildInfoKeys := Seq[BuildInfoKey](
+          name,
+          version,
+          BuildInfoKey(git.gitHeadCommit),
+        ),
+        buildInfoPackage := "com.celonis.kafka.connect",
       ),
   )
   .dependsOn(`test-common` % "test->compile;it->compile")
