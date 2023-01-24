@@ -48,7 +48,7 @@ class FlattenerTest extends AnyFunSuite {
     assertThrows[DataException](result.get("x"))
   }
 
-  test("transforms arrays and maps into strings") {
+  test("transforms arrays and maps of primitives into strings") {
     val nestedSchema = SchemaBuilder.struct().name("AStruct")
       .field("an_array", SchemaBuilder.array(Schema.INT32_SCHEMA).build())
       .field("a_map", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA).build())
@@ -83,6 +83,62 @@ class FlattenerTest extends AnyFunSuite {
     assertResult(mutable.Buffer(1, 2, 3)) {
       mapper.readValue(result.getString("nested_an_array"), classOf[java.util.LinkedList[String]]).asScala
     }
+  }
+
+  test("JSON encodes collection of AVRO records") {
+    val nestedSchema = SchemaBuilder.struct()
+      .field("a_bool", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+      .field("a_long", Schema.OPTIONAL_INT64_SCHEMA)
+      .build()
+
+    val nested = new Struct(nestedSchema)
+    nested.put("a_bool", true)
+    nested.put("a_long", 33L)
+
+    val schema = SchemaBuilder.struct()
+      .field("an_array", SchemaBuilder.array(nestedSchema))
+      .field("a_map", SchemaBuilder.map(Schema.STRING_SCHEMA, nestedSchema))
+      .build()
+
+    val struct = new Struct(schema)
+    struct.put("an_array", List(nested).asJava)
+    struct.put("a_map", Map("key" -> nested).asJava)
+
+    val flatSchema = SchemaBuilder
+      .struct()
+      .field("an_array", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("a_map", Schema.OPTIONAL_STRING_SCHEMA)
+      .build()
+
+    val result = Flattener.flatten(struct, flatSchema)(config).asInstanceOf[Struct]
+    assertResult("""[{"a_bool":true,"a_long":33}]""")(result.get("an_array"))
+    assertResult("""{"key":{"a_bool":true,"a_long":33}}""")(result.get("a_map"))
+  }
+
+  test("JSON encodes collection of JSON records") {
+
+    val flatSchema = SchemaBuilder
+      .struct()
+      .field("an_array", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("a_map", Schema.OPTIONAL_STRING_SCHEMA)
+      .build()
+
+    val nested = Map[String, Any](
+      "a_bool" -> true,
+      "a_long" -> 33,
+    ).asJava
+
+    val jsonRecord = Map[String, Any](
+      "an_array" -> List(nested).asJava,
+      "a_map"    -> Map("key" -> nested).asJava,
+    ).asJava
+
+    val result = Flattener.flatten(jsonRecord, flatSchema, schemaIsInferred = true)(config).asInstanceOf[java.util.Map[
+      String,
+      Any,
+    ]]
+    assertResult("""[{"a_bool":true,"a_long":33}]""")(result.get("an_array"))
+    assertResult("""{"key":{"a_bool":true,"a_long":33}}""")(result.get("a_map"))
   }
 
   test("drops arrays/maps when 'discardCollections' is set") {

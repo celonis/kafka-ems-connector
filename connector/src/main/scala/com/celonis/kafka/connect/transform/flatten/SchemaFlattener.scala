@@ -35,7 +35,7 @@ object SchemaFlattener {
           asOptionalPrimitive(schema)
 
         case ARRAY | MAP =>
-          if (path.isEmpty)
+          if (path.isEmpty) //just return the original type if this is the top level object
             schema
           else
             Schema.OPTIONAL_STRING_SCHEMA

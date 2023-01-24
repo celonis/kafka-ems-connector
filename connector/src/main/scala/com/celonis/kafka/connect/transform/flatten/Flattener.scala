@@ -4,12 +4,15 @@
 package com.celonis.kafka.connect.transform.flatten
 
 import com.celonis.kafka.connect.transform.FlattenerConfig
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.json.JsonConverter
+import org.apache.kafka.connect.storage.ConverterType
 
+import java.nio.charset.StandardCharsets
 import scala.jdk.CollectionConverters._
 
 object Flattener extends LazyLogging {
@@ -42,11 +45,12 @@ object Flattener extends LazyLogging {
             val newPath = path :+ field.name()
             acc ++ go(newPath, value.get(field.name()))
           }
+
         case value: Map[_, _] =>
           go(path, value.asJava)
 
         case value: java.util.Map[_, _] =>
-          if (schemaIsInferred) {
+          if (schemaIsInferred && !fieldExists(flattenedSchema, path)) {
             value.asScala.toVector.foldLeft(Vector.empty[FieldNode]) {
               case (acc, (key, value)) =>
                 val newPath = path :+ key.toString()
@@ -100,10 +104,54 @@ object Flattener extends LazyLogging {
   ): Vector[FieldNode] =
     if (config.discardCollections)
       Vector.empty
-    else
-      Vector(FieldNode(path, jacksonMapper.writeValueAsString(value)))
+    else {
+      val schema = inferCollectionSchema(value).orNull
+      val json   = new String(jsonConverter.fromConnectData(ConverterTopicName, schema, value), StandardCharsets.UTF_8)
+      Vector(FieldNode(path, json))
+    }
 
-  private val jacksonMapper = new ObjectMapper()
+  def fieldExists(schema: Schema, path: Seq[String]): Boolean = schema.`type`() match {
+    case Schema.Type.STRUCT =>
+      Option(schema.field(path.mkString("_"))).isDefined
+    case _ => false
+  }
+
+  private def inferCollectionSchema(value: Any): Option[Schema] = value match {
+    case value: java.util.Map[_, _] =>
+      value.asScala.collectFirst {
+        case (key, struct: Struct) =>
+          val keySchema = inferPrimitive(key).getOrElse(Schema.STRING_SCHEMA)
+          SchemaBuilder.map(keySchema, struct.schema()).build()
+      }
+
+    case value: java.util.Collection[_] =>
+      value.asScala.collectFirst {
+        case struct: Struct => SchemaBuilder.array(struct.schema()).build()
+      }
+  }
+
+  private def inferPrimitive(v: Any): Option[Schema] = v match {
+    case _: String => Some(Schema.STRING_SCHEMA)
+    case _: Int    => Some(Schema.INT32_SCHEMA)
+    case _: Long   => Some(Schema.INT32_SCHEMA)
+    case _: Float | _: Double | _: BigDecimal => Some(Schema.FLOAT64_SCHEMA)
+    case _: Boolean     => Some(Schema.BOOLEAN_SCHEMA)
+    case _: Array[Byte] => Some(Schema.BYTES_SCHEMA)
+    case _ => None
+  }
+
+  private val ConverterTopicName = "irrelevant-topic-name"
+  private lazy val jsonConverter = {
+    val converter = new JsonConverter()
+    converter.configure(
+      Map(
+        "converter.type" -> ConverterType.VALUE.getName,
+        "schemas.enable" -> "false",
+      ).asJava,
+    )
+    converter
+
+  }
 
   private case class FieldNode(path: Seq[String], value: Any)
 }

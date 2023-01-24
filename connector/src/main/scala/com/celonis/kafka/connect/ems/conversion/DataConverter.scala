@@ -109,7 +109,7 @@ object MapDataConverter extends DataConverter[Map[_, _]] {
 
       case other =>
         new RuntimeException(
-          s"Converting schemaless JSON does not handle type:${other.getClass.getCanonicalName}",
+          s"Converting schemaless JSON does not handle value:${other}",
         ).asLeft
     }
 
