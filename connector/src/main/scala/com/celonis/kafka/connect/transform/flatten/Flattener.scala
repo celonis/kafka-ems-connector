@@ -9,8 +9,6 @@ import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
-import org.apache.kafka.connect.json.JsonConverter
-import org.apache.kafka.connect.storage.ConverterType
 
 import java.nio.charset.StandardCharsets
 import scala.jdk.CollectionConverters._
@@ -101,7 +99,9 @@ object Flattener extends LazyLogging {
       Vector.empty
     else {
       val schema = inferCollectionSchema(value).orNull
-      val json   = new String(jsonConverter.fromConnectData(ConverterTopicName, schema, value), StandardCharsets.UTF_8)
+      val json = new String(ConnectJsonConverter.converter.fromConnectData(ConverterTopicName, schema, value),
+                            StandardCharsets.UTF_8,
+      )
       Vector(FieldNode(path, json))
     }
 
@@ -135,17 +135,6 @@ object Flattener extends LazyLogging {
   }
 
   private val ConverterTopicName = "irrelevant-topic-name"
-  private lazy val jsonConverter = {
-    val converter = new JsonConverter()
-    converter.configure(
-      Map(
-        "converter.type" -> ConverterType.VALUE.getName,
-        "schemas.enable" -> "false",
-      ).asJava,
-    )
-    converter
-
-  }
 
   private case class FieldNode(path: Seq[String], value: Any) {
     def pathAsString: String = path.mkString(pathDelimiter)
