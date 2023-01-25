@@ -51,10 +51,8 @@ object Flattener extends LazyLogging {
 
         case value: java.util.Map[_, _] =>
           if (schemaIsInferred && !fieldExists(flattenedSchema, path)) {
-            value.asScala.toVector.foldLeft(Vector.empty[FieldNode]) {
-              case (acc, (key, value)) =>
-                val newPath = path :+ key.toString()
-                acc ++ go(newPath, value)
+            value.asScala.toVector.flatMap {
+              case (key, value) => go(path :+ key.toString, value)
             }
           } else discardOrJsonEncodeCollection(value, path)
 
@@ -84,14 +82,11 @@ object Flattener extends LazyLogging {
   }
 
   private def hashMapFrom(fields: Vector[FieldNode]): java.util.Map[String, Any] =
-    fields.foldLeft(Map.empty[String, Any]) { (m, field) =>
-      val fieldName = field.path.mkString("_")
-      m.updated(fieldName, field.value)
-    }.asJava
+    fields.map(fieldNode => fieldNode.pathAsString -> fieldNode.value).toMap.asJava
 
   private def structFrom(fields: Vector[FieldNode], flatSchema: Schema): Struct =
     fields.foldLeft(new Struct(flatSchema)) { (struct, field) =>
-      val fieldName = field.path.mkString("_")
+      val fieldName = field.pathAsString
       struct.put(fieldName, field.value)
     }
 
@@ -111,9 +106,8 @@ object Flattener extends LazyLogging {
     }
 
   def fieldExists(schema: Schema, path: Seq[String]): Boolean = schema.`type`() match {
-    case Schema.Type.STRUCT =>
-      Option(schema.field(path.mkString("_"))).isDefined
-    case _ => false
+    case Schema.Type.STRUCT => schema.field(path.mkString(pathDelimiter)) != null
+    case _                  => false
   }
 
   private def inferCollectionSchema(value: Any): Option[Schema] = value match {
@@ -153,5 +147,9 @@ object Flattener extends LazyLogging {
 
   }
 
-  private case class FieldNode(path: Seq[String], value: Any)
+  private case class FieldNode(path: Seq[String], value: Any) {
+    def pathAsString: String = path.mkString(pathDelimiter)
+  }
+
+  private val pathDelimiter = "_"
 }
