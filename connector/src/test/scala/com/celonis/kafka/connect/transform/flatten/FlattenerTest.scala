@@ -16,6 +16,19 @@ import scala.jdk.CollectionConverters._
 class FlattenerTest extends AnyFunSuite {
   val config: FlattenerConfig = FlattenerConfig()
 
+  test("do nothing on a primitive") {
+    val primitives = Map[Any, Schema](
+      123   -> SchemaBuilder.int16().build(),
+      "abc" -> SchemaBuilder.string().build(),
+      456L  -> SchemaBuilder.int64().build(),
+    )
+
+    primitives.foreach { case (primitive, schema) =>
+      val result = Flattener.flatten(primitive, schema)(config)
+      assertResult(result)(primitive)
+    }
+  }
+
   test("flattens a nested field") {
 
     val nestedSchema = SchemaBuilder.struct().name("AStruct")

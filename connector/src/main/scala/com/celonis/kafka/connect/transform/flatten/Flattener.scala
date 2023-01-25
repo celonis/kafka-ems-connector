@@ -54,7 +54,7 @@ object Flattener extends LazyLogging {
       }
 
     //do nothing if top-level schema is not a record
-    if (flattenedSchema.`type`() != Schema.Type.STRUCT)
+    if (flattenedSchema.`type` != Schema.Type.STRUCT)
       value
     else {
       config.jsonBlobChunks.fold {
