@@ -264,13 +264,13 @@ class FlattenerTest extends AnyFunSuite {
   }
 
   test("when the schema is inferred, flattens nested maps instead than json-encoding them") {
-    val nestedMap = Map[String, Any](
-      "some" -> Map[String, Any](
+    val nestedMap = Map(
+      "some" -> Map(
         "nested-string" -> "a-string",
         "nested-array"  -> List("a", "b", "c").asJava,
-        "nested-map"    -> Map[String, Any]("one-more-level" -> true),
-      ),
-    )
+        "nested-map"    -> Map[String, Any]("one-more-level" -> true).asJava,
+      ).asJava,
+    ).asJava
 
     val flattenedSchema = SchemaBuilder.struct()
       .field("some_nested-string", Schema.OPTIONAL_STRING_SCHEMA)

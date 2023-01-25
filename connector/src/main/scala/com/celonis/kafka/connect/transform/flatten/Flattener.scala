@@ -4,8 +4,8 @@
 package com.celonis.kafka.connect.transform.flatten
 
 import com.celonis.kafka.connect.transform.FlattenerConfig
+import com.celonis.kafka.connect.transform.flatten.SchemaFlattener.pathDelimiter
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
@@ -33,24 +33,16 @@ object Flattener extends LazyLogging {
     implicit
     config: FlattenerConfig,
   ): Any = {
-    def go(path: Seq[String], value: Any): Vector[FieldNode] =
+    def toFieldNodes(path: Seq[String], value: Any): Vector[FieldNode] =
       value match {
         case value: Struct =>
-          val structFields = Option(value.schema()).map(_.fields().asScala)
-            .getOrElse(List.empty[Field])
-
-          structFields.foldLeft(Vector.empty[FieldNode]) { (acc, field) =>
-            val newPath = path :+ field.name()
-            acc ++ go(newPath, value.get(field.name()))
-          }
-
-        case value: Map[_, _] =>
-          go(path, value.asJava)
+          val structFields = value.schema.fields.asScala.toVector
+          structFields.flatMap(field => toFieldNodes(path :+ field.name(), value.get(field.name())))
 
         case value: java.util.Map[_, _] =>
           if (schemaIsInferred && !fieldExists(flattenedSchema, path)) {
             value.asScala.toVector.flatMap {
-              case (key, value) => go(path :+ key.toString, value)
+              case (key, value) => toFieldNodes(path :+ key.toString, value)
             }
           } else discardOrJsonEncodeCollection(value, path)
 
@@ -66,7 +58,7 @@ object Flattener extends LazyLogging {
       value
     else {
       config.jsonBlobChunks.fold {
-        val fields = go(Vector.empty, value)
+        val fields = toFieldNodes(Vector.empty, value)
 
         if (schemaIsInferred)
           hashMapFrom(fields)
@@ -139,6 +131,4 @@ object Flattener extends LazyLogging {
   private case class FieldNode(path: Seq[String], value: Any) {
     def pathAsString: String = path.mkString(pathDelimiter)
   }
-
-  private val pathDelimiter = "_"
 }
