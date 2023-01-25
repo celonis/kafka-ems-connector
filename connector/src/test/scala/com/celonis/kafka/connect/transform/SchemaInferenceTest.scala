@@ -3,6 +3,7 @@ package com.celonis.kafka.connect.transform
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper
+import scala.jdk.CollectionConverters._
 
 class SchemaInferenceTest extends org.scalatest.funsuite.AnyFunSuite {
   test("Infers the schema of simple primitives") {
@@ -19,9 +20,9 @@ class SchemaInferenceTest extends org.scalatest.funsuite.AnyFunSuite {
 
   test("Infers non-empty collections") {
     List(
-      Map("hi" -> "there") -> SchemaBuilder.struct().field("hi", Schema.OPTIONAL_STRING_SCHEMA).build(),
-      Map(1L -> true) -> SchemaBuilder.struct().field("1", Schema.OPTIONAL_BOOLEAN_SCHEMA).build(),
-      List("a", "b", "c") -> SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).build(),
+      Map("hi" -> "there").asJava -> SchemaBuilder.struct().field("hi", Schema.OPTIONAL_STRING_SCHEMA).build(),
+      Map(1L -> true).asJava -> SchemaBuilder.struct().field("1", Schema.OPTIONAL_BOOLEAN_SCHEMA).build(),
+      List("a", "b", "c").asJava -> SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).build(),
     ).foreach {
       case (value, expectedSchema) =>
         assertResult(Some(expectedSchema))(SchemaInference(value))
@@ -30,9 +31,9 @@ class SchemaInferenceTest extends org.scalatest.funsuite.AnyFunSuite {
 
   test("Infers heterogeneous collections as byte collections") {
     List(
-      Map.empty[Boolean, Boolean] -> SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BYTES_SCHEMA).build(),
-      List.empty[Int]             -> SchemaBuilder.array(Schema.BYTES_SCHEMA).build(),
-      List(1, "blah", true)       -> SchemaBuilder.array(Schema.BYTES_SCHEMA).build(),
+      Map.empty[Boolean, Boolean].asJava -> SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BYTES_SCHEMA).build(),
+      List.empty[Int].asJava             -> SchemaBuilder.array(Schema.BYTES_SCHEMA).build(),
+      List(1, "blah", true).asJava       -> SchemaBuilder.array(Schema.BYTES_SCHEMA).build(),
     ).foreach {
       case (value, expectedSchema) =>
         assertResult(Some(expectedSchema))(SchemaInference(value))
