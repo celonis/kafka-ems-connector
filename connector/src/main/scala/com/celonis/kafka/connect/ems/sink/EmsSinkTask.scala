@@ -74,7 +74,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     sinkName = emsSinkConfigurator.getSinkName(props)
 
-    logger.debug(
+    logger.info(
       s"[{}] EmsSinkTask.start {}. Git head commit: {}",
       sinkName,
       Version.implementationVersion,
