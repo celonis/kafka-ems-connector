@@ -105,7 +105,7 @@ object Flattener extends LazyLogging {
       Vector(FieldNode(path, json))
     }
 
-  def fieldExists(schema: Schema, path: Seq[String]): Boolean = schema.`type`() match {
+  private def fieldExists(schema: Schema, path: Seq[String]): Boolean = schema.`type`() match {
     case Schema.Type.STRUCT => schema.field(path.mkString(pathDelimiter)) != null
     case _                  => false
   }
