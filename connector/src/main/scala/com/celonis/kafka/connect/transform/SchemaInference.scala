@@ -34,12 +34,8 @@ object SchemaInference {
       Some(Schema.OPTIONAL_FLOAT64_SCHEMA)
     case list: java.util.List[_] =>
       listSchema(list.asScala.toList)
-    case list: List[_] =>
-      listSchema(list)
     case innerMap: java.util.Map[_, _] =>
       mapSchema(innerMap.asScala.toMap)
-    case innerMap: Map[_, _] =>
-      mapSchema(innerMap)
     case _ =>
       None
   }

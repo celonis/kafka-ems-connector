@@ -82,6 +82,7 @@ object SchemaFlattener {
   )
 
   private[flatten] def fieldNameFromPath(path: Vector[String]) =
-    path.mkString("_")
+    path.mkString(pathDelimiter)
 
+  private[flatten] val pathDelimiter = "_"
 }

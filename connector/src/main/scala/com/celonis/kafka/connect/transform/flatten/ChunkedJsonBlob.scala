@@ -1,17 +1,12 @@
 package com.celonis.kafka.connect.transform.flatten
 
-import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_KEY
+import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.celonis.kafka.connect.transform.FlattenerConfig.JsonBlobChunks
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.SchemaBuilder
-import org.apache.kafka.connect.data.Struct
-import org.apache.kafka.connect.json.JsonConverter
-import org.apache.kafka.connect.storage.ConverterType
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 
 import java.nio.charset.StandardCharsets
-import scala.jdk.CollectionConverters._
 
 object ChunkedJsonBlob {
   case class MisconfiguredJsonBlobMaxChunks(configuredChunksSize: Int, blobByteSize: Int, emsVarcharLength: Int)
@@ -29,7 +24,7 @@ object ChunkedJsonBlob {
     val FlattenerConfig.JsonBlobChunks(maxChunks, emsVarcharLength) = config
 
     val jsonBlobBytes = value match {
-      case struct: Struct => jsonConverter.fromConnectData("some-topic", struct.schema(), struct)
+      case struct: Struct => ConnectJsonConverter.converter.fromConnectData("some-topic", struct.schema(), struct)
       case str:    String => str.getBytes(StandardCharsets.UTF_8)
       case _ => jacksonMapper.writeValueAsString(value).getBytes(StandardCharsets.UTF_8)
     }
@@ -44,17 +39,4 @@ object ChunkedJsonBlob {
   }
 
   private val jacksonMapper = new ObjectMapper()
-
-  private[flatten] lazy val jsonConverter = {
-    val converter = new JsonConverter()
-    converter.configure(
-      Map(
-        "converter.type" -> ConverterType.VALUE.getName,
-        "schemas.enable" -> "false",
-      ).asJava,
-    )
-    converter
-
-  }
-
 }

@@ -4,13 +4,11 @@
 package com.celonis.kafka.connect.transform.flatten
 
 import com.celonis.kafka.connect.transform.FlattenerConfig
+import com.celonis.kafka.connect.transform.flatten.SchemaFlattener.pathDelimiter
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
-import org.apache.kafka.connect.json.JsonConverter
-import org.apache.kafka.connect.storage.ConverterType
 
 import java.nio.charset.StandardCharsets
 import scala.jdk.CollectionConverters._
@@ -35,26 +33,16 @@ object Flattener extends LazyLogging {
     implicit
     config: FlattenerConfig,
   ): Any = {
-    def go(path: Seq[String], value: Any): Vector[FieldNode] =
+    def toFieldNodes(path: Seq[String], value: Any): Vector[FieldNode] =
       value match {
         case value: Struct =>
-          val structFields = Option(value.schema()).map(_.fields().asScala)
-            .getOrElse(List.empty[Field])
-
-          structFields.foldLeft(Vector.empty[FieldNode]) { (acc, field) =>
-            val newPath = path :+ field.name()
-            acc ++ go(newPath, value.get(field.name()))
-          }
-
-        case value: Map[_, _] =>
-          go(path, value.asJava)
+          val structFields = value.schema.fields.asScala.toVector
+          structFields.flatMap(field => toFieldNodes(path :+ field.name(), value.get(field.name())))
 
         case value: java.util.Map[_, _] =>
           if (schemaIsInferred && !fieldExists(flattenedSchema, path)) {
-            value.asScala.toVector.foldLeft(Vector.empty[FieldNode]) {
-              case (acc, (key, value)) =>
-                val newPath = path :+ key.toString()
-                acc ++ go(newPath, value)
+            value.asScala.toVector.flatMap {
+              case (key, value) => toFieldNodes(path :+ key.toString, value)
             }
           } else discardOrJsonEncodeCollection(value, path)
 
@@ -66,11 +54,11 @@ object Flattener extends LazyLogging {
       }
 
     //do nothing if top-level schema is not a record
-    if (flattenedSchema.`type`() != Schema.Type.STRUCT)
+    if (flattenedSchema.`type` != Schema.Type.STRUCT)
       value
     else {
       config.jsonBlobChunks.fold {
-        val fields = go(Vector.empty, value)
+        val fields = toFieldNodes(Vector.empty, value)
 
         if (schemaIsInferred)
           hashMapFrom(fields)
@@ -84,14 +72,11 @@ object Flattener extends LazyLogging {
   }
 
   private def hashMapFrom(fields: Vector[FieldNode]): java.util.Map[String, Any] =
-    fields.foldLeft(Map.empty[String, Any]) { (m, field) =>
-      val fieldName = field.path.mkString("_")
-      m.updated(fieldName, field.value)
-    }.asJava
+    fields.map(fieldNode => fieldNode.pathAsString -> fieldNode.value).toMap.asJava
 
   private def structFrom(fields: Vector[FieldNode], flatSchema: Schema): Struct =
     fields.foldLeft(new Struct(flatSchema)) { (struct, field) =>
-      val fieldName = field.path.mkString("_")
+      val fieldName = field.pathAsString
       struct.put(fieldName, field.value)
     }
 
@@ -106,14 +91,15 @@ object Flattener extends LazyLogging {
       Vector.empty
     else {
       val schema = inferCollectionSchema(value).orNull
-      val json   = new String(jsonConverter.fromConnectData(ConverterTopicName, schema, value), StandardCharsets.UTF_8)
+      val json = new String(ConnectJsonConverter.converter.fromConnectData(ConverterTopicName, schema, value),
+                            StandardCharsets.UTF_8,
+      )
       Vector(FieldNode(path, json))
     }
 
-  def fieldExists(schema: Schema, path: Seq[String]): Boolean = schema.`type`() match {
-    case Schema.Type.STRUCT =>
-      Option(schema.field(path.mkString("_"))).isDefined
-    case _ => false
+  private def fieldExists(schema: Schema, path: Seq[String]): Boolean = schema.`type`() match {
+    case Schema.Type.STRUCT => schema.field(path.mkString(pathDelimiter)) != null
+    case _                  => false
   }
 
   private def inferCollectionSchema(value: Any): Option[Schema] = value match {
@@ -141,17 +127,8 @@ object Flattener extends LazyLogging {
   }
 
   private val ConverterTopicName = "irrelevant-topic-name"
-  private lazy val jsonConverter = {
-    val converter = new JsonConverter()
-    converter.configure(
-      Map(
-        "converter.type" -> ConverterType.VALUE.getName,
-        "schemas.enable" -> "false",
-      ).asJava,
-    )
-    converter
 
+  private case class FieldNode(path: Seq[String], value: Any) {
+    def pathAsString: String = path.mkString(pathDelimiter)
   }
-
-  private case class FieldNode(path: Seq[String], value: Any)
 }
