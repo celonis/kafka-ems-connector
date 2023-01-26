@@ -23,9 +23,10 @@ class FlattenerTest extends AnyFunSuite {
       456L  -> SchemaBuilder.int64().build(),
     )
 
-    primitives.foreach { case (primitive, schema) =>
-      val result = Flattener.flatten(primitive, schema)(config)
-      assertResult(result)(primitive)
+    primitives.foreach {
+      case (primitive, schema) =>
+        val result = Flattener.flatten(primitive, schema)(config)
+        assertResult(result)(primitive)
     }
   }
 

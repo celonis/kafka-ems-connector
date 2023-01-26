@@ -4,7 +4,9 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSO
 import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.celonis.kafka.connect.transform.FlattenerConfig.JsonBlobChunks
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 
 import java.nio.charset.StandardCharsets
 
