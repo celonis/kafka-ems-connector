@@ -50,6 +50,15 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EXPLODE_MODE_
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_DISCARD_COLLECTIONS_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_DISCARD_COLLECTIONS_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_DISCARD_COLLECTIONS_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_ENABLE_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_ENABLE_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_ENABLE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETIRES_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
@@ -410,6 +419,38 @@ object EmsSinkConfigDef {
       3,
       ConfigDef.Width.MEDIUM,
       CLOSE_EVERY_CONNECTION_DOC,
+    )
+    .define(
+      "",
+      Type.BOOLEAN,
+      CLOSE_EVERY_CONNECTION_DEFAULT_VALUE,
+      Importance.LOW,
+      CLOSE_EVERY_CONNECTION_DOC,
+      "Flattener",
+      3,
+      ConfigDef.Width.MEDIUM,
+      CLOSE_EVERY_CONNECTION_DOC,
+    )
+    .define(
+      FLATTENER_ENABLE_KEY,
+      Type.BOOLEAN,
+      FLATTENER_ENABLE_DEFAULT,
+      Importance.MEDIUM,
+      FLATTENER_ENABLE_DOC,
+    )
+    .define(
+      FLATTENER_DISCARD_COLLECTIONS_KEY,
+      Type.BOOLEAN,
+      FLATTENER_DISCARD_COLLECTIONS_DEFAULT,
+      Importance.MEDIUM,
+      FLATTENER_DISCARD_COLLECTIONS_DOC,
+    )
+    .define(
+      FLATTENER_JSONBLOB_CHUNKS_KEY,
+      Type.INT,
+      FLATTENER_JSONBLOB_CHUNKS_DEFAULT,
+      Importance.MEDIUM,
+      FLATTENER_JSONBLOB_CHUNKS_DOC,
     )
 }
 

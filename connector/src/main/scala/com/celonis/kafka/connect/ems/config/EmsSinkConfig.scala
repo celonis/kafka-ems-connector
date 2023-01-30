@@ -21,6 +21,7 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.model.CommitPolicy
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
+import com.celonis.kafka.connect.transform.FlattenerConfig
 import org.apache.commons.validator.routines.UrlValidator
 
 import java.io.File
@@ -44,6 +45,7 @@ case class EmsSinkConfig(
   http:                   HttpClientConfig,
   explode:                ExplodeConfig,
   orderField:             OrderFieldConfig,
+  flattenerConfig:        Option[FlattenerConfig],
 )
 
 object EmsSinkConfig {
@@ -124,6 +126,7 @@ object EmsSinkConfig {
       explodeConfig          = ExplodeConfig.extractExplode(props)
       proxyConfig           <- HttpClientConfig.extractHttpClient(props)
       orderConfig            = OrderFieldConfig.from(props, primaryKeys)
+      flattenerConfig       <- FlattenerConfig.extract(props, fallbackVarCharLength)
     } yield EmsSinkConfig(
       sinkName,
       url,
@@ -141,6 +144,7 @@ object EmsSinkConfig {
       proxyConfig,
       explodeConfig,
       orderConfig,
+      flattenerConfig,
     )
 
 }

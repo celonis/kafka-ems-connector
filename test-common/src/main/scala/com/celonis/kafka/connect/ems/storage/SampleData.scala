@@ -53,16 +53,27 @@ trait SampleData {
     record
   }
 
-  val userSchema: ConnectSchema = ConnectSchemaBuilder.struct()
+  val userSchema: ConnectSchemaBuilder = ConnectSchemaBuilder.struct()
     .field("name", ConnectSchemaBuilder.string().required().build())
     .field("title", ConnectSchemaBuilder.string().optional().build())
     .field("salary", ConnectSchemaBuilder.float64().optional().build())
+
+  val streetSchema = ConnectSchemaBuilder.struct()
+    .field("name", ConnectSchemaBuilder.string().build())
+    .field("number", ConnectSchemaBuilder.int32().build())
+    .optional()
     .build()
 
-  def buildUserStruct(name: String, title: String, salary: Double): Struct =
-    new Struct(userSchema).put("name", name).put("title", title).put("salary", salary)
+  val nestedUserSchema: ConnectSchema =
+    userSchema.field(
+      "street",
+      streetSchema,
+    ).build()
 
-  def toSinkRecord(topic: String, user: Struct, k: Int): SinkRecord =
-    new SinkRecord(topic, 1, null, null, userSchema, user, k.toLong)
+  def buildUserStruct(name: String, title: String, salary: Double): Struct =
+    new Struct(userSchema.build()).put("name", name).put("title", title).put("salary", salary)
+
+  def toSinkRecord(topic: String, value: Struct, k: Int): SinkRecord =
+    new SinkRecord(topic, 1, null, null, value.schema(), value, k.toLong)
 
 }

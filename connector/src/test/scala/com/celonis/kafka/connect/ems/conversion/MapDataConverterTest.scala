@@ -29,6 +29,7 @@ class MapDataConverterTest extends AnyFunSuite with Matchers with WorkingDirecto
                           "converter.type"                          -> "value",
                           "schemas.enable"                          -> "false",
   ).asJava)
+
   test("converts a schemaless JSON") {
     val json =
       """
@@ -82,5 +83,14 @@ class MapDataConverterTest extends AnyFunSuite with Matchers with WorkingDirecto
 
     genericRecord.get("cars").asInstanceOf[java.util.List[AnyRef]].asScala.toArray shouldBe Array("Ford", "BMW", "Fiat")
     genericRecord.get("nums").asInstanceOf[java.util.List[AnyRef]].asScala.toArray shouldBe Array(1, 3, 4)
+  }
+
+  test("sanitises keys as AVRO compliant field names") {
+    val rawJson        = """{"top_level":{"a nested key!": true}}"""
+    val schemaAndValue = converter.toConnectData("topic", rawJson.getBytes)
+    val value          = schemaAndValue.value().asInstanceOf[java.util.Map[_, _]].asScala.toMap
+    val avroRecord     = MapDataConverter.convert(value).getOrElse(fail("conversion expected to succeed!"))
+
+    avroRecord.get("top_level").asInstanceOf[GenericRecord].get("a_nested_key_") shouldEqual true
   }
 }

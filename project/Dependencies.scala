@@ -129,8 +129,6 @@ object Dependencies {
 
   val classGraph = "io.github.classgraph" % "classgraph" % Versions.classGraphVersions
 
-  lazy val slf4j = "org.slf4j" % "slf4j-api" % Versions.slf4jVersion
-
   lazy val kafkaConnectJson = "org.apache.kafka" % "connect-json" % Versions.kafkaVersion % "provided"
 
   lazy val confluentAvroConverter = ("io.confluent" % "kafka-connect-avro-converter" % Versions.confluentVersion)
@@ -218,9 +216,6 @@ object Dependencies {
 
   lazy val nimbusJoseJwt = "com.nimbusds" % "nimbus-jose-jwt" % nimbusJoseJwtVersion
 
-  val slf4jTestingApi    = "org.slf4j" % "slf4j-api"     % Versions.slf4jTestingVersion
-  val slf4jTesting       = "org.slf4j" % "slf4j-log4j12" % Versions.slf4jTestingVersion
-  val slf4jTestingSimple = "org.slf4j" % "slf4j-simple"  % Versions.slf4jTestingVersion
 }
 
 trait Dependencies {
@@ -262,9 +257,6 @@ trait Dependencies {
     httpClient,
     json4s,
     kafkaClients,
-    slf4jTestingApi,
-    slf4jTesting,
-    slf4jTestingSimple,
     `wiremock-jre8`,
     kafkaConnectJson,
     parquetAvro,

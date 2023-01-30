@@ -4,6 +4,7 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants
 import com.celonis.kafka.connect.ems.sink.EmsSinkTask
 import com.celonis.kafka.connect.ems.randomEmsTable
 import com.celonis.kafka.connect.ems.randomTopicName
+import com.celonis.kafka.connect.transform.FlattenerConfig
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
@@ -11,13 +12,14 @@ object ems {
 
   def withEmsSinkTask(
     endpoint:          String,
-    connectorName:     String         = "ems",
-    commitRecords:     String         = "1",
-    commitSize:        String         = "1000000",
-    commitInterval:    String         = "3600000",
-    obfuscationType:   Option[String] = None,
-    obfuscationFields: Option[String] = None,
-    sha512Salt:        Option[String] = None,
+    connectorName:     String                  = "ems",
+    commitRecords:     String                  = "1",
+    commitSize:        String                  = "1000000",
+    commitInterval:    String                  = "3600000",
+    obfuscationType:   Option[String]          = None,
+    obfuscationFields: Option[String]          = None,
+    sha512Salt:        Option[String]          = None,
+    flattenerConfig:   Option[FlattenerConfig] = None,
   )(testCode:          (String, EmsSinkTask, String) => Any,
   ): Unit = {
     val sourceTopic = randomTopicName()
@@ -36,9 +38,18 @@ object ems {
       EmsSinkConfigConstants.TMP_DIRECTORY_KEY   -> "/tmp/",
       EmsSinkConfigConstants.ERROR_POLICY_KEY    -> "CONTINUE",
     )
+
     sha512Salt.foreach(p => props += (EmsSinkConfigConstants.SHA512_SALT_KEY -> p))
     obfuscationType.foreach(p => props += (EmsSinkConfigConstants.OBFUSCATION_TYPE_KEY -> p))
     obfuscationFields.foreach(p => props += (EmsSinkConfigConstants.OBFUSCATED_FIELDS_KEY -> p))
+    flattenerConfig.foreach { conf =>
+      props += EmsSinkConfigConstants.FLATTENER_ENABLE_KEY -> "true"
+      conf.jsonBlobChunks.foreach { jsonChunksConf =>
+        props += EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_KEY -> jsonChunksConf.chunks.toString
+        props += EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_KEY   -> jsonChunksConf.fallbackVarcharLength.toString
+      }
+    }
+
     val task = new EmsSinkTask()
     try {
       task.start(props.asJava)

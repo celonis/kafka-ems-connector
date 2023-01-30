@@ -109,7 +109,7 @@ object MapDataConverter extends DataConverter[Map[_, _]] {
 
       case other =>
         new RuntimeException(
-          s"Converting schemaless JSON does not handle type:${other.getClass.getCanonicalName}",
+          s"Converting schemaless JSON does not handle value:${other}",
         ).asLeft
     }
 
@@ -167,7 +167,7 @@ object MapDataConverter extends DataConverter[Map[_, _]] {
       map.toList.sortBy(_._1.toString)
         .foldLeft(Vector.empty[FieldAndValue].asRight[Throwable]) {
           case (acc, (k, v)) =>
-            acc.flatMap(vector => convertValue(v, k.toString, vector, fieldsBuilder))
+            acc.flatMap(vector => convertValue(v, asAvroCompliantName(k.toString), vector, fieldsBuilder))
         }.map { fieldsAndValues =>
           val schema = fieldsBuilder.endRecord()
           val record = new Record(schema)
@@ -179,6 +179,8 @@ object MapDataConverter extends DataConverter[Map[_, _]] {
         }
     }
 
+  private def asAvroCompliantName(s: String): String =
+    s.map(c => if (c.isLetterOrDigit || c == '_') c else '_').mkString("")
 }
 
 case class FieldAndValue(field: String, value: AnyRef)
