@@ -7,11 +7,13 @@ import scala.jdk.CollectionConverters._
 
 class SchemaInferenceTest extends org.scalatest.funsuite.AnyFunSuite {
   test("Infers the schema of simple primitives") {
+    val nullValue: Any = null
     List(
-      "hi"  -> Schema.OPTIONAL_STRING_SCHEMA,
-      12L   -> Schema.OPTIONAL_INT64_SCHEMA,
-      15.2d -> Schema.OPTIONAL_FLOAT64_SCHEMA,
-      true  -> Schema.OPTIONAL_BOOLEAN_SCHEMA,
+      "hi"      -> Schema.OPTIONAL_STRING_SCHEMA,
+      12L       -> Schema.OPTIONAL_INT64_SCHEMA,
+      15.2d     -> Schema.OPTIONAL_FLOAT64_SCHEMA,
+      true      -> Schema.OPTIONAL_BOOLEAN_SCHEMA,
+      nullValue -> Schema.BYTES_SCHEMA, //sentinel value to represent nulls, omitted unless at the top level
     ).foreach {
       case (value, expectedSchema) =>
         assertResult(Some(expectedSchema))(SchemaInference(value))
@@ -59,5 +61,25 @@ class SchemaInferenceTest extends org.scalatest.funsuite.AnyFunSuite {
           .build(),
       ).build(),
     )(schema)
+  }
+
+  test("omits fields with a null value") {
+    val rawJson =
+      """
+        |{"hello": {"f1": true, "omit_me_iam_a_null_value": null}}
+        |""".stripMargin
+    val om     = new ObjectMapper()
+    val value  = om.readValue(rawJson, classOf[java.util.Map[String, AnyRef]])
+    val schema = SchemaInference(value).getOrElse(fail("some schema expected!"))
+
+    assertResult(
+      SchemaBuilder.struct().field(
+        "hello",
+        SchemaBuilder.struct()
+          .field("f1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+          .build(),
+      ).build(),
+    )(schema)
+
   }
 }

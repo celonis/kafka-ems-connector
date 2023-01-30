@@ -32,6 +32,8 @@ object SchemaInference {
       Some(Schema.OPTIONAL_FLOAT64_SCHEMA)
     case _: Double =>
       Some(Schema.OPTIONAL_FLOAT64_SCHEMA)
+    case null =>
+      Some(Schema.BYTES_SCHEMA) //sentinel value, will be omitted when recursing within a struct field
     case list: java.util.List[_] =>
       listSchema(list.asScala.toList)
     case innerMap: java.util.Map[_, _] =>
@@ -46,7 +48,10 @@ object SchemaInference {
     else
       values.toList.foldM(SchemaBuilder.struct()) {
         case (b, (key, value)) =>
-          SchemaInference(value).map(b.field(key.toString, _))
+          SchemaInference(value).map {
+            case Schema.BYTES_SCHEMA => b //omit fields with null values
+            case schema              => b.field(key.toString, schema)
+          }
       }.map(_.build())
 
   private def listSchema(values: List[_]): Option[Schema] =
