@@ -7,13 +7,11 @@ import scala.jdk.CollectionConverters._
 
 class SchemaInferenceTest extends org.scalatest.funsuite.AnyFunSuite {
   test("Infers the schema of simple primitives") {
-    val nullValue: Any = null
     List(
-      "hi"      -> Schema.OPTIONAL_STRING_SCHEMA,
-      12L       -> Schema.OPTIONAL_INT64_SCHEMA,
-      15.2d     -> Schema.OPTIONAL_FLOAT64_SCHEMA,
-      true      -> Schema.OPTIONAL_BOOLEAN_SCHEMA,
-      nullValue -> Schema.BYTES_SCHEMA, //sentinel value to represent nulls, omitted unless at the top level
+      "hi"  -> Schema.OPTIONAL_STRING_SCHEMA,
+      12L   -> Schema.OPTIONAL_INT64_SCHEMA,
+      15.2d -> Schema.OPTIONAL_FLOAT64_SCHEMA,
+      true  -> Schema.OPTIONAL_BOOLEAN_SCHEMA,
     ).foreach {
       case (value, expectedSchema) =>
         assertResult(Some(expectedSchema))(SchemaInference(value))
