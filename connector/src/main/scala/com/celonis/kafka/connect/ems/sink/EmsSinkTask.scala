@@ -256,7 +256,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         case (valueSchema, schemaIsInferred) =>
           //flatten the schema and then the record value
           val flatSchema = SchemaFlattener.flatten(valueSchema)
-          Flattener.flatten(value, flatSchema, schemaIsInferred)
+          Flattener.flatten(value, valueSchema, flatSchema, schemaIsInferred)
       }
     }
   }
