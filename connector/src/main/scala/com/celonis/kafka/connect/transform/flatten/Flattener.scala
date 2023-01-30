@@ -11,6 +11,7 @@ import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 
 import java.nio.charset.StandardCharsets
+import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 
 object Flattener extends LazyLogging {
@@ -27,6 +28,7 @@ object Flattener extends LazyLogging {
     */
   def flatten(
     value:            Any,
+    originalSchema:   Schema,
     flattenedSchema:  Schema,
     schemaIsInferred: Boolean = false,
   )(
@@ -40,7 +42,7 @@ object Flattener extends LazyLogging {
           structFields.flatMap(field => toFieldNodes(path :+ field.name(), value.get(field.name())))
 
         case value: java.util.Map[_, _] =>
-          if (schemaIsInferred && !fieldExists(flattenedSchema, path)) {
+          if (fieldExists(originalSchema, path.toList)) {
             value.asScala.toVector.flatMap {
               case (key, value) => toFieldNodes(path :+ key.toString, value)
             }
@@ -54,7 +56,7 @@ object Flattener extends LazyLogging {
       }
 
     //do nothing if top-level schema is not a record
-    if (flattenedSchema.`type` != Schema.Type.STRUCT)
+    if (originalSchema.`type` != Schema.Type.STRUCT)
       value
     else {
       config.jsonBlobChunks.fold {
@@ -97,10 +99,14 @@ object Flattener extends LazyLogging {
       Vector(FieldNode(path, json))
     }
 
-  private def fieldExists(schema: Schema, path: Seq[String]): Boolean = schema.`type`() match {
-    case Schema.Type.STRUCT => schema.field(path.mkString(pathDelimiter)) != null
-    case _                  => false
-  }
+  @tailrec
+  private def fieldExists(originalSchema: Schema, path: List[String]): Boolean =
+    path match {
+      case _ if originalSchema.`type` != Schema.Type.STRUCT   => false
+      case head :: tail if originalSchema.field(head) != null => fieldExists(originalSchema.field(head).schema(), tail)
+      case _ :: _                                             => false
+      case Nil                                                => true
+    }
 
   private def inferCollectionSchema(value: Any): Option[Schema] = value match {
     case value: java.util.Map[_, _] =>
