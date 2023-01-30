@@ -21,16 +21,13 @@ object Flattener extends LazyLogging {
     *
     * @param value A kafka connect record value
     * @param flattenedSchema a flattened schema (i.e. the representation of target record shape).
-    * @param schemaIsInferred when true, flattening function will treat incoming Map values as records,
-    *                         rather than simply json-encoding or dropping them.
     * @param config The flattener configuration.
     * @return
     */
   def flatten(
-    value:            Any,
-    originalSchema:   Schema,
-    flattenedSchema:  Schema,
-    schemaIsInferred: Boolean = false,
+    value:           Any,
+    originalSchema:  Schema,
+    flattenedSchema: Schema,
   )(
     implicit
     config: FlattenerConfig,
@@ -62,19 +59,13 @@ object Flattener extends LazyLogging {
       config.jsonBlobChunks.fold {
         val fields = toFieldNodes(Vector.empty, value)
 
-        if (schemaIsInferred)
-          hashMapFrom(fields)
-        else
-          structFrom(fields, flattenedSchema)
+        structFrom(fields, flattenedSchema)
 
       } { implicit blobConfig =>
         ChunkedJsonBlob.asConnectData(value)
       }
     }
   }
-
-  private def hashMapFrom(fields: Vector[FieldNode]): java.util.Map[String, Any] =
-    fields.map(fieldNode => fieldNode.pathAsString -> fieldNode.value).toMap.asJava
 
   private def structFrom(fields: Vector[FieldNode], flatSchema: Schema): Struct =
     fields.foldLeft(new Struct(flatSchema)) { (struct, field) =>

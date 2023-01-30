@@ -242,22 +242,23 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   }
 
   private def maybeFlattenValue(record: SinkRecord): Any = {
-    val value = record.value()
-    val valueSchema = Option(record.valueSchema()).map(_ -> false)
-      .orElse(SchemaInference(value).map(_ -> true))
+    val value       = record.value()
+    val valueSchema = Option(record.valueSchema()).orElse(SchemaInference(value))
 
     flattenerConfig.fold(value) { implicit config: FlattenerConfig =>
       //                 ^ do nothing if flattener is not enabled
       config.jsonBlobChunks.map { implicit chunksConfig: FlattenerConfig.JsonBlobChunks =>
         //when flattener and json-blob chunking are both enabled, encode the payload verbatim as JSON chunks
         ChunkedJsonBlob.asConnectData(value)
-      } getOrElse valueSchema.fold(value) {
-        //                         ^ do nothing if flattener is enabled but no schema has been provided or inferred.
-        case (valueSchema, schemaIsInferred) =>
-          //flatten the schema and then the record value
-          val flatSchema = SchemaFlattener.flatten(valueSchema)
-          Flattener.flatten(value, valueSchema, flatSchema, schemaIsInferred)
-      }
+      }.getOrElse(
+        valueSchema.fold(value) {
+          //                         ^ do nothing if flattener is enabled but no schema has been provided or inferred.
+          valueSchema =>
+            //flatten the schema and then the record value
+            val flatSchema = SchemaFlattener.flatten(valueSchema)
+            Flattener.flatten(value, valueSchema, flatSchema)
+        },
+      )
     }
   }
 
