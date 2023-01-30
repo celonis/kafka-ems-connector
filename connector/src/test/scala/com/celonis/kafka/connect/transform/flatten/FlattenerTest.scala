@@ -148,10 +148,7 @@ class FlattenerTest extends AnyFunSuite {
     ).asJava
 
     val result =
-      Flattener.flatten(jsonRecord, flatSchema, flatSchema, schemaIsInferred = true)(config).asInstanceOf[java.util.Map[
-        String,
-        Any,
-      ]]
+      Flattener.flatten(jsonRecord, flatSchema, flatSchema)(config).asInstanceOf[Struct]
 
     assertResult("""[{"a_bool":true,"a_long":33}]""")(result.get("an_array"))
     assertResult("""{"key":{"a_bool":true,"a_long":33}}""")(result.get("a_map"))
@@ -308,16 +305,14 @@ class FlattenerTest extends AnyFunSuite {
       .field("some_nested-map_one-more-level", Schema.OPTIONAL_BOOLEAN_SCHEMA)
       .build()
 
-    val expected = Map[String, Any](
-      "some_nested-string"             -> "a-string",
-      "some_nested-array"              -> """["a","b","c"]""",
-      "some_nested-map_one-more-level" -> true,
-    )
+    val expected = new Struct(flattenedSchema)
+
+    expected.put("some_nested-string", "a-string")
+    expected.put("some_nested-array", """["a","b","c"]""")
+    expected.put("some_nested-map_one-more-level", true)
 
     assertResult(expected)(
-      Flattener.flatten(nestedMap, schema, flattenedSchema, schemaIsInferred = true)(FlattenerConfig()).asInstanceOf[
-        java.util.Map[String, Any],
-      ].asScala.toMap,
+      Flattener.flatten(nestedMap, schema, flattenedSchema)(FlattenerConfig())
     )
   }
 
