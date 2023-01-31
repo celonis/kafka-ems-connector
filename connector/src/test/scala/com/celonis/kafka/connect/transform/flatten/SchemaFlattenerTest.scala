@@ -120,7 +120,7 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
     }
   }
 
-  test("generates a schema based on the configured jsonBlobChunks maxChunks value") {
+  ignore("generates a schema based on the configured jsonBlobChunks maxChunks value") {
     implicit val config =
       FlattenerConfig().copy(jsonBlobChunks = Some(JsonBlobChunks(chunks = 3, fallbackVarcharLength = 5)))
 

@@ -43,14 +43,14 @@ object SchemaFlattener {
         case STRUCT =>
           schema.fields().asScala.filterNot(_.discardCollectionAsPerConfig).foldLeft(SchemaBuilder.struct()) {
             (sb, field) =>
-              val fieldPath  = path :+ field.name()
-              val fieldName  = fieldNameFromPath(fieldPath)
-              val fieldValue = go(fieldPath)(field.schema())
+              val fieldPath   = path :+ field.name()
+              val fieldName   = fieldNameFromPath(fieldPath)
+              val fieldSchema = go(fieldPath)(field.schema())
 
-              if (fieldValue.`type`() == STRUCT)
-                sb.mergeFields(fieldValue)
+              if (fieldSchema.`type`() == STRUCT)
+                sb.mergeFields(fieldSchema)
               else
-                sb.field(fieldName, fieldValue)
+                sb.field(fieldName, fieldSchema)
 
           }.build()
 
@@ -58,9 +58,7 @@ object SchemaFlattener {
           throw new IllegalArgumentException(s"Unexpected schema type $other")
       }
 
-    config.jsonBlobChunks.fold(go(Vector.empty)(schema)) {
-      ChunkedJsonBlob.schema
-    }
+    go(Vector.empty)(schema)
   }
 
   private def asOptionalPrimitive(schema: Schema): Schema =
