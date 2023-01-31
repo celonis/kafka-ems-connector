@@ -11,61 +11,53 @@ import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 
 import java.nio.charset.StandardCharsets
-import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 
-object Flattener extends LazyLogging {
+final class Flattener(discardCollections: Boolean) extends LazyLogging {
 
   /**
     * Flattens a Kafka Connect record value
     *
     * @param value A kafka connect record value
-    * @param flattenedSchema a flattened schema (i.e. the representation of target record shape).
-    * @param config The flattener configuration.
     * @return
     */
-  def flatten(
-    value:           Any,
-    originalSchema:  Schema,
-    flattenedSchema: Schema,
-  )(
-    implicit
-    config: FlattenerConfig,
-  ): Any = {
-    def toFieldNodes(path: Seq[String], value: Any): Vector[FieldNode] =
-      value match {
-        case value: Struct =>
-          val structFields = value.schema.fields.asScala.toVector
-          structFields.flatMap(field => toFieldNodes(path :+ field.name(), value.get(field.name())))
-
-        case value: java.util.Map[_, _] =>
-          if (fieldExists(originalSchema, path.toList)) {
-            value.asScala.toVector.flatMap {
-              case (key, value) => toFieldNodes(path :+ key.toString, value)
-            }
-          } else discardOrJsonEncodeCollection(value, path)
-
-        case _: java.util.Collection[_] =>
-          discardOrJsonEncodeCollection(value, path)
-
-        case _ =>
-          Vector(FieldNode(path, value))
-      }
-
+  def flatten(value: Any, originalSchema: Schema): Any =
     //do nothing if top-level schema is not a record
     if (originalSchema.`type` != Schema.Type.STRUCT)
       value
     else {
-      config.jsonBlobChunks.fold {
-        val fields = toFieldNodes(Vector.empty, value)
-
-        structFrom(fields, flattenedSchema)
-
-      } { implicit blobConfig =>
-        ChunkedJsonBlob.asConnectData(value)
-      }
+      val fields = flattenFields(Vector.empty, originalSchema, value)
+      structFrom(fields, schemaFrom(fields))
     }
-  }
+
+  private def flattenFields(
+    path:   Seq[String],
+    schema: Schema,
+    value:  Any,
+  ): Vector[FieldNode] =
+    value match {
+      case value: Struct =>
+        val structFields = value.schema.fields.asScala.toVector
+        structFields.flatMap(field => flattenFields(path :+ field.name(), field.schema(), value.get(field.name())))
+
+      // Map as a struct
+      case value: java.util.Map[_, _] if schema.`type`() == Schema.Type.STRUCT =>
+        val structFields = schema.fields.asScala.toVector
+        structFields.flatMap {
+          field => flattenFields(path :+ field.name(), field.schema(), value.get(field.name()))
+        }
+
+      case _: java.util.Map[_, _] | _: java.util.Collection[_] =>
+        discardOrJsonEncodeCollection(value, path, schema)
+
+      case _ =>
+        Vector(FieldNode(path, value, schema))
+    }
+
+  private def schemaFrom(fields: Vector[FieldNode]): Schema =
+    fields.foldLeft(SchemaBuilder.struct()) { (builder, field) =>
+      builder.field(field.pathAsString, withOptionalPrimitives(field.schema))
+    }.build()
 
   private def structFrom(fields: Vector[FieldNode], flatSchema: Schema): Struct =
     fields.foldLeft(new Struct(flatSchema)) { (struct, field) =>
@@ -73,59 +65,56 @@ object Flattener extends LazyLogging {
       struct.put(fieldName, field.value)
     }
 
+  private def withOptionalPrimitives(schema: Schema): Schema =
+    schema.`type`() match {
+      case tpe if tpe.isPrimitive => new SchemaBuilder(tpe).optional().build()
+      case _                      => schema
+    }
+
   private def discardOrJsonEncodeCollection(
-    value: Any,
-    path:  Seq[String],
-  )(
-    implicit
-    config: FlattenerConfig,
+    value:  Any,
+    path:   Seq[String],
+    schema: Schema,
   ): Vector[FieldNode] =
-    if (config.discardCollections)
+    if (discardCollections)
       Vector.empty
     else {
-      val schema = inferCollectionSchema(value).orNull
-      val json = new String(ConnectJsonConverter.converter.fromConnectData(ConverterTopicName, schema, value),
-                            StandardCharsets.UTF_8,
+      val convertSchema = Some(schema).filter(_ => isCollectionOfStructs(value)).orNull
+      val json = new String(
+        ConnectJsonConverter.converter.fromConnectData(ConverterTopicName, convertSchema, value),
+        StandardCharsets.UTF_8,
       )
-      Vector(FieldNode(path, json))
+      Vector(FieldNode(path, json, Schema.OPTIONAL_STRING_SCHEMA))
     }
 
-  @tailrec
-  private def fieldExists(originalSchema: Schema, path: List[String]): Boolean =
-    path match {
-      case _ if originalSchema.`type` != Schema.Type.STRUCT   => false
-      case head :: tail if originalSchema.field(head) != null => fieldExists(originalSchema.field(head).schema(), tail)
-      case _ :: _                                             => false
-      case Nil                                                => true
-    }
-
-  private def inferCollectionSchema(value: Any): Option[Schema] = value match {
+  /**
+    * Weird hack due to the fact that the connect json converter does not handle `Map`s as structs.
+    */
+  private def isCollectionOfStructs(value: Any): Boolean = value match {
     case value: java.util.Map[_, _] =>
       value.asScala.collectFirst {
-        case (key, struct: Struct) =>
-          val keySchema = inferPrimitive(key).getOrElse(Schema.STRING_SCHEMA)
-          SchemaBuilder.map(keySchema, struct.schema()).build()
-      }
+        case (_, _: Struct) => ()
+      }.nonEmpty
 
     case value: java.util.Collection[_] =>
       value.asScala.collectFirst {
-        case struct: Struct => SchemaBuilder.array(struct.schema()).build()
-      }
-  }
-
-  private def inferPrimitive(v: Any): Option[Schema] = v match {
-    case _: String => Some(Schema.STRING_SCHEMA)
-    case _: Int    => Some(Schema.INT32_SCHEMA)
-    case _: Long   => Some(Schema.INT32_SCHEMA)
-    case _: Float | _: Double | _: BigDecimal => Some(Schema.FLOAT64_SCHEMA)
-    case _: Boolean     => Some(Schema.BOOLEAN_SCHEMA)
-    case _: Array[Byte] => Some(Schema.BYTES_SCHEMA)
-    case _ => None
+        case _: Struct => ()
+      }.nonEmpty
   }
 
   private val ConverterTopicName = "irrelevant-topic-name"
 
-  private case class FieldNode(path: Seq[String], value: Any) {
+  private case class FieldNode(path: Seq[String], value: Any, schema: Schema) {
     def pathAsString: String = path.mkString(pathDelimiter)
   }
+}
+
+object Flattener {
+  def flatten(
+    value:          Any,
+    originalSchema: Schema,
+  )(
+    implicit
+    config: FlattenerConfig,
+  ): Any = new Flattener(config.discardCollections).flatten(value, originalSchema)
 }
