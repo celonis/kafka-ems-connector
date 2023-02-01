@@ -22,12 +22,18 @@ final class Flattener(discardCollections: Boolean) extends LazyLogging {
     * @return
     */
   def flatten(value: Any, originalSchema: Schema): Any =
-    //do nothing if top-level schema is not a record
-    if (originalSchema.`type` != Schema.Type.STRUCT)
-      value
-    else {
-      val fields = flattenFields(Vector.empty, originalSchema, value)
-      structFrom(fields, schemaFrom(fields))
+    //do nothing if top-level schema is not a record{
+    {
+      val old =
+        if (originalSchema.`type` != Schema.Type.STRUCT)
+          value
+        else {
+          val fields = flattenFields(Vector.empty, originalSchema, value)
+          structFrom(fields, schemaFrom(fields))
+        }
+
+      println(old)
+      new Flattner(discardCollections).flatten(value, new SchemaFlattner(discardCollections).flatten(originalSchema))
     }
 
   private def flattenFields(

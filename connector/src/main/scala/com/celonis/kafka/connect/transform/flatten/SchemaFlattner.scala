@@ -7,6 +7,7 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 
+import java.nio.charset.StandardCharsets
 import scala.jdk.CollectionConverters._
 
 final class SchemaFlattner(discardCollections: Boolean) {
@@ -63,16 +64,59 @@ object SchemaFlattner {
   }
 }
 
-final class Flattenr {
+final class Flattner(discardCollections: Boolean) {
   def flatten(value: Any, flatSchema: FlatSchema): Any = {
     val schema = flatSchema.connectSchema
-    val struct = new Struct(schema)
-    flatSchema.fields.foreach(field => struct.put(field.path.name, field.path.extractValue(value)))
+
+    schema.`type`() match {
+      case Schema.Type.STRUCT =>
+        flatSchema.fields.foldLeft(new Struct(schema))(processField(value))
+      case _ => value
+    }
+  }
+
+  private def processField(value: Any)(struct: Struct, field: Field): Struct = {
+    val extractedValue = field.path.extractValue(value)
+    val fieldValue = extractedValue match {
+      case _: java.util.Map[_, _] | _: java.util.Collection[_] =>
+        jsonEncodeCollection(extractedValue, field.path.path, field.schema)
+      case _ => extractedValue
+    }
+    struct.put(field.path.name, fieldValue)
     struct
   }
-}
 
-object Flattenr {
-  case class FieldValue(path: Path, value: Any, schema: Schema)
+  private def jsonEncodeCollection(
+    value:  Any,
+    path:   Seq[String],
+    schema: Schema,
+  ): String = {
+    val convertSchema = schemaOfCollection(value).orNull
+    new String(
+      ConnectJsonConverter.converter.fromConnectData(ConverterTopicName, convertSchema, value),
+      StandardCharsets.UTF_8,
+    )
+  }
 
+  /**
+    * Weird hack due to the fact that the connect json converter does not handle `Map`s as structs.
+    * This should go once we are converting maps into structs upstream
+    */
+  private def schemaOfCollection(value: Any): Option[Schema] = value match {
+    case value: java.util.Map[_, _] =>
+      value.asScala.collectFirst {
+        case (_, struct: Struct) =>
+          SchemaBuilder.map(Schema.STRING_SCHEMA, struct.schema()).build()
+      }
+
+    case value: java.util.Collection[_] =>
+      value.asScala.collectFirst {
+        case struct: Struct =>
+          SchemaBuilder.array(struct.schema()).build()
+      }
+
+    case _ => None
+  }
+
+  private val ConverterTopicName = "irrelevant-topic-name"
 }
