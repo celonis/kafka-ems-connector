@@ -5,6 +5,7 @@ import com.celonis.kafka.connect.transform.FlattenerConfig.JsonBlobChunks
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 
 class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
@@ -49,6 +50,7 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
 
         withClue(s"expected schema fields ${expected.fields()} for primitive $primitiveSchema") {
           assertResult(expected) {
+            println(SchemaFlattener.flatten(schema).fields().asScala.toList)
             SchemaFlattener.flatten(schema)
           }
         }

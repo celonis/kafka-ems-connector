@@ -58,7 +58,8 @@ object SchemaFlattener {
           throw new IllegalArgumentException(s"Unexpected schema type $other")
       }
 
-    go(Vector.empty)(schema)
+    println(go(Vector.empty)(schema))
+    new SchemaFlattner(config.discardCollections).flatten(schema).connectSchema
   }
 
   private def asOptionalPrimitive(schema: Schema): Schema =
