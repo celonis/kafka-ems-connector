@@ -25,7 +25,7 @@ class FlattenerTest extends AnyFunSuite {
 
     primitives.foreach {
       case (primitive, schema) =>
-        val result = Flattener.flatten(primitive, schema)(config)
+        val result = flatten(primitive, schema)(config)
         assertResult(result)(primitive)
     }
   }
@@ -53,7 +53,7 @@ class FlattenerTest extends AnyFunSuite {
       .field("x_a_bool", SchemaBuilder.bool().optional().schema())
       .build()
 
-    val result = Flattener.flatten(struct, schema)(config).asInstanceOf[Struct]
+    val result = flatten(struct, schema)(config).asInstanceOf[Struct]
 
     assertResult(flatSchema)(result.schema())
     assertResult("hello")(result.get("a_string"))
@@ -87,7 +87,7 @@ class FlattenerTest extends AnyFunSuite {
 
     val mapper = new ObjectMapper()
 
-    val result = Flattener.flatten(struct, schema)(config).asInstanceOf[Struct]
+    val result = flatten(struct, schema)(config).asInstanceOf[Struct]
 
     assertResult(flatSchema)(result.schema())
 
@@ -124,7 +124,7 @@ class FlattenerTest extends AnyFunSuite {
       .field("a_map", Schema.OPTIONAL_STRING_SCHEMA)
       .build()
 
-    val result = Flattener.flatten(struct, schema)(config).asInstanceOf[Struct]
+    val result = flatten(struct, schema)(config).asInstanceOf[Struct]
     assertResult("""[{"a_bool":true,"a_long":33}]""")(result.get("an_array"))
     assertResult(flatSchema)(result.schema())
     assertResult("""{"key":{"a_bool":true,"a_long":33}}""")(result.get("a_map"))
@@ -159,7 +159,7 @@ class FlattenerTest extends AnyFunSuite {
       "a_map"    -> Map("key" -> nested).asJava,
     ).asJava
 
-    val result = Flattener.flatten(jsonRecord, schema)(config).asInstanceOf[Struct]
+    val result = flatten(jsonRecord, schema)(config).asInstanceOf[Struct]
 
     assertResult(flatSchema)(result.schema())
     assertResult("""[{"a_bool":true,"a_long":33}]""")(result.get("an_array"))
@@ -198,7 +198,7 @@ class FlattenerTest extends AnyFunSuite {
       .field("a_struct_a_bool", SchemaBuilder.bool().optional().build())
       .build()
 
-    val result = Flattener.flatten(struct, schema)(config).asInstanceOf[Struct]
+    val result = flatten(struct, schema)(config).asInstanceOf[Struct]
 
     assertResult(flatSchema)(result.schema())
     assertResult("hello")(result.get("a_string"))
@@ -228,7 +228,7 @@ class FlattenerTest extends AnyFunSuite {
       case TestData(label, value, schema) =>
         withClue(s"$label : $value") {
           assertResult(value) {
-            Flattener.flatten(value, schema)
+            flatten(value, schema)
           }
         }
     }
@@ -248,7 +248,7 @@ class FlattenerTest extends AnyFunSuite {
     struct.put("a_map", Map("hi" -> "there").asJava)
 
     // TODO Missing: , ChunkedJsonBlob.schema(config.jsonBlobChunks.get)
-    val result = Flattener.flatten(struct, schema).asInstanceOf[Struct]
+    val result = flatten(struct, schema).asInstanceOf[Struct]
 
     val om           = new ObjectMapper()
     val expectedJson = om.createObjectNode
@@ -283,7 +283,7 @@ class FlattenerTest extends AnyFunSuite {
     struct.put("a_map", Map("hi" -> "there").asJava)
 
     // TODO missing: ChunkedJsonBlob.schema(config.jsonBlobChunks.get),
-    assertThrows[ChunkedJsonBlob.MisconfiguredJsonBlobMaxChunks](Flattener.flatten(
+    assertThrows[ChunkedJsonBlob.MisconfiguredJsonBlobMaxChunks](flatten(
       struct,
       schema,
     ))
@@ -323,7 +323,10 @@ class FlattenerTest extends AnyFunSuite {
     expected.put("some_nested-array", """["a","b","c"]""")
     expected.put("some_nested-map_one-more-level", true)
 
-    assertResult(expected)(Flattener.flatten(nestedMap, schema)(FlattenerConfig()))
+    assertResult(expected)(flatten(nestedMap, schema)(FlattenerConfig()))
   }
+
+  private def flatten(value: Any, schema: Schema)(implicit config: FlattenerConfig): Any =
+    Flattener.flatten(value, new SchemaFlattener(config.discardCollections).flatten(schema))
 
 }
