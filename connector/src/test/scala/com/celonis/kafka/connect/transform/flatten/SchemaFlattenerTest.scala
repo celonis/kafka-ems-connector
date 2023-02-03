@@ -50,8 +50,8 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
 
         withClue(s"expected schema fields ${expected.fields()} for primitive $primitiveSchema") {
           assertResult(expected) {
-            println(SchemaFlattener.flatten(schema).fields().asScala.toList)
-            SchemaFlattener.flatten(schema)
+            println(flatten(schema).fields().asScala.toList)
+            flatten(schema)
           }
         }
     }
@@ -78,7 +78,7 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
       .build()
 
     assertResult(expected) {
-      SchemaFlattener.flatten(schema)
+      flatten(schema)
     }
   }
 
@@ -105,7 +105,7 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
       .build()
 
     assertResult(expected) {
-      SchemaFlattener.flatten(schema)
+      flatten(schema)
     }
   }
 
@@ -116,7 +116,7 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
       case (_, schema) =>
         withClue(s"expected $schema to be unchanged") {
           assertResult(schema) {
-            SchemaFlattener.flatten(schema)
+            flatten(schema)
           }
         }
     }
@@ -139,7 +139,10 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
       .build()
 
     assertResult(expected) {
-      SchemaFlattener.flatten(schema)
+      flatten(schema)
     }
   }
+
+  private def flatten(schema: Schema)(implicit config: FlattenerConfig): Schema =
+    new SchemaFlattener(config.discardCollections).flatten(schema).connectSchema
 }

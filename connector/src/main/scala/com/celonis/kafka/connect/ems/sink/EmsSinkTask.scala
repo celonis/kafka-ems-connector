@@ -36,11 +36,10 @@ import com.celonis.kafka.connect.ems.storage.Writer
 import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.Version
 import com.celonis.kafka.connect.transform.SchemaInference
-import com.celonis.kafka.connect.transform.flatten.ChunkedJsonBlob
-import com.celonis.kafka.connect.transform.flatten.Flattener
+import com.celonis.kafka.connect.transform.flatten.{ChunkedJsonBlob, Flattener, SchemaFlattener}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
-import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
+import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
@@ -61,7 +60,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
 
   private var maxRetries:          Int                       = 0
   private var retriesLeft:         Int                       = maxRetries
-  private var flattener:           Option[Flattener]         = Option.empty[Flattener]
+  private var schemaFlattener:           Option[SchemaFlattener]    = Option.empty[SchemaFlattener]
   private var chunkedJsonBlob:     Option[ChunkedJsonBlob]   = Option.empty[ChunkedJsonBlob]
   private var errorPolicy:         ErrorPolicy               = ErrorPolicy.Retry
   private var obfuscation:         Option[ObfuscationConfig] = None
@@ -111,7 +110,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     pksValidator    = new PrimaryKeysValidator(config.primaryKeys)
     obfuscation     = config.obfuscation
     orderField      = config.orderField
-    flattener       = config.flattenerConfig.map(_.discardCollections).map(new Flattener(_))
+    schemaFlattener       = config.flattenerConfig.map(_.discardCollections).map(new SchemaFlattener(_))
     chunkedJsonBlob = config.flattenerConfig.flatMap(_.jsonBlobChunks).map(new ChunkedJsonBlob(_))
   }
 
@@ -247,11 +246,11 @@ class EmsSinkTask extends SinkTask with StrictLogging {
 
     chunkedJsonBlob match {
       case Some(chunkedJsonBlob) => chunkedJsonBlob.asConnectData(value)
-      case None => flattener match {
+      case None => schemaFlattener match {
           case None => value
-          case Some(flattener) =>
+          case Some(schemaFlattener) =>
             valueSchema match {
-              case Some(valueSchema) => flattener.flatten(value, valueSchema)
+              case Some(valueSchema) => Flattener.flatten(value, schemaFlattener.flatten(valueSchema))
               case None              => value
             }
         }

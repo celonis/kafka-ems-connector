@@ -3,85 +3,55 @@
  */
 package com.celonis.kafka.connect.transform.flatten
 
-import com.celonis.kafka.connect.transform.FlattenerConfig
-import org.apache.kafka.connect.data.Schema.Type._
-import org.apache.kafka.connect.data.Field
+import com.celonis.kafka.connect.transform.flatten.SchemaFlattener.Field
+import com.celonis.kafka.connect.transform.flatten.SchemaFlattener.FlatSchema
+import com.celonis.kafka.connect.transform.flatten.SchemaFlattener.Path
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 
 import scala.jdk.CollectionConverters._
 
-object SchemaFlattener {
+final class SchemaFlattener(discardCollections: Boolean) {
+  def flatten(schema: Schema): FlatSchema = FlatSchema(flatten(Path.empty, schema))
 
-  private implicit class SchemaBuilderExt(sb: SchemaBuilder)(implicit config: FlattenerConfig) {
-    def mergeFields(schema: Schema): SchemaBuilder =
-      if (schema.`type`() != STRUCT)
-        sb
-      else
-        schema.fields().asScala.foldLeft(sb) { (sb, field) =>
-          sb.field(field.name(), field.schema())
-        }
-  }
-
-  private implicit class FieldExt(field: Field) {
-    def discardCollectionAsPerConfig(implicit config: FlattenerConfig): Boolean =
-      config.discardCollections && Set(MAP, ARRAY).contains(field.schema().`type`())
-  }
-
-  def flatten(schema: Schema)(implicit config: FlattenerConfig): Schema = {
-    def go(path: Vector[String])(schema: Schema): Schema =
-      schema.`type`() match {
-        case INT8 | INT16 | INT32 | INT64 | FLOAT32 | FLOAT64 | BOOLEAN | STRING | BYTES =>
-          asOptionalPrimitive(schema)
-
-        case ARRAY | MAP =>
-          if (path.isEmpty) //just return the original type if this is the top level object
-            schema
-          else
-            Schema.OPTIONAL_STRING_SCHEMA
-
-        case STRUCT =>
-          schema.fields().asScala.filterNot(_.discardCollectionAsPerConfig).foldLeft(SchemaBuilder.struct()) {
-            (sb, field) =>
-              val fieldPath   = path :+ field.name()
-              val fieldName   = fieldNameFromPath(fieldPath)
-              val fieldSchema = go(fieldPath)(field.schema())
-
-              if (fieldSchema.`type`() == STRUCT)
-                sb.mergeFields(fieldSchema)
-              else
-                sb.field(fieldName, fieldSchema)
-
-          }.build()
-
-        case other =>
-          throw new IllegalArgumentException(s"Unexpected schema type $other")
+  private def flatten(path: Path, schema: Schema): List[Field] = schema.`type`() match {
+    case Schema.Type.STRUCT => schema.fields().asScala.toList.flatMap {
+        field => flatten(path.append(field.name()), field.schema())
       }
 
-    println(go(Vector.empty)(schema))
-    new SchemaFlattner(config.discardCollections).flatten(schema).connectSchema
+    // At the top level, array and maps are returned unchanged (I don't think it is correct behaviour, here for BC)
+    case Schema.Type.ARRAY | Schema.Type.MAP if path.segments.isEmpty =>
+      List(Field(Path.empty, schema))
+
+    case Schema.Type.ARRAY | Schema.Type.MAP if discardCollections => Nil
+
+    // TODO: top level array and maps should be returned as they are
+    case Schema.Type.ARRAY | Schema.Type.MAP => List(Field(path, Schema.OPTIONAL_STRING_SCHEMA))
+
+    case primitive => List(Field(path, new SchemaBuilder(primitive).optional().build()))
+  }
+}
+
+object SchemaFlattener {
+  final case class FlatSchema(fields: List[Field]) {
+    def connectSchema: Schema =
+      fields match {
+        case field :: Nil if field.path.segments.isEmpty => field.schema
+        case _ =>
+          fields.foldLeft(SchemaBuilder.struct())((builder, field) =>
+            builder.field(field.path.name, field.schema),
+          ).build()
+      }
   }
 
-  private def asOptionalPrimitive(schema: Schema): Schema =
-    if (schema.isOptional || schema.`type`().isPrimitive)
-      primitiveOptionals.getOrElse(schema.`type`(), throw new IllegalArgumentException("Expected primitive"))
-    else
-      schema
+  final case class Field(path: Path, schema: Schema)
 
-  private val primitiveOptionals = Map(
-    INT8    -> Schema.OPTIONAL_INT8_SCHEMA,
-    INT16   -> Schema.OPTIONAL_INT16_SCHEMA,
-    INT32   -> Schema.OPTIONAL_INT32_SCHEMA,
-    INT64   -> Schema.OPTIONAL_INT64_SCHEMA,
-    FLOAT32 -> Schema.OPTIONAL_FLOAT32_SCHEMA,
-    FLOAT64 -> Schema.OPTIONAL_FLOAT64_SCHEMA,
-    BOOLEAN -> Schema.OPTIONAL_BOOLEAN_SCHEMA,
-    STRING  -> Schema.OPTIONAL_STRING_SCHEMA,
-    BYTES   -> Schema.OPTIONAL_BYTES_SCHEMA,
-  )
+  final case class Path(segments: Vector[String]) {
+    def name: String = segments.mkString("_")
+    def append(segment: String): Path = Path(segments :+ segment)
+  }
 
-  private[flatten] def fieldNameFromPath(path: Vector[String]) =
-    path.mkString(pathDelimiter)
-
-  private[flatten] val pathDelimiter = "_"
+  object Path {
+    val empty: Path = Path(Vector.empty)
+  }
 }
