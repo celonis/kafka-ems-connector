@@ -72,7 +72,7 @@ object StructFlattener extends {
       case head +: tail => value match {
           case value: Struct              => extractValue(value.get(head), Path(tail))
           case value: java.util.Map[_, _] => extractValue(value.get(head), Path(tail))
-          case _ => ???
+          case _ => throw new RuntimeException(s"Field values can only be extracted from Structs and Maps")
         }
       case _ => value
     }
