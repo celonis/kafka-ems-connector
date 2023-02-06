@@ -6,6 +6,17 @@ import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper
 import scala.jdk.CollectionConverters._
 
 class SchemaInferenceTest extends org.scalatest.funsuite.AnyFunSuite {
+  test("returns None when encountering an unexpected value") {
+    List[Any](
+      null,
+      Range(1, 10),
+      Iterator.continually(true),
+      (),
+    ).foreach {
+      case value =>
+        assertResult(None)(SchemaInference(value))
+    }
+  }
   test("Infers the schema of simple primitives") {
     List(
       "hi"  -> Schema.OPTIONAL_STRING_SCHEMA,
@@ -78,6 +89,6 @@ class SchemaInferenceTest extends org.scalatest.funsuite.AnyFunSuite {
           .build(),
       ).build(),
     )(schema)
-
   }
+
 }

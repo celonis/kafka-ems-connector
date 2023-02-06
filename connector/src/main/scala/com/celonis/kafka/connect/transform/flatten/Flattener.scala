@@ -46,7 +46,7 @@ object Flattener extends LazyLogging {
             }
           } else discardOrJsonEncodeCollection(value, path)
 
-        case _: java.util.Collection[_] =>
+        case _: java.util.List[_] =>
           discardOrJsonEncodeCollection(value, path)
 
         case _ =>
