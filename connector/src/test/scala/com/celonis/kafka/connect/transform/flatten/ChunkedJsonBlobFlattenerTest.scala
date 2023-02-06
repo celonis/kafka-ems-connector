@@ -1,13 +1,16 @@
 package com.celonis.kafka.connect.transform.flatten
 
 import com.celonis.kafka.connect.transform.FlattenerConfig.JsonBlobChunks
-import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 
 import scala.jdk.CollectionConverters._
 
 class ChunkedJsonBlobFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
-  test("encodes hashmaps as chunked JSON payload structs") {
+  test("chunk-encodes hashmaps") {
     implicit val config: JsonBlobChunks             = JsonBlobChunks(7, 5)
     val nested:          java.util.Map[String, Any] = Map("a_bool" -> true.asInstanceOf[Any]).asJava
     val javaMap = Map[String, Any](
@@ -32,6 +35,41 @@ class ChunkedJsonBlobFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
     assertResult(someString)(concatenated)
   }
 
+
+  test("chunk-encodes structs") {
+    val config = JsonBlobChunks(
+      chunks = 3,
+      fallbackVarcharLength = 20,
+    )
+
+    val flattener = new ChunkedJsonBlobFlattener(config)
+
+    val schema = SchemaBuilder.struct()
+      .field("a_string", SchemaBuilder.string().schema())
+      .field("a_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).schema())
+      .build()
+
+    val struct = new Struct(schema)
+    struct.put("a_string", "hello")
+    struct.put("a_map", Map("hi" -> "there").asJava)
+
+    // TODO Missing: , ChunkedJsonBlob.schema(config.jsonBlobChunks.get)
+    val result = flattener.flatten(struct, schema).asInstanceOf[Struct]
+
+    val om = new ObjectMapper()
+    val expectedJson = om.createObjectNode
+    expectedJson.put("a_string", "hello")
+    expectedJson.putObject("a_map").put("hi", "there")
+
+    val payload_chunks = (1 to 3).flatMap(n => Option(result.get(s"payload_chunk$n"))).mkString
+    val parsedPayload = om.readValue(payload_chunks, classOf[JsonNode])
+
+    assertResult(expectedJson)(parsedPayload)
+    assertResult(List("payload_chunk1", "payload_chunk2", "payload_chunk3"))(
+      result.schema().fields().asScala.map(_.name()),
+    )
+  }
+
   test("generates a schema based on the configured jsonBlobChunks maxChunks value") {
     val config          = JsonBlobChunks(chunks = 3, fallbackVarcharLength = 5)
     val flattener       = new ChunkedJsonBlobFlattener(config)
@@ -47,4 +85,28 @@ class ChunkedJsonBlobFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
       flattenedSchema
     }
   }
+
+  test("raises an error if maxChunks in JsonBlobChunkConfig is insufficient") {
+    val config = JsonBlobChunks(
+      chunks                = 3,
+      fallbackVarcharLength = 2,
+    ) //^ record byte size will be greater than 3*2 = 6 bytes!
+
+    val flattener = new ChunkedJsonBlobFlattener(config)
+
+    val schema = SchemaBuilder.struct()
+      .field("a_string", SchemaBuilder.string().schema())
+      .field("a_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).schema())
+      .build()
+
+    val struct = new Struct(schema)
+    struct.put("a_string", "hello")
+    struct.put("a_map", Map("hi" -> "there").asJava)
+
+    assertThrows[ChunkedJsonBlobFlattener.MisconfiguredJsonBlobMaxChunks](flattener.flatten(
+      struct,
+      schema,
+    ))
+  }
+
 }
