@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 
-object Flattener {
+object ValueFlattener {
   def flatten(value: Any, flatSchema: FlatSchema): Any = {
     val schema = flatSchema.connectSchema
 

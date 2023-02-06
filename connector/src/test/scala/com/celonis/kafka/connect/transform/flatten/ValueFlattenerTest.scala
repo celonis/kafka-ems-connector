@@ -13,7 +13,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
-class FlattenerTest extends AnyFunSuite {
+class ValueFlattenerTest extends AnyFunSuite {
   val config: FlattenerConfig = FlattenerConfig()
 
   test("do nothing on a primitive") {
@@ -327,6 +327,6 @@ class FlattenerTest extends AnyFunSuite {
   }
 
   private def flatten(value: Any, schema: Schema)(implicit config: FlattenerConfig): Any =
-    Flattener.flatten(value, new SchemaFlattener(config.discardCollections).flatten(schema))
+    ValueFlattener.flatten(value, new SchemaFlattener(config.discardCollections).flatten(schema))
 
 }

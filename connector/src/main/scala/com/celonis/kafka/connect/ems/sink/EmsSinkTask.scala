@@ -36,7 +36,7 @@ import com.celonis.kafka.connect.ems.storage.Writer
 import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.Version
 import com.celonis.kafka.connect.transform.SchemaInference
-import com.celonis.kafka.connect.transform.flatten.{ChunkedJsonBlob, Flattener, SchemaFlattener}
+import com.celonis.kafka.connect.transform.flatten.{ChunkedJsonBlob, ValueFlattener, SchemaFlattener}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
@@ -250,7 +250,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
           case None => value
           case Some(schemaFlattener) =>
             valueSchema match {
-              case Some(valueSchema) => Flattener.flatten(value, schemaFlattener.flatten(valueSchema))
+              case Some(valueSchema) => ValueFlattener.flatten(value, schemaFlattener.flatten(valueSchema))
               case None              => value
             }
         }
