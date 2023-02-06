@@ -8,9 +8,7 @@ trait Flattener {
 }
 
 object Flattener {
-  val noOpFlattener: Flattener = new Flattener {
-    override def flatten(value: Any, schema: Schema): Any = value
-  }
+  val noOpFlattener: Flattener = (value: Any, schema: Schema) => value
 
   def fromConfig(config: Option[FlattenerConfig]): Flattener =
     config match {
