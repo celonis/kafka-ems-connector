@@ -11,7 +11,7 @@ import org.apache.kafka.connect.data.Struct
 
 import java.nio.charset.StandardCharsets
 
-final class ChunkedJsonBlobFlattener(config: JsonBlobChunks) extends Flattener {
+private final class ChunkedJsonBlobFlattener(config: JsonBlobChunks) extends Flattener {
   def flatten(value: Any, originalSchema: Schema): Struct = {
     val FlattenerConfig.JsonBlobChunks(maxChunks, emsVarcharLength) = config
 
@@ -38,7 +38,7 @@ final class ChunkedJsonBlobFlattener(config: JsonBlobChunks) extends Flattener {
   private val jacksonMapper = new ObjectMapper()
 }
 
-object ChunkedJsonBlobFlattener {
+private object ChunkedJsonBlobFlattener {
   case class MisconfiguredJsonBlobMaxChunks(configuredChunksSize: Int, blobByteSize: Int, emsVarcharLength: Int)
       extends Throwable {
     override def getMessage: String =

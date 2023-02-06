@@ -11,7 +11,7 @@ import org.apache.kafka.connect.data.SchemaBuilder
 
 import scala.jdk.CollectionConverters._
 
-final class SchemaFlattener(discardCollections: Boolean) {
+private final class SchemaFlattener(discardCollections: Boolean) {
   def flatten(schema: Schema): FlatSchema = FlatSchema(flatten(Path.empty, schema))
 
   private def flatten(path: Path, schema: Schema): List[Field] = schema.`type`() match {
@@ -32,7 +32,7 @@ final class SchemaFlattener(discardCollections: Boolean) {
   }
 }
 
-object SchemaFlattener {
+private object SchemaFlattener {
   final case class FlatSchema(fields: List[Field]) {
     def connectSchema: Schema =
       fields match {
