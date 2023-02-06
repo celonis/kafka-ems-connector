@@ -13,7 +13,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
-class ValueFlattenerTest extends AnyFunSuite {
+class StructFlattenerTest extends AnyFunSuite {
   val config: FlattenerConfig = FlattenerConfig()
 
   test("do nothing on a primitive") {
@@ -283,7 +283,7 @@ class ValueFlattenerTest extends AnyFunSuite {
     struct.put("a_map", Map("hi" -> "there").asJava)
 
     // TODO missing: ChunkedJsonBlob.schema(config.jsonBlobChunks.get),
-    assertThrows[ChunkedJsonBlob.MisconfiguredJsonBlobMaxChunks](flatten(
+    assertThrows[ChunkedJsonBlobFlattener.MisconfiguredJsonBlobMaxChunks](flatten(
       struct,
       schema,
     ))
@@ -327,6 +327,6 @@ class ValueFlattenerTest extends AnyFunSuite {
   }
 
   private def flatten(value: Any, schema: Schema)(implicit config: FlattenerConfig): Any =
-    ValueFlattener.flatten(value, new SchemaFlattener(config.discardCollections).flatten(schema))
+    StructFlattener.flatten(value, new SchemaFlattener(config.discardCollections).flatten(schema))
 
 }

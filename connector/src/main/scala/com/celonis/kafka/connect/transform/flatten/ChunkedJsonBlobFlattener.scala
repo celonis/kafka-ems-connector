@@ -3,7 +3,7 @@ package com.celonis.kafka.connect.transform.flatten
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_KEY
 import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.celonis.kafka.connect.transform.FlattenerConfig.JsonBlobChunks
-import com.celonis.kafka.connect.transform.flatten.ChunkedJsonBlob.MisconfiguredJsonBlobMaxChunks
+import com.celonis.kafka.connect.transform.flatten.ChunkedJsonBlobFlattener.MisconfiguredJsonBlobMaxChunks
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
@@ -11,9 +11,8 @@ import org.apache.kafka.connect.data.Struct
 
 import java.nio.charset.StandardCharsets
 
-final class ChunkedJsonBlob(config: JsonBlobChunks) {
-
-  def asConnectData(value: Any): Struct = {
+final class ChunkedJsonBlobFlattener(config: JsonBlobChunks) extends Flattener {
+  def flatten(value: Any, originalSchema: Schema): Struct = {
     val FlattenerConfig.JsonBlobChunks(maxChunks, emsVarcharLength) = config
 
     val jsonBlobBytes = value match {
@@ -39,7 +38,7 @@ final class ChunkedJsonBlob(config: JsonBlobChunks) {
   private val jacksonMapper = new ObjectMapper()
 }
 
-object ChunkedJsonBlob {
+object ChunkedJsonBlobFlattener {
   case class MisconfiguredJsonBlobMaxChunks(configuredChunksSize: Int, blobByteSize: Int, emsVarcharLength: Int)
       extends Throwable {
     override def getMessage: String =
@@ -47,5 +46,5 @@ object ChunkedJsonBlob {
   }
 
   def asConnectData(value: Any)(implicit config: JsonBlobChunks): Struct =
-    new ChunkedJsonBlob(config).asConnectData(value)
+    new ChunkedJsonBlobFlattener(config).flatten(value, Schema.BYTES_SCHEMA)
 }
