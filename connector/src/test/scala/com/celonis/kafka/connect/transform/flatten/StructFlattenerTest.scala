@@ -1,12 +1,7 @@
 package com.celonis.kafka.connect.transform.flatten
 
-import com.celonis.kafka.connect.transform.FlattenerConfig
-import com.celonis.kafka.connect.transform.FlattenerConfig.JsonBlobChunks
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.SchemaBuilder
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.DataException
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -14,7 +9,6 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
 class StructFlattenerTest extends AnyFunSuite {
-  val config: FlattenerConfig = FlattenerConfig()
 
   test("do nothing on a primitive") {
     val primitives = Map[Any, Schema](
@@ -25,7 +19,7 @@ class StructFlattenerTest extends AnyFunSuite {
 
     primitives.foreach {
       case (primitive, schema) =>
-        val result = flatten(primitive, schema)(config)
+        val result = flatten(primitive, schema)
         assertResult(result)(primitive)
     }
   }
@@ -53,7 +47,7 @@ class StructFlattenerTest extends AnyFunSuite {
       .field("x_a_bool", SchemaBuilder.bool().optional().schema())
       .build()
 
-    val result = flatten(struct, schema)(config).asInstanceOf[Struct]
+    val result = flatten(struct, schema).asInstanceOf[Struct]
 
     assertResult(flatSchema)(result.schema())
     assertResult("hello")(result.get("a_string"))
@@ -87,7 +81,7 @@ class StructFlattenerTest extends AnyFunSuite {
 
     val mapper = new ObjectMapper()
 
-    val result = flatten(struct, schema)(config).asInstanceOf[Struct]
+    val result = flatten(struct, schema).asInstanceOf[Struct]
 
     assertResult(flatSchema)(result.schema())
 
@@ -124,7 +118,7 @@ class StructFlattenerTest extends AnyFunSuite {
       .field("a_map", Schema.OPTIONAL_STRING_SCHEMA)
       .build()
 
-    val result = flatten(struct, schema)(config).asInstanceOf[Struct]
+    val result = flatten(struct, schema).asInstanceOf[Struct]
     assertResult("""[{"a_bool":true,"a_long":33}]""")(result.get("an_array"))
     assertResult(flatSchema)(result.schema())
     assertResult("""{"key":{"a_bool":true,"a_long":33}}""")(result.get("a_map"))
@@ -159,7 +153,7 @@ class StructFlattenerTest extends AnyFunSuite {
       "a_map"    -> Map("key" -> nested).asJava,
     ).asJava
 
-    val result = flatten(jsonRecord, schema)(config).asInstanceOf[Struct]
+    val result = flatten(jsonRecord, schema).asInstanceOf[Struct]
 
     assertResult(flatSchema)(result.schema())
     assertResult("""[{"a_bool":true,"a_long":33}]""")(result.get("an_array"))
@@ -167,8 +161,6 @@ class StructFlattenerTest extends AnyFunSuite {
   }
 
   test("drops arrays/maps when 'discardCollections' is set") {
-    val config: FlattenerConfig = FlattenerConfig().copy(discardCollections = true)
-
     val nestedSchema = SchemaBuilder.struct().name("AStruct")
       .field("a_nested_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).build())
       .field("a_nested_array", SchemaBuilder.array(SchemaBuilder.string()).build())
@@ -198,7 +190,7 @@ class StructFlattenerTest extends AnyFunSuite {
       .field("a_struct_a_bool", SchemaBuilder.bool().optional().build())
       .build()
 
-    val result = flatten(struct, schema)(config).asInstanceOf[Struct]
+    val result = flatten(struct, schema, true).asInstanceOf[Struct]
 
     assertResult(flatSchema)(result.schema())
     assertResult("hello")(result.get("a_string"))
@@ -210,7 +202,6 @@ class StructFlattenerTest extends AnyFunSuite {
   }
 
   test("leaves top level collections untouched when 'discardCollections' is set") {
-    implicit val config: FlattenerConfig = FlattenerConfig().copy(discardCollections = true)
     case class TestData(label: String, value: AnyRef, flattenedSchema: Schema)
 
     val mapValue:   java.util.Map[String, Int] = mutable.HashMap("x" -> 22).asJava
@@ -228,65 +219,10 @@ class StructFlattenerTest extends AnyFunSuite {
       case TestData(label, value, schema) =>
         withClue(s"$label : $value") {
           assertResult(value) {
-            flatten(value, schema)
+            flatten(value, schema, true)
           }
         }
     }
-  }
-
-  ignore("serialises a records into multiple JSON chunks when JsonBlobChunks config is set") {
-    implicit val config: FlattenerConfig =
-      FlattenerConfig().copy(jsonBlobChunks = Some(JsonBlobChunks(chunks = 3, fallbackVarcharLength = 20)))
-
-    val schema = SchemaBuilder.struct()
-      .field("a_string", SchemaBuilder.string().schema())
-      .field("a_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).schema())
-      .build()
-
-    val struct = new Struct(schema)
-    struct.put("a_string", "hello")
-    struct.put("a_map", Map("hi" -> "there").asJava)
-
-    // TODO Missing: , ChunkedJsonBlob.schema(config.jsonBlobChunks.get)
-    val result = flatten(struct, schema).asInstanceOf[Struct]
-
-    val om           = new ObjectMapper()
-    val expectedJson = om.createObjectNode
-    expectedJson.put("a_string", "hello")
-    expectedJson.putObject("a_map").put("hi", "there")
-
-    val payload_chunks = (1 to 3).flatMap(n => Option(result.get(s"payload_chunk$n"))).mkString
-    val parsedPayload  = om.readValue(payload_chunks, classOf[JsonNode])
-
-    assertResult(expectedJson)(parsedPayload)
-    assertResult(List("payload_chunk1", "payload_chunk2", "payload_chunk3"))(
-      result.schema().fields().asScala.map(_.name()),
-    )
-  }
-  ignore("raises an error if maxChunks in JsonBlobChunkConfig is insufficient") {
-    implicit val config: FlattenerConfig = {
-      FlattenerConfig().copy(
-        jsonBlobChunks = Some(JsonBlobChunks(
-          chunks                = 3,
-          fallbackVarcharLength = 2,
-        )), //^ record byte size will be greater than 3*2 = 6 bytes!
-      )
-    }
-
-    val schema = SchemaBuilder.struct()
-      .field("a_string", SchemaBuilder.string().schema())
-      .field("a_map", SchemaBuilder.map(SchemaBuilder.string(), SchemaBuilder.string()).schema())
-      .build()
-
-    val struct = new Struct(schema)
-    struct.put("a_string", "hello")
-    struct.put("a_map", Map("hi" -> "there").asJava)
-
-    // TODO missing: ChunkedJsonBlob.schema(config.jsonBlobChunks.get),
-    assertThrows[ChunkedJsonBlobFlattener.MisconfiguredJsonBlobMaxChunks](flatten(
-      struct,
-      schema,
-    ))
   }
 
   test("when the schema is inferred, flattens nested maps instead than json-encoding them") {
@@ -323,10 +259,10 @@ class StructFlattenerTest extends AnyFunSuite {
     expected.put("some_nested-array", """["a","b","c"]""")
     expected.put("some_nested-map_one-more-level", true)
 
-    assertResult(expected)(flatten(nestedMap, schema)(FlattenerConfig()))
+    assertResult(expected)(flatten(nestedMap, schema))
   }
 
-  private def flatten(value: Any, schema: Schema)(implicit config: FlattenerConfig): Any =
-    StructFlattener.flatten(value, new SchemaFlattener(config.discardCollections).flatten(schema))
+  private def flatten(value: Any, schema: Schema, discardCollections: Boolean = false): Any =
+    StructFlattener.flatten(value, new SchemaFlattener(discardCollections).flatten(schema))
 
 }

@@ -11,12 +11,12 @@ import java.nio.charset.StandardCharsets
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 
-final class StructFlattener(schemaFlattener: SchemaFlattener) extends Flattener {
+private final class StructFlattener(schemaFlattener: SchemaFlattener) extends Flattener {
   override def flatten(value: Any, schema: Schema): Any =
     StructFlattener.flatten(value, schemaFlattener.flatten(schema))
 }
 
-object StructFlattener extends {
+private object StructFlattener {
   def flatten(value: Any, flatSchema: FlatSchema): Any = {
     val schema = flatSchema.connectSchema
 

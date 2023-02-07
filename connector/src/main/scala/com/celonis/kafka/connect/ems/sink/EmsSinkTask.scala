@@ -38,6 +38,7 @@ import com.celonis.kafka.connect.ems.utils.Version
 import com.celonis.kafka.connect.transform.SchemaInference
 import com.celonis.kafka.connect.transform.fields.FieldInserter
 import com.celonis.kafka.connect.transform.fields.PartitionOffset
+import com.celonis.kafka.connect.transform.SchemaInference.ValueAndSchema
 import com.celonis.kafka.connect.transform.flatten.Flattener
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -249,10 +250,13 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   }
 
   private def maybeFlattenValue(record: SinkRecord): Any = {
-    val value       = record.value()
-    val valueSchema = Option(record.valueSchema()).orElse(SchemaInference(value)).getOrElse(Schema.BYTES_SCHEMA)
+    val value = record.value()
+    val valueAndSchema = Option(record.valueSchema()) match {
+      case Some(valueSchema) => ValueAndSchema(value, valueSchema)
+      case None              => SchemaInference(value).getOrElse(ValueAndSchema(value, Schema.BYTES_SCHEMA))
+    }
 
-    flattener.flatten(value, valueSchema)
+    flattener.flatten(valueAndSchema.normalisedValue, valueAndSchema.schema)
   }
 
   private def maybeSetErrorInterval(config: EmsSinkConfig): Unit =
