@@ -44,7 +44,4 @@ private object ChunkedJsonBlobFlattener {
     override def getMessage: String =
       s"Configured value ${configuredChunksSize} for ${FLATTENER_JSONBLOB_CHUNKS_KEY} is insufficient! Current JSON blob length: $blobByteSize, Ems VARCHAR Length: ${emsVarcharLength}."
   }
-
-  def asConnectData(value: Any)(implicit config: JsonBlobChunks): Struct =
-    new ChunkedJsonBlobFlattener(config).flatten(value, Schema.BYTES_SCHEMA)
 }
