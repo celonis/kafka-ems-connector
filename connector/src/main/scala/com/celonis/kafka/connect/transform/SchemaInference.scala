@@ -32,6 +32,8 @@ object SchemaInference {
       Some(Schema.OPTIONAL_FLOAT64_SCHEMA)
     case _: Double =>
       Some(Schema.OPTIONAL_FLOAT64_SCHEMA)
+    case _: Array[Byte] =>
+      Some(Schema.OPTIONAL_BYTES_SCHEMA)
     case list: java.util.List[_] =>
       listSchema(list.asScala.toList)
     case innerMap: java.util.Map[_, _] =>
@@ -46,7 +48,10 @@ object SchemaInference {
     else
       values.toList.foldM(SchemaBuilder.struct()) {
         case (b, (key, value)) =>
-          SchemaInference(value).map(b.field(key.toString, _))
+          if (value == null)
+            Some(b)
+          else
+            SchemaInference(value).map(b.field(key.toString, _))
       }.map(_.build())
 
   private def listSchema(values: List[_]): Option[Schema] =

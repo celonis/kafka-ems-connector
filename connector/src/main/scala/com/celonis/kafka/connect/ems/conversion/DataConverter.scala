@@ -167,7 +167,10 @@ object MapDataConverter extends DataConverter[Map[_, _]] {
       map.toList.sortBy(_._1.toString)
         .foldLeft(Vector.empty[FieldAndValue].asRight[Throwable]) {
           case (acc, (k, v)) =>
-            acc.flatMap(vector => convertValue(v, asAvroCompliantName(k.toString), vector, fieldsBuilder))
+            //omit null fields
+            Option(v).fold(acc) { v =>
+              acc.flatMap(vector => convertValue(v, asAvroCompliantName(k.toString), vector, fieldsBuilder))
+            }
         }.map { fieldsAndValues =>
           val schema = fieldsBuilder.endRecord()
           val record = new Record(schema)
