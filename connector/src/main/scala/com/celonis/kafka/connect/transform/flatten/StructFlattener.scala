@@ -16,7 +16,7 @@ private final class StructFlattener(schemaFlattener: SchemaFlattener) extends Fl
     StructFlattener.flatten(value, schemaFlattener.flatten(schema))
 }
 
-private object StructFlattener extends {
+private object StructFlattener {
   def flatten(value: Any, flatSchema: FlatSchema): Any = {
     val schema = flatSchema.connectSchema
 
