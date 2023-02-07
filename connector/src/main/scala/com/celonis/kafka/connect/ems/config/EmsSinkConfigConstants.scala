@@ -167,4 +167,8 @@ object EmsSinkConfigConstants {
     "Encodes the record into a JSON blob broken down into N VARCHAR fields (e.g. `payload_chunk1`, `payload_chunk2`, `...`, `payload_chunkN`)."
   val FLATTENER_JSONBLOB_CHUNKS_DEFAULT = null
 
+  val INCLUDE_PARTITION_OFFSET_KEY     = s"${CONNECTOR_PREFIX}.include.fields.partition-offset"
+  val INCLUDE_PARTITION_OFFSET_DOC     = "Include partition/offset data as additional record fields."
+  val INCLUDE_PARTITION_OFFSET_DEFAULT = false
+
 }

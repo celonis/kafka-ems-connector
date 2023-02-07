@@ -74,6 +74,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         ExplodeConfig.None,
         OrderFieldConfig(OrderFieldInserter.FieldName.some, OrderFieldInserter),
         None,
+        false,
       )
       val config = Map(
         ENDPOINT_KEY                -> sinkConfig.url.toString,
