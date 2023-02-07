@@ -11,13 +11,14 @@ import scala.jdk.CollectionConverters._
 
 class ChunkedJsonBlobFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
   test("chunk-encodes hashmaps") {
-    implicit val config: JsonBlobChunks             = JsonBlobChunks(7, 5)
-    val nested:          java.util.Map[String, Any] = Map("a_bool" -> true.asInstanceOf[Any]).asJava
+    val config: JsonBlobChunks = JsonBlobChunks(7, 5)
+    val flattener = new ChunkedJsonBlobFlattener(config)
+    val nested: java.util.Map[String, Any] = Map("a_bool" -> true.asInstanceOf[Any]).asJava
     val javaMap = Map[String, Any](
       "a_nested_map" -> nested,
     ).asJava
 
-    val connectValue = ChunkedJsonBlobFlattener.asConnectData(javaMap)
+    val connectValue = flattener.flatten(javaMap, Schema.BYTES_SCHEMA) // Schema is not used by the flattener
     val concatenated = (1 to config.chunks).map(n => connectValue.get(s"payload_chunk$n")).mkString("")
 
     val om           = new ObjectMapper()
@@ -29,16 +30,16 @@ class ChunkedJsonBlobFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
 
   test("chunk-encodes strings") {
     implicit val config: JsonBlobChunks = JsonBlobChunks(2, 10)
+    val flattener = new ChunkedJsonBlobFlattener(config)
     val someString   = ('a' to 'z').take(10).mkString("")
-    val connectValue = ChunkedJsonBlobFlattener.asConnectData(someString)
+    val connectValue = flattener.flatten(someString, Schema.STRING_SCHEMA)
     val concatenated = (1 to config.chunks).flatMap(n => Option(connectValue.get(s"payload_chunk$n"))).mkString("")
     assertResult(someString)(concatenated)
   }
 
-
   test("chunk-encodes structs") {
     val config = JsonBlobChunks(
-      chunks = 3,
+      chunks                = 3,
       fallbackVarcharLength = 20,
     )
 
@@ -56,13 +57,13 @@ class ChunkedJsonBlobFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
     // TODO Missing: , ChunkedJsonBlob.schema(config.jsonBlobChunks.get)
     val result = flattener.flatten(struct, schema).asInstanceOf[Struct]
 
-    val om = new ObjectMapper()
+    val om           = new ObjectMapper()
     val expectedJson = om.createObjectNode
     expectedJson.put("a_string", "hello")
     expectedJson.putObject("a_map").put("hi", "there")
 
     val payload_chunks = (1 to 3).flatMap(n => Option(result.get(s"payload_chunk$n"))).mkString
-    val parsedPayload = om.readValue(payload_chunks, classOf[JsonNode])
+    val parsedPayload  = om.readValue(payload_chunks, classOf[JsonNode])
 
     assertResult(expectedJson)(parsedPayload)
     assertResult(List("payload_chunk1", "payload_chunk2", "payload_chunk3"))(
