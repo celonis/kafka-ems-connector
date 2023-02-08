@@ -17,9 +17,10 @@
 package com.celonis.kafka.connect.ems.conversion
 import cats.data.NonEmptySeq
 import com.celonis.kafka.connect.ems.storage.formats.ListExploder
+//import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.generic.GenericRecord
-import org.apache.avro.{ Schema => AvroSchema }
+import org.apache.avro.{Schema => AvroSchema}
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
@@ -63,7 +64,7 @@ class AvroDataConverterTests extends AnyFunSuite with Matchers {
       .put("map", Collections.singletonMap("field", 1))
       .put("mapNonStringKeys", Collections.singletonMap(1, 1))
 
-    val gr = DataConverter.apply(struct).getOrElse(fail("should convert"))
+    val gr = DataConverter(struct).getOrElse(fail("should convert"))
     gr.getSchema.getField("int8").schema().getType shouldBe AvroSchema.Type.INT
     gr.get("int8") shouldBe 8.toByte
 

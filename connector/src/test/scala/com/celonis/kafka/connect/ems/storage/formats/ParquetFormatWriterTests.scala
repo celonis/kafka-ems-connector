@@ -25,6 +25,7 @@ import com.celonis.kafka.connect.ems.storage.FileSystem
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
 import com.celonis.kafka.connect.ems.storage.SampleData
 import com.celonis.kafka.connect.ems.storage.WorkingDirectory
+import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue
 import io.circe.syntax.EncoderOps
 import org.apache.kafka.connect.json.JsonConverterConfig
 import org.scalatest.funsuite.AnyFunSuite
@@ -94,8 +95,9 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
                       Map("key" -> 1),
         )
       val schemaAndValue = converter.toConnectData("topic", entry.asJson.noSpaces.getBytes)
-
-      val struct = DataConverter.apply(schemaAndValue.value()).getOrElse(fail("Should convert the map"))
+      // Schemaless json go through normalisation
+      val normalisedValue =  InferSchemaAndNormaliseValue(schemaAndValue.value()).get.normalisedValue
+      val struct =  DataConverter.apply(normalisedValue).getOrElse(fail("Should convert the map"))
       val formatWriter =
         ParquetFormatWriter.from(output, struct.getSchema, ParquetConfig.Default, new NoOpExploder().explode)
       formatWriter.write(struct)
