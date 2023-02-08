@@ -37,8 +37,7 @@ object DataConverter {
   def apply(value: Any): Either[Throwable, GenericRecord] =
     value match {
       case struct: Struct              => StructDataConverter.convert(struct)
-      case map:    Map[_, _]           => MapDataConverter.convert(map)
-      case map:    java.util.Map[_, _] => MapDataConverter.convert(map.asScala.toMap)
+      case map:    java.util.Map[_, _] => MapDataConverter.convert(map)
       case other =>
         InvalidInputException(
           s"Invalid input received. To write the data to Parquet files the input needs to be an Object but found:${other.getClass.getCanonicalName}.",
@@ -52,8 +51,8 @@ object StructDataConverter extends DataConverter[Struct] {
     Try(avroDataConverter.fromConnectData(struct.schema(), struct)).map(_.asInstanceOf[GenericRecord]).toEither
 }
 
-object MapDataConverter extends DataConverter[Map[_, _]] {
-  override def convert(map: Map[_, _]): Either[Throwable, GenericRecord] = convert(map, "root")
+object MapDataConverter extends DataConverter[java.util.Map[_, _]] {
+  override def convert(map: java.util.Map[_, _]): Either[Throwable, GenericRecord] = convert(map, "root")
 
   private def convertValue(
     value:         Any,
@@ -90,18 +89,7 @@ object MapDataConverter extends DataConverter[Map[_, _]] {
             fieldsBuilder.name(key).`type`(schema).noDefault()
             vector :+ FieldAndValue(key, value)
         }
-      case list: List[_] =>
-        createSchema(list).map {
-          case (schema, value) =>
-            fieldsBuilder.name(key).`type`(schema).noDefault()
-            vector :+ FieldAndValue(key, value)
-        }
       case innerMap: java.util.Map[_, _] =>
-        convert(innerMap.asScala.toMap, key).map { innerStruct =>
-          fieldsBuilder.name(key).`type`(SchemaBuilder.builder().nullable().`type`(innerStruct.getSchema)).noDefault()
-          vector :+ FieldAndValue(key, innerStruct)
-        }
-      case innerMap: Map[_, _] =>
         convert(innerMap, key).map { innerStruct =>
           fieldsBuilder.name(key).`type`(SchemaBuilder.builder().nullable().`type`(innerStruct.getSchema)).noDefault()
           vector :+ FieldAndValue(key, innerStruct)
@@ -156,7 +144,7 @@ object MapDataConverter extends DataConverter[Map[_, _]] {
         ).asLeft
     }
 
-  private def convert(map: Map[_, _], key: String): Either[Throwable, GenericRecord] =
+  private def convert(map: java.util.Map[_, _], key: String): Either[Throwable, GenericRecord] =
     if (map.isEmpty)
       InvalidInputException(
         s"Invalid input received. The connector has received an empty input which cannot be written to Parquet. This can happen for empty JSON objects. ",
@@ -164,10 +152,13 @@ object MapDataConverter extends DataConverter[Map[_, _]] {
     else {
       val builder:       SchemaBuilder.RecordBuilder[Schema]  = SchemaBuilder.builder().record(key)
       val fieldsBuilder: SchemaBuilder.FieldAssembler[Schema] = builder.fields()
-      map.toList.sortBy(_._1.toString)
+      map.asScala.toList.sortBy(_._1.toString)
         .foldLeft(Vector.empty[FieldAndValue].asRight[Throwable]) {
           case (acc, (k, v)) =>
-            acc.flatMap(vector => convertValue(v, asAvroCompliantName(k.toString), vector, fieldsBuilder))
+            //omit null fields
+            Option(v).fold(acc) { v =>
+              acc.flatMap(vector => convertValue(v, asAvroCompliantName(k.toString), vector, fieldsBuilder))
+            }
         }.map { fieldsAndValues =>
           val schema = fieldsBuilder.endRecord()
           val record = new Record(schema)

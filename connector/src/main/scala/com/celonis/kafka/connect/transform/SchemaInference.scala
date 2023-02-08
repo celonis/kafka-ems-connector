@@ -9,6 +9,8 @@ import cats.instances.list._
 import cats.instances.option._
 import cats.syntax.traverse._
 
+import scala.collection.immutable.ListMap
+
 object SchemaInference {
 
   /** Tries to infer a non-flat Kafka connect schema for a value.
@@ -32,6 +34,8 @@ object SchemaInference {
       Some(ValueAndSchema(value, Schema.OPTIONAL_FLOAT64_SCHEMA))
     case _: Double =>
       Some(ValueAndSchema(value, Schema.OPTIONAL_FLOAT64_SCHEMA))
+    case _: Array[Byte] =>
+      Some(ValueAndSchema(value, Schema.OPTIONAL_BYTES_SCHEMA))
     case list: java.util.List[_] =>
       listSchema(list)
     case innerMap: java.util.Map[_, _] =>
@@ -44,10 +48,10 @@ object SchemaInference {
     if (values.isEmpty) // TODO test this
       Some(ValueAndSchema(values, SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BYTES_SCHEMA).build()))
     else {
-      val inferredValues = values.asScala.toList.traverse {
+      val inferredValues = values.asScala.toMap.filterNot(_._2 == null).toList.traverse {
         case (key, value) => SchemaInference(value).map(key.toString -> _)
       }
-      inferredValues.map(values => toStruct(values.toMap))
+      inferredValues.map(values => toStruct(ListMap.from(values)))
     }
 
   private def listSchema(values: java.util.List[_]): Option[ValueAndSchema] =
@@ -58,7 +62,7 @@ object SchemaInference {
         ValueAndSchema(results.map(_.normalisedValue).asJava, SchemaBuilder.array(results.head.schema).build())
     }
 
-  private def toStruct(values: Map[String, ValueAndSchema]): ValueAndSchema = {
+  private def toStruct(values: ListMap[String, ValueAndSchema]): ValueAndSchema = {
     val schema = values.foldLeft(SchemaBuilder.struct()) {
       case (b, (key, result)) => b.field(key, result.schema)
     }.build()

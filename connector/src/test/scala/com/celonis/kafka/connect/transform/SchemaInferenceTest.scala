@@ -9,6 +9,17 @@ import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper
 import scala.jdk.CollectionConverters._
 
 class SchemaInferenceTest extends org.scalatest.funsuite.AnyFunSuite {
+  test("returns None when encountering an unexpected value") {
+    List[Any](
+      null,
+      Range(1, 10),
+      Iterator.continually(true),
+      (),
+    ).foreach {
+      case value =>
+        assertResult(None)(SchemaInference(value))
+    }
+  }
   test("Infers the schema of simple primitives") {
     List(
       "hi"  -> Schema.OPTIONAL_STRING_SCHEMA,
@@ -89,6 +100,25 @@ class SchemaInferenceTest extends org.scalatest.funsuite.AnyFunSuite {
           .field("I", Schema.OPTIONAL_STRING_SCHEMA)
           .field("object", Schema.OPTIONAL_BOOLEAN_SCHEMA)
           .field("with", SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).build())
+          .build(),
+      ).build(),
+    )(schema)
+  }
+
+  test("omits fields with a null value") {
+    val rawJson =
+      """
+        |{"hello": {"f1": true, "omit_me_iam_a_null_value": null}}
+        |""".stripMargin
+    val om = new ObjectMapper()
+    val value = om.readValue(rawJson, classOf[java.util.Map[String, AnyRef]])
+    val schema = inferSchema(value).getOrElse(fail("some schema expected!"))
+
+    assertResult(
+      SchemaBuilder.struct().field(
+        "hello",
+        SchemaBuilder.struct()
+          .field("f1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
           .build(),
       ).build(),
     )(schema)

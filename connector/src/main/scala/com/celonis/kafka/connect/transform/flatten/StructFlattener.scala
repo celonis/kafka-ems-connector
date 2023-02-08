@@ -30,7 +30,7 @@ private object StructFlattener {
   private def processField(value: Any)(struct: Struct, field: Field): Struct = {
     val extractedValue = extractValue(value, field.path)
     val fieldValue = extractedValue match {
-      case _: java.util.Map[_, _] | _: java.util.Collection[_] =>
+      case _: java.util.Map[_, _] | _: java.util.List[_] =>
         jsonEncodeCollection(extractedValue)
       case _ => extractedValue
     }
