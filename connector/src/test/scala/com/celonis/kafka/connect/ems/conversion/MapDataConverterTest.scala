@@ -96,7 +96,7 @@ class MapDataConverterTest extends AnyFunSuite with Matchers with WorkingDirecto
   test("omits null fields") {
     val rawJson        = """{"top_level":{"nested": true, "a_null_key": null}}"""
     val schemaAndValue = converter.toConnectData("topic", rawJson.getBytes)
-    val value          = schemaAndValue.value().asInstanceOf[java.util.Map[_, _]].asScala.toMap
+    val value          = schemaAndValue.value().asInstanceOf[java.util.Map[_, _]]
     val avroRecord     = MapDataConverter.convert(value).getOrElse(fail("conversion expected to succeed!"))
     val topLevel       = avroRecord.get("top_level").asInstanceOf[GenericRecord]
 
