@@ -36,10 +36,9 @@ import com.celonis.kafka.connect.ems.storage.Writer
 import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.Version
 import com.celonis.kafka.connect.transform.SchemaInference
+import com.celonis.kafka.connect.transform.SchemaInference.ValueAndSchema
 import com.celonis.kafka.connect.transform.fields.FieldInserter
 import com.celonis.kafka.connect.transform.fields.PartitionOffset
-import com.celonis.kafka.connect.transform.SchemaInference.ValueAndSchema
-import com.celonis.kafka.connect.transform.SchemaInference.ValueAndSchema
 import com.celonis.kafka.connect.transform.flatten.Flattener
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
