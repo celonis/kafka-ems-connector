@@ -35,14 +35,13 @@ import com.celonis.kafka.connect.ems.storage.PrimaryKeysValidator
 import com.celonis.kafka.connect.ems.storage.Writer
 import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.Version
-import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.celonis.kafka.connect.transform.SchemaInference
-import com.celonis.kafka.connect.transform.flatten.ChunkedJsonBlob
+import com.celonis.kafka.connect.transform.SchemaInference.ValueAndSchema
 import com.celonis.kafka.connect.transform.flatten.Flattener
-import com.celonis.kafka.connect.transform.flatten.SchemaFlattener
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
+import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
@@ -63,7 +62,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
 
   private var maxRetries:          Int                       = 0
   private var retriesLeft:         Int                       = maxRetries
-  private var flattenerConfig:     Option[FlattenerConfig]   = Option.empty[FlattenerConfig]
+  private var flattener:           Flattener                 = _
   private var errorPolicy:         ErrorPolicy               = ErrorPolicy.Retry
   private var obfuscation:         Option[ObfuscationConfig] = None
   private var orderField:          OrderFieldConfig          = _
@@ -106,13 +105,13 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         writers,
       )
 
-    maxRetries      = config.retries.retries
-    retriesLeft     = maxRetries
-    errorPolicy     = config.errorPolicy
-    pksValidator    = new PrimaryKeysValidator(config.primaryKeys)
-    obfuscation     = config.obfuscation
-    orderField      = config.orderField
-    flattenerConfig = config.flattenerConfig
+    maxRetries   = config.retries.retries
+    retriesLeft  = maxRetries
+    errorPolicy  = config.errorPolicy
+    pksValidator = new PrimaryKeysValidator(config.primaryKeys)
+    obfuscation  = config.obfuscation
+    orderField   = config.orderField
+    flattener    = Flattener.fromConfig(config.flattenerConfig)
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
@@ -243,22 +242,12 @@ class EmsSinkTask extends SinkTask with StrictLogging {
 
   private def maybeFlattenValue(record: SinkRecord): Any = {
     val value = record.value()
-    val valueSchema = Option(record.valueSchema()).map(_ -> false)
-      .orElse(SchemaInference(value).map(_ -> true))
-
-    flattenerConfig.fold(value) { implicit config: FlattenerConfig =>
-      //                 ^ do nothing if flattener is not enabled
-      config.jsonBlobChunks.map { implicit chunksConfig: FlattenerConfig.JsonBlobChunks =>
-        //when flattener and json-blob chunking are both enabled, encode the payload verbatim as JSON chunks
-        ChunkedJsonBlob.asConnectData(value)
-      } getOrElse valueSchema.fold(value) {
-        //                         ^ do nothing if flattener is enabled but no schema has been provided or inferred.
-        case (valueSchema, schemaIsInferred) =>
-          //flatten the schema and then the record value
-          val flatSchema = SchemaFlattener.flatten(valueSchema)
-          Flattener.flatten(value, flatSchema, schemaIsInferred)
-      }
+    val valueAndSchema = Option(record.valueSchema()) match {
+      case Some(valueSchema) => ValueAndSchema(value, valueSchema)
+      case None              => SchemaInference(value).getOrElse(ValueAndSchema(value, Schema.BYTES_SCHEMA))
     }
+
+    flattener.flatten(valueAndSchema.normalisedValue, valueAndSchema.schema)
   }
 
   private def maybeSetErrorInterval(config: EmsSinkConfig): Unit =

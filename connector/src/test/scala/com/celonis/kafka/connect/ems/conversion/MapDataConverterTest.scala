@@ -55,7 +55,6 @@ class MapDataConverterTest extends AnyFunSuite with Matchers with WorkingDirecto
 
     val schemaAndValue = converter.toConnectData("topic", json.getBytes)
     val map = schemaAndValue.value().asInstanceOf[java.util.Map[_, _]]
-      .asScala.toMap
     val genericRecord = MapDataConverter.convert(map).getOrElse(fail("Should convert the schemaless json"))
     genericRecord.getSchema.getFields.asScala.map(_.name()).toList shouldBe List(
       "idType",
@@ -88,7 +87,7 @@ class MapDataConverterTest extends AnyFunSuite with Matchers with WorkingDirecto
   test("sanitises keys as AVRO compliant field names") {
     val rawJson        = """{"top_level":{"a nested key!": true}}"""
     val schemaAndValue = converter.toConnectData("topic", rawJson.getBytes)
-    val value          = schemaAndValue.value().asInstanceOf[java.util.Map[_, _]].asScala.toMap
+    val value          = schemaAndValue.value().asInstanceOf[java.util.Map[_, _]]
     val avroRecord     = MapDataConverter.convert(value).getOrElse(fail("conversion expected to succeed!"))
 
     avroRecord.get("top_level").asInstanceOf[GenericRecord].get("a_nested_key_") shouldEqual true
@@ -97,7 +96,7 @@ class MapDataConverterTest extends AnyFunSuite with Matchers with WorkingDirecto
   test("omits null fields") {
     val rawJson        = """{"top_level":{"nested": true, "a_null_key": null}}"""
     val schemaAndValue = converter.toConnectData("topic", rawJson.getBytes)
-    val value          = schemaAndValue.value().asInstanceOf[java.util.Map[_, _]].asScala.toMap
+    val value          = schemaAndValue.value().asInstanceOf[java.util.Map[_, _]]
     val avroRecord     = MapDataConverter.convert(value).getOrElse(fail("conversion expected to succeed!"))
     val topLevel       = avroRecord.get("top_level").asInstanceOf[GenericRecord]
 
