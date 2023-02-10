@@ -15,23 +15,24 @@ object FieldInserter {
     override def insertFields(value: Any, context: T): Any = value
   }
 
-  def partitionOffset(doInsert: Boolean): FieldInserter[PartitionOffset] =
+  def embeddedKafkaMetadata(doInsert: Boolean): FieldInserter[EmbeddedKafkaMetadata] =
     if (doInsert)
-      PartitionOffsetFieldInserter
+      EmbeddedKafkaMetadataFieldInserter
     else
       noop
 }
 
-final case class PartitionOffset(partition: Int, offset: Long) {
-  def asString = s"${partition}_${offset}"
+final case class EmbeddedKafkaMetadata(partition: Int, offset: Long, timestamp: Long) {
+  def partitionOffset = s"${partition}_${offset}"
 }
 
-object PartitionOffsetFieldInserter extends FieldInserter[PartitionOffset] {
+object EmbeddedKafkaMetadataFieldInserter extends FieldInserter[EmbeddedKafkaMetadata] {
   private val PartitionFieldName       = "partition"
   private val OffsetFieldName          = "offset"
+  private val Timestamp                = "kafkaTimestamp"
   private val PartitionOffsetFieldName = "partitionOffset"
 
-  override def insertFields(value: Any, context: PartitionOffset): Any =
+  override def insertFields(value: Any, context: EmbeddedKafkaMetadata): Any =
     value match {
       case value: Struct =>
         val s       = value.schema()
@@ -41,7 +42,8 @@ object PartitionOffsetFieldInserter extends FieldInserter[PartitionOffset] {
         val newFields = fields ++ List(
           new Field(PartitionFieldName, nextIdx, Schema.INT32_SCHEMA),
           new Field(OffsetFieldName, nextIdx + 1, Schema.INT64_SCHEMA),
-          new Field(PartitionOffsetFieldName, nextIdx + 2, Schema.STRING_SCHEMA),
+          new Field(Timestamp, nextIdx + 2, Schema.INT64_SCHEMA),
+          new Field(PartitionOffsetFieldName, nextIdx + 3, Schema.STRING_SCHEMA),
         )
 
         val newSchema = new ConnectSchema(s.`type`(),
@@ -60,7 +62,8 @@ object PartitionOffsetFieldInserter extends FieldInserter[PartitionOffset] {
           field.name() match {
             case PartitionFieldName       => newValue.put(PartitionFieldName, context.partition)
             case OffsetFieldName          => newValue.put(OffsetFieldName, context.offset)
-            case PartitionOffsetFieldName => newValue.put(PartitionOffsetFieldName, context.asString)
+            case Timestamp                => newValue.put(Timestamp, context.timestamp)
+            case PartitionOffsetFieldName => newValue.put(PartitionOffsetFieldName, context.partitionOffset)
             case _                        => newValue.put(field, value.get(field))
           }
         }

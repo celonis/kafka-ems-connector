@@ -29,24 +29,24 @@ import java.net.URL
 import java.nio.file.Path
 
 case class EmsSinkConfig(
-  sinkName:                  String,
-  url:                       URL,
-  target:                    String,
-  connectionId:              Option[String],
-  authorization:             AuthorizationHeader,
-  errorPolicy:               ErrorPolicy,
-  commitPolicy:              CommitPolicy,
-  retries:                   RetryConfig,
-  workingDir:                Path,
-  parquet:                   ParquetConfig,
-  primaryKeys:               List[String],
-  fallbackVarCharLengths:    Option[Int],
-  obfuscation:               Option[ObfuscationConfig],
-  http:                      HttpClientConfig,
-  explode:                   ExplodeConfig,
-  orderField:                OrderFieldConfig,
-  flattenerConfig:           Option[FlattenerConfig],
-  includePartitionAndOffset: Boolean,
+  sinkName:                String,
+  url:                     URL,
+  target:                  String,
+  connectionId:            Option[String],
+  authorization:           AuthorizationHeader,
+  errorPolicy:             ErrorPolicy,
+  commitPolicy:            CommitPolicy,
+  retries:                 RetryConfig,
+  workingDir:              Path,
+  parquet:                 ParquetConfig,
+  primaryKeys:             List[String],
+  fallbackVarCharLengths:  Option[Int],
+  obfuscation:             Option[ObfuscationConfig],
+  http:                    HttpClientConfig,
+  explode:                 ExplodeConfig,
+  orderField:              OrderFieldConfig,
+  flattenerConfig:         Option[FlattenerConfig],
+  includeEmbeddedMetadata: Boolean,
 )
 
 object EmsSinkConfig {
@@ -128,8 +128,8 @@ object EmsSinkConfig {
       proxyConfig           <- HttpClientConfig.extractHttpClient(props)
       orderConfig            = OrderFieldConfig.from(props, primaryKeys)
       flattenerConfig       <- FlattenerConfig.extract(props, fallbackVarCharLength)
-      includePartitionOffset = PropertiesHelper.getBoolean(props, INCLUDE_PARTITION_OFFSET_KEY).getOrElse(
-        INCLUDE_PARTITION_OFFSET_DEFAULT,
+      includeEmbeddedMetadata = PropertiesHelper.getBoolean(props, INCLUDE_KAFKA_EMBEDDED_METADATA_KEY).getOrElse(
+        INCLUDE_KAFKA_EMBEDDED_METADATA_DEFAULT,
       )
     } yield EmsSinkConfig(
       sinkName,
@@ -149,7 +149,7 @@ object EmsSinkConfig {
       explodeConfig,
       orderConfig,
       flattenerConfig,
-      includePartitionOffset,
+      includeEmbeddedMetadata,
     )
 
 }

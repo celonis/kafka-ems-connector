@@ -38,7 +38,7 @@ import com.celonis.kafka.connect.ems.utils.Version
 import com.celonis.kafka.connect.transform.SchemaInference
 import com.celonis.kafka.connect.transform.SchemaInference.ValueAndSchema
 import com.celonis.kafka.connect.transform.fields.FieldInserter
-import com.celonis.kafka.connect.transform.fields.PartitionOffset
+import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadata
 import com.celonis.kafka.connect.transform.flatten.Flattener
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -62,14 +62,14 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private var pksValidator:             PrimaryKeysValidator     = _
   private var sinkName:                 String                   = _
 
-  private var maxRetries:              Int                            = 0
-  private var retriesLeft:             Int                            = maxRetries
-  private var flattener:               Flattener                      = _
-  private var errorPolicy:             ErrorPolicy                    = ErrorPolicy.Retry
-  private var obfuscation:             Option[ObfuscationConfig]      = None
-  private var orderField:              OrderFieldConfig               = _
-  private val emsSinkConfigurator:     EmsSinkConfigurator            = new DefaultEmsSinkConfigurator
-  private var partitionOffsetInserter: FieldInserter[PartitionOffset] = _
+  private var maxRetries:              Int                                  = 0
+  private var retriesLeft:             Int                                  = maxRetries
+  private var flattener:               Flattener                            = _
+  private var errorPolicy:             ErrorPolicy                          = ErrorPolicy.Retry
+  private var obfuscation:             Option[ObfuscationConfig]            = None
+  private var orderField:              OrderFieldConfig                     = _
+  private val emsSinkConfigurator:     EmsSinkConfigurator                  = new DefaultEmsSinkConfigurator
+  private var partitionOffsetInserter: FieldInserter[EmbeddedKafkaMetadata] = _
 
   override def version(): String = Version.implementationVersion
 
@@ -115,7 +115,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     obfuscation             = config.obfuscation
     orderField              = config.orderField
     flattener               = Flattener.fromConfig(config.flattenerConfig)
-    partitionOffsetInserter = FieldInserter.partitionOffset(config.includePartitionAndOffset)
+    partitionOffsetInserter = FieldInserter.embeddedKafkaMetadata(config.includeEmbeddedMetadata)
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
@@ -135,7 +135,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
             ))
             transformedValue = partitionOffsetInserter.insertFields(
               transformedValue0,
-              PartitionOffset(record.kafkaPartition(), record.kafkaOffset()),
+              EmbeddedKafkaMetadata(record.kafkaPartition(), record.kafkaOffset(), record.timestamp()),
             )
 
             v <- IO.fromEither(DataConverter.apply(transformedValue))
