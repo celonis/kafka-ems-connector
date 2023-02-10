@@ -110,8 +110,8 @@ class SchemaInferenceTest extends org.scalatest.funsuite.AnyFunSuite {
       """
         |{"hello": {"f1": true, "omit_me_iam_a_null_value": null}}
         |""".stripMargin
-    val om = new ObjectMapper()
-    val value = om.readValue(rawJson, classOf[java.util.Map[String, AnyRef]])
+    val om     = new ObjectMapper()
+    val value  = om.readValue(rawJson, classOf[java.util.Map[String, AnyRef]])
     val schema = inferSchema(value).getOrElse(fail("some schema expected!"))
 
     assertResult(

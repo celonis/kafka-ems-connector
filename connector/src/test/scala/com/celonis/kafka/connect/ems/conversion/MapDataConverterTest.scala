@@ -54,8 +54,8 @@ class MapDataConverterTest extends AnyFunSuite with Matchers with WorkingDirecto
         |""".stripMargin
 
     val schemaAndValue = converter.toConnectData("topic", json.getBytes)
-    val map = schemaAndValue.value().asInstanceOf[java.util.Map[_, _]]
-    val genericRecord = MapDataConverter.convert(map).getOrElse(fail("Should convert the schemaless json"))
+    val map            = schemaAndValue.value().asInstanceOf[java.util.Map[_, _]]
+    val genericRecord  = MapDataConverter.convert(map).getOrElse(fail("Should convert the schemaless json"))
     genericRecord.getSchema.getFields.asScala.map(_.name()).toList shouldBe List(
       "idType",
       "colorDepth",

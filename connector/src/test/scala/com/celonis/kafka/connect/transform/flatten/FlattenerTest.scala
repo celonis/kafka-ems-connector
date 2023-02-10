@@ -19,7 +19,7 @@ class FlattenerTest extends AnyFunSuite {
   }
 
   test("Without a JsonChunk config, a StructFlattener is used") {
-    val config = FlattenerConfig(false, None)
+    val config    = FlattenerConfig(false, None)
     val flattener = Flattener.fromConfig(Some(config))
 
     assert(flattener.isInstanceOf[StructFlattener])

@@ -319,7 +319,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         ExplodeConfig.None,
         OrderFieldConfig(orderFieldName.some, NoOpOrderFieldInserter),
         None,
-        false
+        false,
       )
 
       val inputMap: Map[String, _] = Map(

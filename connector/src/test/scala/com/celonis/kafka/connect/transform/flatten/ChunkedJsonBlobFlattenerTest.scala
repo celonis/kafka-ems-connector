@@ -30,7 +30,7 @@ class ChunkedJsonBlobFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
 
   test("chunk-encodes strings") {
     implicit val config: JsonBlobChunks = JsonBlobChunks(2, 10)
-    val flattener = new ChunkedJsonBlobFlattener(config)
+    val flattener    = new ChunkedJsonBlobFlattener(config)
     val someString   = ('a' to 'z').take(10).mkString("")
     val connectValue = flattener.flatten(someString, Schema.STRING_SCHEMA)
     val concatenated = (1 to config.chunks).flatMap(n => Option(connectValue.get(s"payload_chunk$n"))).mkString("")

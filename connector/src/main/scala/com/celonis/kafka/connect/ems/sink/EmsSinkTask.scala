@@ -17,9 +17,9 @@
 package com.celonis.kafka.connect.ems.sink
 
 import cats.data.NonEmptyList
+import cats.effect.unsafe.implicits.global
 import cats.effect.IO
 import cats.effect.Ref
-import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.config.ObfuscationConfig
@@ -37,8 +37,8 @@ import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.Version
 import com.celonis.kafka.connect.transform.SchemaInference
 import com.celonis.kafka.connect.transform.SchemaInference.ValueAndSchema
-import com.celonis.kafka.connect.transform.fields.FieldInserter
 import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadata
+import com.celonis.kafka.connect.transform.fields.FieldInserter
 import com.celonis.kafka.connect.transform.flatten.Flattener
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -48,9 +48,9 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContextExecutor
 import scala.jdk.CollectionConverters._
