@@ -7,31 +7,33 @@ import java.time.Instant
 
 class EmbeddedKafkaMetadataFieldInserterTest extends org.scalatest.funsuite.AnyFunSuite {
   val timestamp = Instant.now().toEpochMilli
+  val schema    = SchemaBuilder.struct().field("f1", Schema.INT64_SCHEMA)
+  val struct = {
+    val struct = new Struct(schema.build())
+    struct.put("f1", 1000L)
+    struct
+  }
+
   test("FieldInserter returns a noop if flag is not set") {
-    val primitive = "some primitive value"
-    assertResult(primitive) {
+    assertResult(struct) {
       FieldInserter.embeddedKafkaMetadata(false)
-        .insertFields(primitive, EmbeddedKafkaMetadata(0, 10, timestamp))
+        .insertFields(struct, EmbeddedKafkaMetadata(0, 10, timestamp))
     }
   }
 
   test("fieldInserter adds partition and offset to a non-empty struct") {
-    val schema = SchemaBuilder.struct().field("f1", Schema.INT64_SCHEMA)
-    val struct = new Struct(schema.build())
-    struct.put("f1", 1000L)
-
     val expected = {
       val updatedSchema =
         schema
-          .field("partition", Schema.INT32_SCHEMA)
-          .field("offset", Schema.INT64_SCHEMA)
+          .field("kafkaPartition", Schema.INT32_SCHEMA)
+          .field("kafkaOffset", Schema.INT64_SCHEMA)
           .field("kafkaTimestamp", Schema.INT64_SCHEMA)
-          .field("partitionOffset", Schema.STRING_SCHEMA)
+          .field("kafkaPartitionOffset", Schema.STRING_SCHEMA)
 
       val exp = new Struct(updatedSchema.build())
-      exp.put("partition", 1)
-      exp.put("offset", 101L)
-      exp.put("partitionOffset", "1_101")
+      exp.put("kafkaPartition", 1)
+      exp.put("kafkaOffset", 101L)
+      exp.put("kafkaPartitionOffset", "1_101")
       exp.put("kafkaTimestamp", timestamp)
       exp.put("f1", 1000L)
       exp
@@ -50,15 +52,15 @@ class EmbeddedKafkaMetadataFieldInserterTest extends org.scalatest.funsuite.AnyF
     val expected = {
       val updatedSchema =
         schema
-          .field("partition", Schema.INT32_SCHEMA)
-          .field("offset", Schema.INT64_SCHEMA)
+          .field("kafkaPartition", Schema.INT32_SCHEMA)
+          .field("kafkaOffset", Schema.INT64_SCHEMA)
           .field("kafkaTimestamp", Schema.INT64_SCHEMA)
-          .field("partitionOffset", Schema.STRING_SCHEMA)
+          .field("kafkaPartitionOffset", Schema.STRING_SCHEMA)
 
       val exp = new Struct(updatedSchema.build())
-      exp.put("partition", 1)
-      exp.put("offset", 101L)
-      exp.put("partitionOffset", "1_101")
+      exp.put("kafkaPartition", 1)
+      exp.put("kafkaOffset", 101L)
+      exp.put("kafkaPartitionOffset", "1_101")
       exp.put("kafkaTimestamp", timestamp)
       exp
     }

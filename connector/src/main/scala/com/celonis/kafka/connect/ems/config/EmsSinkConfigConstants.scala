@@ -167,9 +167,9 @@ object EmsSinkConfigConstants {
     "Encodes the record into a JSON blob broken down into N VARCHAR fields (e.g. `payload_chunk1`, `payload_chunk2`, `...`, `payload_chunkN`)."
   val FLATTENER_JSONBLOB_CHUNKS_DEFAULT = null
 
-  val INCLUDE_KAFKA_EMBEDDED_METADATA_KEY = s"${CONNECTOR_PREFIX}.include.kafka.metadata"
-  val INCLUDE_KAFKA_EMBEDDED_METADATA_DOC =
-    "Include Kafka embedded metadata such as partition, offset and timestamp as additional record fields."
-  val INCLUDE_KAFKA_EMBEDDED_METADATA_DEFAULT = true
+  val EMBED_KAFKA_EMBEDDED_METADATA_KEY = s"${CONNECTOR_PREFIX}.embed.kafka.metadata"
+  val EMBED_KAFKA_EMBEDDED_METADATA_DOC =
+    "Embed Kafka metadata such as partition, offset and timestamp as additional record fields."
+  val EMBED_KAFKA_EMBEDDED_METADATA_DEFAULT = true
 
 }

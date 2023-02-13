@@ -7,15 +7,15 @@ import org.apache.kafka.connect.data.Struct
 
 import scala.jdk.CollectionConverters._
 
-trait FieldInserter[C] {
-  def insertFields(value: Any, context: C): Any
+trait FieldInserter {
+  def insertFields(value: Any, meta: EmbeddedKafkaMetadata): Any
 }
 object FieldInserter {
-  def noop[T] = new FieldInserter[T] {
-    override def insertFields(value: Any, context: T): Any = value
+  val noop = new FieldInserter {
+    override def insertFields(value: Any, meta: EmbeddedKafkaMetadata): Any = value
   }
 
-  def embeddedKafkaMetadata(doInsert: Boolean): FieldInserter[EmbeddedKafkaMetadata] =
+  def embeddedKafkaMetadata(doInsert: Boolean): FieldInserter =
     if (doInsert)
       EmbeddedKafkaMetadataFieldInserter
     else
@@ -26,13 +26,13 @@ final case class EmbeddedKafkaMetadata(partition: Int, offset: Long, timestamp: 
   def partitionOffset = s"${partition}_${offset}"
 }
 
-object EmbeddedKafkaMetadataFieldInserter extends FieldInserter[EmbeddedKafkaMetadata] {
-  private val PartitionFieldName       = "partition"
-  private val OffsetFieldName          = "offset"
+object EmbeddedKafkaMetadataFieldInserter extends FieldInserter {
+  private val PartitionFieldName       = "kafkaPartition"
+  private val OffsetFieldName          = "kafkaOffset"
   private val Timestamp                = "kafkaTimestamp"
-  private val PartitionOffsetFieldName = "partitionOffset"
+  private val PartitionOffsetFieldName = "kafkaPartitionOffset"
 
-  override def insertFields(value: Any, context: EmbeddedKafkaMetadata): Any =
+  override def insertFields(value: Any, meta: EmbeddedKafkaMetadata): Any =
     value match {
       case value: Struct =>
         val s       = value.schema()
@@ -60,10 +60,10 @@ object EmbeddedKafkaMetadataFieldInserter extends FieldInserter[EmbeddedKafkaMet
         val newValue = new Struct(newSchema)
         for (field <- newSchema.fields().asScala) {
           field.name() match {
-            case PartitionFieldName       => newValue.put(PartitionFieldName, context.partition)
-            case OffsetFieldName          => newValue.put(OffsetFieldName, context.offset)
-            case Timestamp                => newValue.put(Timestamp, context.timestamp)
-            case PartitionOffsetFieldName => newValue.put(PartitionOffsetFieldName, context.partitionOffset)
+            case PartitionFieldName       => newValue.put(PartitionFieldName, meta.partition)
+            case OffsetFieldName          => newValue.put(OffsetFieldName, meta.offset)
+            case Timestamp                => newValue.put(Timestamp, meta.timestamp)
+            case PartitionOffsetFieldName => newValue.put(PartitionOffsetFieldName, meta.partitionOffset)
             case _                        => newValue.put(field, value.get(field))
           }
         }
