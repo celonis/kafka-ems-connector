@@ -4,7 +4,7 @@
 package com.celonis.kafka.connect.ems
 
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
-import com.celonis.kafka.connect.ems.conversion.OrderFieldInserter
+import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName
 import com.celonis.kafka.connect.ems.parquet.extractParquetFromRequest
 import com.celonis.kafka.connect.ems.parquet.parquetReader
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration
@@ -73,7 +73,7 @@ class OrderFieldTests extends AnyFunSuite with KafkaConnectContainerPerSuite wit
           "ade2426de954b6cd28ce00c83b931c1943ce87fbc421897156c4be6c07e1b83e6618a842c406ba7c0bf806fee3ae3164c8aac873ff1ac113a6ceb66e0bb12224",
         )
         record.get("field2").asInstanceOf[Int] should be(randomInt)
-        record.getSchema.getFields.asScala.map(_.name()).toSet shouldBe Set("field1", "field2")
+        record.hasField(CelonisOrderFieldName) should be(false)
       }
     }
   }
@@ -131,23 +131,23 @@ class OrderFieldTests extends AnyFunSuite with KafkaConnectContainerPerSuite wit
         val parquetFile  = extractParquetFromRequest(httpRequests.head)
         val reader       = parquetReader(parquetFile)
 
-        val record1       = reader.read()
-        record1.getSchema.getFields.asScala.map(_.name()).toSet shouldBe Set("field1", "field2", OrderFieldInserter.FieldName)
+        val record1 = reader.read()
+        record1.getSchema.getFields.asScala.map(_.name()).toSet shouldBe Set("field1", "field2", CelonisOrderFieldName)
         record1.get("field1").toString shouldBe "myvalue1"
         record1.get("field2").asInstanceOf[Int] shouldBe 1
-        record1.get(OrderFieldInserter.FieldName).asInstanceOf[Long] shouldBe 0
+        record1.get(CelonisOrderFieldName).asInstanceOf[Long] shouldBe 0
 
-        val record2     = reader.read()
-        record2.getSchema.getFields.asScala.map(_.name()).toSet shouldBe Set("field1", "field2", OrderFieldInserter.FieldName)
+        val record2 = reader.read()
+        record2.getSchema.getFields.asScala.map(_.name()).toSet shouldBe Set("field1", "field2", CelonisOrderFieldName)
         record2.get("field1").toString shouldBe "myvalue2"
         record2.get("field2").asInstanceOf[Int] shouldBe 2
-        record2.get(OrderFieldInserter.FieldName).asInstanceOf[Long] shouldBe 1
+        record2.get(CelonisOrderFieldName).asInstanceOf[Long] shouldBe 1
 
-        val record3       = reader.read()
-        record3.getSchema.getFields.asScala.map(_.name()).toSet shouldBe Set("field1", "field2", OrderFieldInserter.FieldName)
+        val record3 = reader.read()
+        record3.getSchema.getFields.asScala.map(_.name()).toSet shouldBe Set("field1", "field2", CelonisOrderFieldName)
         record3.get("field1").toString shouldBe "myvalue1"
         record3.get("field2").asInstanceOf[Int] shouldBe 3
-        record3.get(OrderFieldInserter.FieldName).asInstanceOf[Long] shouldBe 2
+        record3.get(CelonisOrderFieldName).asInstanceOf[Long] shouldBe 2
 
       }
     }

@@ -29,14 +29,13 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
   CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE => MAX_IDLE_DEFAULT,
 }
-import com.celonis.kafka.connect.ems.conversion.NoOpOrderFieldInserter
-import com.celonis.kafka.connect.ems.conversion.OrderFieldInserter
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
+import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadataFieldInserter
 import org.apache.kafka.connect.errors.ConnectException
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -74,7 +73,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         None,
         UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
-        OrderFieldConfig(OrderFieldInserter.FieldName.some, OrderFieldInserter),
+        OrderFieldConfig(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName.some),
         None,
         true,
       )
@@ -255,7 +254,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         )),
         UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
-        OrderFieldConfig(OrderFieldInserter.FieldName.some, OrderFieldInserter),
+        OrderFieldConfig(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName.some),
         None,
         false,
       )
@@ -317,7 +316,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         None,
         UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
-        OrderFieldConfig(orderFieldName.some, NoOpOrderFieldInserter),
+        OrderFieldConfig(orderFieldName.some),
         None,
         true,
       )

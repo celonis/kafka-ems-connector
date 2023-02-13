@@ -23,7 +23,6 @@ import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.config.ObfuscationConfig
-import com.celonis.kafka.connect.ems.config.OrderFieldConfig
 import com.celonis.kafka.connect.ems.conversion.DataConverter
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
@@ -67,7 +66,6 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private var flattener:               Flattener                 = _
   private var errorPolicy:             ErrorPolicy               = ErrorPolicy.Retry
   private var obfuscation:             Option[ObfuscationConfig] = None
-  private var orderField:              OrderFieldConfig          = _
   private val emsSinkConfigurator:     EmsSinkConfigurator       = new DefaultEmsSinkConfigurator
   private var partitionOffsetInserter: FieldInserter             = _
 
@@ -113,7 +111,6 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     errorPolicy             = config.errorPolicy
     pksValidator            = new PrimaryKeysValidator(config.primaryKeys)
     obfuscation             = config.obfuscation
-    orderField              = config.orderField
     flattener               = Flattener.fromConfig(config.flattenerConfig)
     partitionOffsetInserter = FieldInserter.embeddedKafkaMetadata(config.embedKafkaMetadata)
   }
@@ -129,13 +126,11 @@ class EmsSinkTask extends SinkTask with StrictLogging {
           val recordValue = maybeFlattenValue(record)
 
           for {
-            transformedValue0 <- IO.fromEither(orderField.inserter.add(recordValue,
-                                                                       record.kafkaPartition(),
-                                                                       record.kafkaOffset(),
-            ))
-            transformedValue = partitionOffsetInserter.insertFields(
-              transformedValue0,
-              EmbeddedKafkaMetadata(record.kafkaPartition(), record.kafkaOffset(), record.timestamp()),
+            transformedValue <- IO(
+              partitionOffsetInserter.insertFields(
+                recordValue,
+                EmbeddedKafkaMetadata(record.kafkaPartition(), record.kafkaOffset(), record.timestamp()),
+              ),
             )
 
             v <- IO.fromEither(DataConverter.apply(transformedValue))

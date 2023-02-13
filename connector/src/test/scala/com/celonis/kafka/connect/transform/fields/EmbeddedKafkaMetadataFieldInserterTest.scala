@@ -29,12 +29,14 @@ class EmbeddedKafkaMetadataFieldInserterTest extends org.scalatest.funsuite.AnyF
           .field("kafkaOffset", Schema.INT64_SCHEMA)
           .field("kafkaTimestamp", Schema.INT64_SCHEMA)
           .field("kafkaPartitionOffset", Schema.STRING_SCHEMA)
+          .field("__celonis_order", Schema.INT64_SCHEMA)
 
       val exp = new Struct(updatedSchema.build())
       exp.put("kafkaPartition", 1)
       exp.put("kafkaOffset", 101L)
       exp.put("kafkaPartitionOffset", "1_101")
       exp.put("kafkaTimestamp", timestamp)
+      exp.put("__celonis_order", 101L)
       exp.put("f1", 1000L)
       exp
     }
@@ -56,12 +58,14 @@ class EmbeddedKafkaMetadataFieldInserterTest extends org.scalatest.funsuite.AnyF
           .field("kafkaOffset", Schema.INT64_SCHEMA)
           .field("kafkaTimestamp", Schema.INT64_SCHEMA)
           .field("kafkaPartitionOffset", Schema.STRING_SCHEMA)
+          .field("__celonis_order", Schema.INT64_SCHEMA)
 
       val exp = new Struct(updatedSchema.build())
       exp.put("kafkaPartition", 1)
       exp.put("kafkaOffset", 101L)
       exp.put("kafkaPartitionOffset", "1_101")
       exp.put("kafkaTimestamp", timestamp)
+      exp.put("__celonis_order", 101L)
       exp
     }
 
