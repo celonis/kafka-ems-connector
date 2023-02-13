@@ -152,9 +152,9 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
         |}
         |""".stripMargin
 
-    val schemaAndValue                          = ConnectJsonConverter.converter.toConnectData("topic", json.getBytes)
+    val schemaAndValue                           = ConnectJsonConverter.converter.toConnectData("topic", json.getBytes)
     val Some(ValueAndSchema(normalisedValue, _)) = InferSchemaAndNormaliseValue(schemaAndValue.value())
-    val struct                                  = normalisedValue.asInstanceOf[Struct]
+    val struct                                   = normalisedValue.asInstanceOf[Struct]
 
     assertResult(Set(
       "idType",

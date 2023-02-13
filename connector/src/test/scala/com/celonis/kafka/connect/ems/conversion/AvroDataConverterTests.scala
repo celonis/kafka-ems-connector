@@ -20,7 +20,7 @@ import com.celonis.kafka.connect.ems.storage.formats.ListExploder
 //import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.generic.GenericRecord
-import org.apache.avro.{Schema => AvroSchema}
+import org.apache.avro.{ Schema => AvroSchema }
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct

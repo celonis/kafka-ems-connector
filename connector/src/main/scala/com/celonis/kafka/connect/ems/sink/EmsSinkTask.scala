@@ -17,31 +17,42 @@
 package com.celonis.kafka.connect.ems.sink
 
 import cats.data.NonEmptyList
-import cats.effect.{IO, Ref}
+import cats.effect.IO
+import cats.effect.Ref
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
-import com.celonis.kafka.connect.ems.config.{EmsSinkConfig, ObfuscationConfig, OrderFieldConfig}
+import com.celonis.kafka.connect.ems.config.EmsSinkConfig
+import com.celonis.kafka.connect.ems.config.ObfuscationConfig
+import com.celonis.kafka.connect.ems.config.OrderFieldConfig
 import com.celonis.kafka.connect.ems.conversion.DataConverter
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
-import com.celonis.kafka.connect.ems.errors.{ErrorPolicy, FailedObfuscationException}
+import com.celonis.kafka.connect.ems.errors.ErrorPolicy
+import com.celonis.kafka.connect.ems.errors.FailedObfuscationException
 import com.celonis.kafka.connect.ems.model._
 import com.celonis.kafka.connect.ems.obfuscation.ObfuscationUtils.GenericRecordObfuscation
-import com.celonis.kafka.connect.ems.storage.{EmsUploader, PrimaryKeysValidator, Writer, WriterManager}
+import com.celonis.kafka.connect.ems.storage.EmsUploader
+import com.celonis.kafka.connect.ems.storage.PrimaryKeysValidator
+import com.celonis.kafka.connect.ems.storage.Writer
+import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.Version
 import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue
 import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue.ValueAndSchema
-import com.celonis.kafka.connect.transform.fields.{EmbeddedKafkaMetadata, FieldInserter}
+import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadata
+import com.celonis.kafka.connect.transform.fields.FieldInserter
 import com.celonis.kafka.connect.transform.flatten.Flattener
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
-import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
+import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
-import java.util.concurrent.{ExecutorService, Executors}
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContextExecutor
 import scala.jdk.CollectionConverters._
 
 class EmsSinkTask extends SinkTask with StrictLogging {
@@ -51,14 +62,14 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private var pksValidator:             PrimaryKeysValidator     = _
   private var sinkName:                 String                   = _
 
-  private var maxRetries:              Int                                  = 0
-  private var retriesLeft:             Int                                  = maxRetries
-  private var flattener:               Flattener                            = _
-  private var errorPolicy:             ErrorPolicy                          = ErrorPolicy.Retry
-  private var obfuscation:             Option[ObfuscationConfig]            = None
-  private var orderField:              OrderFieldConfig                     = _
-  private val emsSinkConfigurator:     EmsSinkConfigurator                  = new DefaultEmsSinkConfigurator
-  private var partitionOffsetInserter: FieldInserter = _
+  private var maxRetries:              Int                       = 0
+  private var retriesLeft:             Int                       = maxRetries
+  private var flattener:               Flattener                 = _
+  private var errorPolicy:             ErrorPolicy               = ErrorPolicy.Retry
+  private var obfuscation:             Option[ObfuscationConfig] = None
+  private var orderField:              OrderFieldConfig          = _
+  private val emsSinkConfigurator:     EmsSinkConfigurator       = new DefaultEmsSinkConfigurator
+  private var partitionOffsetInserter: FieldInserter             = _
 
   override def version(): String = Version.implementationVersion
 

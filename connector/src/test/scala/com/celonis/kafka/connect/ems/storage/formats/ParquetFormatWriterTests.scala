@@ -96,8 +96,8 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
         )
       val schemaAndValue = converter.toConnectData("topic", entry.asJson.noSpaces.getBytes)
       // Schemaless json go through normalisation
-      val normalisedValue =  InferSchemaAndNormaliseValue(schemaAndValue.value()).get.normalisedValue
-      val struct =  DataConverter.apply(normalisedValue).getOrElse(fail("Should convert the map"))
+      val normalisedValue = InferSchemaAndNormaliseValue(schemaAndValue.value()).get.normalisedValue
+      val struct          = DataConverter.apply(normalisedValue).getOrElse(fail("Should convert the map"))
       val formatWriter =
         ParquetFormatWriter.from(output, struct.getSchema, ParquetConfig.Default, new NoOpExploder().explode)
       formatWriter.write(struct)
