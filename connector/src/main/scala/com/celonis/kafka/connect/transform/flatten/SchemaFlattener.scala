@@ -47,7 +47,8 @@ private object SchemaFlattener {
   final case class Field(path: Path, schema: Schema)
 
   final case class Path(segments: Vector[String]) {
-    def name: String = segments.mkString("_")
+    // We make the flat version of a name avro-complaint, replacing unallowed characters with an underscore
+    def name: String = segments.mkString("_").replaceAll("[^a-zA-Z0-9]", "_")
     def append(segment: String): Path = Path(segments :+ segment)
   }
 

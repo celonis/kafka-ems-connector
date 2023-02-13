@@ -248,16 +248,16 @@ class StructFlattenerTest extends AnyFunSuite {
       ).build()
 
     val flattenedSchema = SchemaBuilder.struct()
-      .field("some_nested-string", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("some_nested-array", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("some_nested-map_one-more-level", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+      .field("some_nested_string", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("some_nested_array", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("some_nested_map_one_more_level", Schema.OPTIONAL_BOOLEAN_SCHEMA)
       .build()
 
     val expected = new Struct(flattenedSchema)
 
-    expected.put("some_nested-string", "a-string")
-    expected.put("some_nested-array", """["a","b","c"]""")
-    expected.put("some_nested-map_one-more-level", true)
+    expected.put("some_nested_string", "a-string")
+    expected.put("some_nested_array", """["a","b","c"]""")
+    expected.put("some_nested_map_one_more_level", true)
 
     assertResult(expected)(flatten(nestedMap, schema))
   }
