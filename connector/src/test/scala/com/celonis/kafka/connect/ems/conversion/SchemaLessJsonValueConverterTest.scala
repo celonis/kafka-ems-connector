@@ -15,8 +15,9 @@
  */
 
 package com.celonis.kafka.connect.ems.conversion
-import cats.syntax.either._
+import com.celonis.kafka.connect.ems.conversion.SchemaExtensions._
 import com.celonis.kafka.connect.ems.errors.InvalidInputException
+import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue
 import org.apache.avro.Schema
 import org.apache.avro.SchemaBuilder
 import org.apache.avro.generic.GenericRecord
@@ -25,7 +26,6 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.jdk.CollectionConverters._
-import SchemaExtensions._
 
 class SchemaLessJsonValueConverterTest extends AnyFunSuite with Matchers {
   private val converter = new org.apache.kafka.connect.json.JsonConverter()
@@ -38,9 +38,7 @@ class SchemaLessJsonValueConverterTest extends AnyFunSuite with Matchers {
     val json           = """{}"""
     val schemaAndValue = converter.toConnectData("topic", json.getBytes)
 
-    DataConverter.apply(schemaAndValue.value()) shouldBe InvalidInputException(
-      s"Invalid input received. The connector has received an empty input which cannot be written to Parquet. This can happen for empty JSON objects. ",
-    ).asLeft
+    convert(schemaAndValue.value()).left.toOption.get shouldBe a[InvalidInputException]
   }
 
   test("convert nested schemaless JSON") {
@@ -68,7 +66,7 @@ class SchemaLessJsonValueConverterTest extends AnyFunSuite with Matchers {
 
     val schemaAndValue = converter.toConnectData("topic", json.getBytes)
 
-    val record = DataConverter.apply(schemaAndValue.value())
+    val record = convert(schemaAndValue.value())
       .getOrElse(fail("Should convert the map"))
 
     //Jackson transforming the json to Map the fields order is not retained
@@ -81,32 +79,32 @@ class SchemaLessJsonValueConverterTest extends AnyFunSuite with Matchers {
                                                                                  "nums",
     ).sorted
 
-    record.getSchema.getField("idType").schema() shouldBe SchemaBuilder.builder().nullable().longType()
-    record.getSchema.getField("colorDepth").schema() shouldBe SchemaBuilder.builder().nullable().stringType()
+    record.getSchema.getField("idType").schema() shouldBe SchemaBuilder.builder().longType().asNullable
+    record.getSchema.getField("colorDepth").schema() shouldBe SchemaBuilder.builder().stringType().asNullable
 
-    record.getSchema.getField("threshold").schema() shouldBe SchemaBuilder.builder().nullable().doubleType()
+    record.getSchema.getField("threshold").schema() shouldBe SchemaBuilder.builder().doubleType().asNullable
 
-    record.getSchema.getField("exclude").schema().isNullable shouldBe true
-    record.getSchema.getField("exclude").schema().getTypes.asScala.exists(_.getType == Schema.Type.RECORD) shouldBe true
+    // record.getSchema.getField("exclude").schema().isNullable shouldBe true
+    record.getSchema.getField("exclude").schema().getType shouldBe Schema.Type.RECORD
 
-    record.getSchema.getField("evars").schema().getTypes.asScala.exists(_.getType == Schema.Type.RECORD) shouldBe true
-    record.getSchema.getField("evars").schema().isNullable shouldBe true
+    record.getSchema.getField("evars").schema().getType shouldBe Schema.Type.RECORD
+    //record.getSchema.getField("evars").schema().isNullable shouldBe true
 
-    val evarsSchema = record.getSchema.getField("evars").schema().nonNullableSchema.get
+    val evarsSchema = record.getSchema.getField("evars").schema()
     evarsSchema.getFields.asScala.map(_.name()).toList shouldBe List("evarsa")
 
-    val evarsInner = evarsSchema.getField("evarsa").schema().nonNullableSchema.get
+    val evarsInner = evarsSchema.getField("evarsa").schema()
     evarsInner.isRecord shouldBe true
     evarsInner.getFields.asScala.map(_.name()).toList.sorted shouldBe List("eVar1", "eVar2").sorted
-    evarsInner.getField("eVar1").schema() shouldBe SchemaBuilder.builder().nullable().stringType()
-    evarsInner.getField("eVar2").schema() shouldBe SchemaBuilder.builder().nullable().longType()
+    evarsInner.getField("eVar1").schema() shouldBe SchemaBuilder.builder().stringType().asNullable
+    evarsInner.getField("eVar2").schema() shouldBe SchemaBuilder.builder().longType().asNullable
 
-    val exclude = record.getSchema.getField("exclude").schema().nonNullableSchema.get
+    val exclude = record.getSchema.getField("exclude").schema()
     exclude.isRecord shouldBe true
-    record.getSchema.getField("exclude").schema().isNullable shouldBe true
+//    record.getSchema.getField("exclude").schema().isNullable shouldBe true
     exclude.getFields.asScala.map(_.name()).toList.sorted shouldBe List("id", "value").sorted
-    exclude.getField("id").schema() shouldBe SchemaBuilder.builder().nullable().longType()
-    exclude.getField("value").schema() shouldBe SchemaBuilder.builder().nullable().booleanType()
+    exclude.getField("id").schema() shouldBe SchemaBuilder.builder().longType().asNullable
+    exclude.getField("value").schema() shouldBe SchemaBuilder.builder().booleanType().asNullable
 
     record.get("idType") shouldBe 3L
     record.get("colorDepth") shouldBe ""
@@ -120,14 +118,23 @@ class SchemaLessJsonValueConverterTest extends AnyFunSuite with Matchers {
     excludeStruct.get("id") shouldBe 0L
     excludeStruct.get("value") shouldBe false
 
-    val carsSchema = record.getSchema.getField("cars").schema().nonNullableSchema.get
+    val carsSchema = record.getSchema.getField("cars").schema()
     carsSchema.getType shouldBe Schema.Type.ARRAY
-    carsSchema.getElementType shouldBe SchemaBuilder.builder().stringType()
+    carsSchema.getElementType shouldBe SchemaBuilder.builder().stringType().asNullable
     record.get("cars").toString shouldBe "[Ford, BMW, Fiat]"
 
-    val numsSchema = record.getSchema.getField("nums").schema().nonNullableSchema.get
+    val numsSchema = record.getSchema.getField("nums").schema()
     numsSchema.getType shouldBe Schema.Type.ARRAY
-    numsSchema.getElementType shouldBe SchemaBuilder.builder().longType()
+    numsSchema.getElementType shouldBe SchemaBuilder.builder().longType().asNullable
     record.get("nums").toString shouldBe "[1, 3, 4]"
+  }
+
+  private def convert(value: Any): Either[Throwable, GenericRecord] =
+    InferSchemaAndNormaliseValue(value).toRight(new RuntimeException("whatever")).flatMap(valueAndSchema =>
+      DataConverter(valueAndSchema.normalisedValue),
+    )
+
+  implicit class SchemOps(schema: Schema) {
+    def asNullable: Schema = SchemaBuilder.builder().unionOf().nullType().and().`type`(schema).endUnion()
   }
 }

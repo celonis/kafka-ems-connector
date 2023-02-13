@@ -28,8 +28,8 @@ import com.celonis.kafka.connect.ems.model._
 import com.celonis.kafka.connect.ems.obfuscation.ObfuscationUtils.GenericRecordObfuscation
 import com.celonis.kafka.connect.ems.storage.{EmsUploader, PrimaryKeysValidator, Writer, WriterManager}
 import com.celonis.kafka.connect.ems.utils.Version
-import com.celonis.kafka.connect.transform.SchemaInference
-import com.celonis.kafka.connect.transform.SchemaInference.ValueAndSchema
+import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue
+import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue.ValueAndSchema
 import com.celonis.kafka.connect.transform.fields.{EmbeddedKafkaMetadata, FieldInserter}
 import com.celonis.kafka.connect.transform.flatten.Flattener
 import com.typesafe.scalalogging.StrictLogging
@@ -242,7 +242,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     val value = record.value()
     val valueAndSchema = Option(record.valueSchema()) match {
       case Some(valueSchema) => ValueAndSchema(value, valueSchema)
-      case None              => SchemaInference(value).getOrElse(ValueAndSchema(value, Schema.BYTES_SCHEMA))
+      case None              => InferSchemaAndNormaliseValue(value).getOrElse(ValueAndSchema(value, Schema.BYTES_SCHEMA))
     }
 
     flattener.flatten(valueAndSchema.normalisedValue, valueAndSchema.schema)

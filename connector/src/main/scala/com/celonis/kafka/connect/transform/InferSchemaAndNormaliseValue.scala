@@ -11,7 +11,15 @@ import cats.syntax.traverse._
 
 import scala.collection.immutable.ListMap
 
-object SchemaInference {
+/**
+  * This component does multiple things:
+  * 1. It infers the connect schema of the connect value
+  * 2. It normalises the value, replacing Maps (coming from json) to Structs
+  * 3. It replaces non-avro field names with avro field names (in maps only for now)
+  *
+  * We should split inference from normalisation, even if that will complicate the implementation
+  */
+object InferSchemaAndNormaliseValue {
 
   /** Tries to infer a non-flat Kafka connect schema for a value.
     *
@@ -21,6 +29,8 @@ object SchemaInference {
     * @param value
     * @return
     */
+
+  // TODO: Why optionals at this stage?
   def apply(value: Any): Option[ValueAndSchema] = value match {
     case _: String =>
       Some(ValueAndSchema(value, Schema.OPTIONAL_STRING_SCHEMA))
@@ -34,6 +44,8 @@ object SchemaInference {
       Some(ValueAndSchema(value, Schema.OPTIONAL_FLOAT64_SCHEMA))
     case _: Double =>
       Some(ValueAndSchema(value, Schema.OPTIONAL_FLOAT64_SCHEMA))
+    case value: Struct =>
+      Some(ValueAndSchema(value, value.schema()))
     case _: Array[Byte] =>
       Some(ValueAndSchema(value, Schema.OPTIONAL_BYTES_SCHEMA))
     case list: java.util.List[_] =>
@@ -49,13 +61,13 @@ object SchemaInference {
       Some(ValueAndSchema(values, SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BYTES_SCHEMA).build()))
     else {
       val inferredValues = values.asScala.toMap.filterNot(_._2 == null).toList.traverse {
-        case (key, value) => SchemaInference(value).map(key.toString -> _)
+        case (key, value) => InferSchemaAndNormaliseValue(value).map(key.toString -> _)
       }
       inferredValues.map(values => toStruct(ListMap.from(values)))
     }
 
   private def listSchema(values: java.util.List[_]): Option[ValueAndSchema] =
-    values.asScala.toList.traverse(SchemaInference.apply).map { results =>
+    values.asScala.toList.traverse(InferSchemaAndNormaliseValue.apply).map { results =>
       if (results.isEmpty || results.map(_.schema).toSet.size > 1)
         ValueAndSchema(values, SchemaBuilder.array(Schema.BYTES_SCHEMA).build())
       else

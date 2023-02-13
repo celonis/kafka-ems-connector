@@ -87,6 +87,25 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
     }
   }
 
+  test("sanitises keys as AVRO compliant field names") {
+    val nestedSchema = SchemaBuilder.struct().name("AStruct")
+      .field("a nested!field", Schema.STRING_SCHEMA)
+      .field("a?nested string", Schema.STRING_SCHEMA)
+      .build()
+
+    val schema = SchemaBuilder.struct()
+      .field("a#struct", nestedSchema)
+      .build()
+
+    val expected = SchemaBuilder
+      .struct()
+      .field("a_struct_a_nested_field", SchemaBuilder.string().optional().build())
+      .field("a_struct_a_nested_string", SchemaBuilder.string().optional().build())
+      .build()
+
+    assertResult(expected)(flatten(schema))
+  }
+
   lazy val primitiveFixtures = List(
     1                    -> SchemaBuilder.int8(),
     2                    -> SchemaBuilder.int16(),
