@@ -1,5 +1,6 @@
 package com.celonis.kafka.connect.transform
 
+import cats.implicits.catsSyntaxOptionId
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
@@ -67,11 +68,15 @@ object InferSchemaAndNormaliseValue {
     }
 
   private def listSchema(values: java.util.List[_]): Option[ValueAndSchema] =
-    values.asScala.toList.traverse(InferSchemaAndNormaliseValue.apply).map { results =>
-      if (results.isEmpty || results.map(_.schema).toSet.size > 1)
-        ValueAndSchema(values, SchemaBuilder.array(Schema.BYTES_SCHEMA).build())
+    values.asScala.toList.traverse(InferSchemaAndNormaliseValue.apply).flatMap { results =>
+      if (results.isEmpty) {
+        // If the collection is empty, we default to an array of bytes
+        ValueAndSchema(values, SchemaBuilder.array(Schema.BYTES_SCHEMA).build()).some
+      } else if (results.map(_.schema).toSet.size > 1)
+        // If the collection is not empty and contains element of different types, we fail the inference
+        None
       else
-        ValueAndSchema(results.map(_.normalisedValue).asJava, SchemaBuilder.array(results.head.schema).build())
+        ValueAndSchema(results.map(_.normalisedValue).asJava, SchemaBuilder.array(results.head.schema).build()).some
     }
 
   private def toStruct(values: ListMap[String, ValueAndSchema]): ValueAndSchema = {
