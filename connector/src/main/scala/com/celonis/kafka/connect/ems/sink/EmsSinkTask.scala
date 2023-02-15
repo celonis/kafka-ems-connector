@@ -61,13 +61,13 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private var pksValidator:             PrimaryKeysValidator     = _
   private var sinkName:                 String                   = _
 
-  private var maxRetries:              Int                       = 0
-  private var retriesLeft:             Int                       = maxRetries
-  private var flattener:               Flattener                 = _
-  private var errorPolicy:             ErrorPolicy               = ErrorPolicy.Retry
-  private var obfuscation:             Option[ObfuscationConfig] = None
-  private val emsSinkConfigurator:     EmsSinkConfigurator       = new DefaultEmsSinkConfigurator
-  private var partitionOffsetInserter: FieldInserter             = _
+  private var maxRetries:            Int                       = 0
+  private var retriesLeft:           Int                       = maxRetries
+  private var flattener:             Flattener                 = _
+  private var errorPolicy:           ErrorPolicy               = ErrorPolicy.Retry
+  private var obfuscation:           Option[ObfuscationConfig] = None
+  private val emsSinkConfigurator:   EmsSinkConfigurator       = new DefaultEmsSinkConfigurator
+  private var kafkaMetadataInserter: FieldInserter             = _
 
   override def version(): String = Version.implementationVersion
 
@@ -106,13 +106,13 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         writers,
       )
 
-    maxRetries              = config.retries.retries
-    retriesLeft             = maxRetries
-    errorPolicy             = config.errorPolicy
-    pksValidator            = new PrimaryKeysValidator(config.primaryKeys)
-    obfuscation             = config.obfuscation
-    flattener               = Flattener.fromConfig(config.flattenerConfig)
-    partitionOffsetInserter = FieldInserter.embeddedKafkaMetadata(config.embedKafkaMetadata)
+    maxRetries            = config.retries.retries
+    retriesLeft           = maxRetries
+    errorPolicy           = config.errorPolicy
+    pksValidator          = new PrimaryKeysValidator(config.primaryKeys)
+    obfuscation           = config.obfuscation
+    flattener             = Flattener.fromConfig(config.flattenerConfig)
+    kafkaMetadataInserter = FieldInserter.embeddedKafkaMetadata(config.embedKafkaMetadata, config.orderField.name)
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
@@ -127,7 +127,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
 
           for {
             transformedValue <- IO(
-              partitionOffsetInserter.insertFields(
+              kafkaMetadataInserter.insertFields(
                 recordValue,
                 EmbeddedKafkaMetadata(record.kafkaPartition(), record.kafkaOffset(), record.timestamp()),
               ),

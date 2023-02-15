@@ -4,6 +4,7 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import java.time.Instant
+import EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName
 
 class EmbeddedKafkaMetadataFieldInserterTest extends org.scalatest.funsuite.AnyFunSuite {
   val timestamp = Instant.now().toEpochMilli
@@ -14,10 +15,18 @@ class EmbeddedKafkaMetadataFieldInserterTest extends org.scalatest.funsuite.AnyF
     struct
   }
 
-  test("FieldInserter returns a noop if flag is not set") {
+  test("FieldInserter returns a noop if flag is set to false") {
     assertResult(struct) {
-      FieldInserter.embeddedKafkaMetadata(false)
+      FieldInserter.embeddedKafkaMetadata(doInsert = false, None)
         .insertFields(struct, EmbeddedKafkaMetadata(0, 10, timestamp))
+    }
+  }
+  test("FieldInserter returns a real inserter if flag is set to false but order fields is set to __celonis_order") {
+    val kafkaMeta = EmbeddedKafkaMetadata(0, 10, timestamp)
+    assertResult(kafkaMeta.offset) {
+      val transformedStruct = FieldInserter.embeddedKafkaMetadata(doInsert = false, Some(CelonisOrderFieldName))
+        .insertFields(struct, kafkaMeta).asInstanceOf[Struct]
+      transformedStruct.get(CelonisOrderFieldName)
     }
   }
 
@@ -42,7 +51,7 @@ class EmbeddedKafkaMetadataFieldInserterTest extends org.scalatest.funsuite.AnyF
     }
 
     assertResult(expected) {
-      FieldInserter.embeddedKafkaMetadata(true)
+      FieldInserter.embeddedKafkaMetadata(doInsert = true, None)
         .insertFields(struct, EmbeddedKafkaMetadata(1, 101, timestamp))
     }
   }
@@ -70,7 +79,7 @@ class EmbeddedKafkaMetadataFieldInserterTest extends org.scalatest.funsuite.AnyF
     }
 
     assertResult(expected) {
-      FieldInserter.embeddedKafkaMetadata(true)
+      FieldInserter.embeddedKafkaMetadata(doInsert = true, None)
         .insertFields(struct, EmbeddedKafkaMetadata(1, 101, timestamp))
     }
   }

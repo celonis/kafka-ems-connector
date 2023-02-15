@@ -8,8 +8,8 @@ object FieldInserter {
     override def insertFields(value: Any, meta: EmbeddedKafkaMetadata): Any = value
   }
 
-  def embeddedKafkaMetadata(doInsert: Boolean): FieldInserter =
-    if (doInsert)
+  def embeddedKafkaMetadata(doInsert: Boolean, configuredOrderField: Option[String]): FieldInserter =
+    if (doInsert || configuredOrderField.contains(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName))
       EmbeddedKafkaMetadataFieldInserter
     else
       noop
