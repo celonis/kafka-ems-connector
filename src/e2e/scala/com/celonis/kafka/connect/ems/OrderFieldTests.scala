@@ -24,7 +24,7 @@ import scala.language.postfixOps
 
 class OrderFieldTests extends AnyFunSuite with KafkaConnectContainerPerSuite with Matchers {
 
-  test("The order field is not inserted when PK was not set") {
+  test("The order field is not inserted when PK was not set and embedded Kafka metadata is disabled") {
     val sourceTopic = randomTopicName()
     val emsTable    = randomEmsTable()
 
@@ -42,6 +42,7 @@ class OrderFieldTests extends AnyFunSuite with KafkaConnectContainerPerSuite wit
         .withConfig(SHA512_SALT_KEY, "something")
         .withConfig(OBFUSCATED_FIELDS_KEY, "field1")
         .withConfig(OBFUSCATION_TYPE_KEY, "shA512")
+        .withConfig(EMBED_KAFKA_EMBEDDED_METADATA_KEY, "false")
 
       withConnector(emsConnector) {
         val randomInt = scala.util.Random.nextInt()
@@ -77,7 +78,7 @@ class OrderFieldTests extends AnyFunSuite with KafkaConnectContainerPerSuite wit
     }
   }
 
-  test("Introduce the auto generate sortable field when a PKs list was provided") {
+  test("Introduce the auto generate sortable field when a PKs list was provided and embeded Kafka metadata is disabled") {
     val sourceTopic = randomTopicName()
     val emsTable    = randomEmsTable()
 
@@ -93,6 +94,7 @@ class OrderFieldTests extends AnyFunSuite with KafkaConnectContainerPerSuite wit
         .withConfig(COMMIT_INTERVAL_KEY, 3600000)
         .withConfig(TMP_DIRECTORY_KEY, "/tmp/")
         .withConfig(PRIMARY_KEYS_KEY, "field1")
+        .withConfig(EMBED_KAFKA_EMBEDDED_METADATA_KEY, "false")
 
       withConnector(emsConnector) {
         val randomInt = scala.util.Random.nextInt()
@@ -175,6 +177,7 @@ class OrderFieldTests extends AnyFunSuite with KafkaConnectContainerPerSuite wit
         .withConfig(TMP_DIRECTORY_KEY, "/tmp/")
         .withConfig(PRIMARY_KEYS_KEY, "field1")
         .withConfig(ORDER_FIELD_NAME_KEY, "field1")
+        .withConfig(EMBED_KAFKA_EMBEDDED_METADATA_KEY, "false")
 
       withConnector(emsConnector) {
         val randomInt = scala.util.Random.nextInt()
