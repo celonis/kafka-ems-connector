@@ -46,6 +46,7 @@ case class EmsSinkConfig(
   explode:                ExplodeConfig,
   orderField:             OrderFieldConfig,
   flattenerConfig:        Option[FlattenerConfig],
+  embedKafkaMetadata:     Boolean,
 )
 
 object EmsSinkConfig {
@@ -127,6 +128,9 @@ object EmsSinkConfig {
       proxyConfig           <- HttpClientConfig.extractHttpClient(props)
       orderConfig            = OrderFieldConfig.from(props, primaryKeys)
       flattenerConfig       <- FlattenerConfig.extract(props, fallbackVarCharLength)
+      includeEmbeddedMetadata = PropertiesHelper.getBoolean(props, EMBED_KAFKA_EMBEDDED_METADATA_KEY).getOrElse(
+        EMBED_KAFKA_EMBEDDED_METADATA_DEFAULT,
+      )
     } yield EmsSinkConfig(
       sinkName,
       url,
@@ -145,6 +149,7 @@ object EmsSinkConfig {
       explodeConfig,
       orderConfig,
       flattenerConfig,
+      includeEmbeddedMetadata,
     )
 
 }

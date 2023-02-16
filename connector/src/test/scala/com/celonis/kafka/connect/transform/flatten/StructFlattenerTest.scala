@@ -1,7 +1,9 @@
 package com.celonis.kafka.connect.transform.flatten
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.DataException
 import org.scalatest.funsuite.AnyFunSuite
 

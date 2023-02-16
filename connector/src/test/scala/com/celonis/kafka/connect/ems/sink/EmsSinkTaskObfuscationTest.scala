@@ -17,30 +17,20 @@
 package com.celonis.kafka.connect.ems.sink
 
 import cats.data.NonEmptyList
-import cats.implicits.catsSyntaxOptionId
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{CLOSE_EVERY_CONNECTION_DEFAULT_VALUE => CLOSE_CONN_DEFAULT, CONNECTION_POOL_KEEPALIVE_MILLIS_DEFAULT_VALUE => KEEPALIVE_DEFAULT, CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE => MAX_IDLE_DEFAULT, _}
 import com.celonis.kafka.connect.ems.config._
-import com.celonis.kafka.connect.ems.conversion.OrderFieldInserter
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
-import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
-import com.celonis.kafka.connect.ems.storage.WorkingDirectory
+import com.celonis.kafka.connect.ems.storage.{ParquetFileCleanupRename, WorkingDirectory}
+import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadataFieldInserter
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
-  CLOSE_EVERY_CONNECTION_DEFAULT_VALUE => CLOSE_CONN_DEFAULT,
-}
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
-  CONNECTION_POOL_KEEPALIVE_MILLIS_DEFAULT_VALUE => KEEPALIVE_DEFAULT,
-}
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
-  CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE => MAX_IDLE_DEFAULT,
-}
+
 import java.net.URL
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
@@ -72,8 +62,9 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         )),
         UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
-        OrderFieldConfig(OrderFieldInserter.FieldName.some, OrderFieldInserter),
+        OrderFieldConfig(Some(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName)),
         None,
+        false,
       )
       val config = Map(
         ENDPOINT_KEY                -> sinkConfig.url.toString,

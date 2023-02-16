@@ -59,6 +59,9 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_ENA
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EMBED_KAFKA_EMBEDDED_METADATA_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EMBED_KAFKA_EMBEDDED_METADATA_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EMBED_KAFKA_EMBEDDED_METADATA_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETIRES_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
@@ -451,6 +454,13 @@ object EmsSinkConfigDef {
       FLATTENER_JSONBLOB_CHUNKS_DEFAULT,
       Importance.MEDIUM,
       FLATTENER_JSONBLOB_CHUNKS_DOC,
+    )
+    .define(
+      EMBED_KAFKA_EMBEDDED_METADATA_KEY,
+      Type.BOOLEAN,
+      EMBED_KAFKA_EMBEDDED_METADATA_DEFAULT,
+      Importance.MEDIUM,
+      EMBED_KAFKA_EMBEDDED_METADATA_DOC,
     )
 }
 

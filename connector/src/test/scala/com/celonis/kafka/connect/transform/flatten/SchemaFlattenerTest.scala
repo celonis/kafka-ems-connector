@@ -107,14 +107,14 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
   }
 
   lazy val primitiveFixtures = List(
-    1 -> SchemaBuilder.int8(),
-    2 -> SchemaBuilder.int16(),
-    3 -> SchemaBuilder.int32(),
-    4 -> SchemaBuilder.int64(),
-    5.0 -> SchemaBuilder.float32(),
-    6.0 -> SchemaBuilder.float64(),
-    false -> SchemaBuilder.bool(),
-    "hello" -> SchemaBuilder.string(),
+    1                    -> SchemaBuilder.int8(),
+    2                    -> SchemaBuilder.int16(),
+    3                    -> SchemaBuilder.int32(),
+    4                    -> SchemaBuilder.int64(),
+    5.0                  -> SchemaBuilder.float32(),
+    6.0                  -> SchemaBuilder.float64(),
+    false                -> SchemaBuilder.bool(),
+    "hello"              -> SchemaBuilder.string(),
     Array(0x1, 0x0, 0x1) -> SchemaBuilder.bytes(),
   )
 

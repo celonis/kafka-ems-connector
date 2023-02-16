@@ -18,18 +18,17 @@ package com.celonis.kafka.connect.ems.config
 
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ORDER_FIELD_NAME_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_KEY
-import com.celonis.kafka.connect.ems.conversion.NoOpOrderFieldInserter
-import com.celonis.kafka.connect.ems.conversion.OrderFieldInserter
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import cats.syntax.option._
+import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadataFieldInserter
 
 class OrderFieldConfigTest extends AnyFunSuite with Matchers {
   test("No order field and no inserter when no primary keys are set") {
     val configs = Map(
       ORDER_FIELD_NAME_KEY -> "should_not",
     )
-    OrderFieldConfig.from(configs, Nil) shouldBe OrderFieldConfig(None, NoOpOrderFieldInserter)
+    OrderFieldConfig.from(configs, Nil) shouldBe OrderFieldConfig(None)
   }
 
   test("Default order field name when primary keys") {
@@ -37,8 +36,8 @@ class OrderFieldConfigTest extends AnyFunSuite with Matchers {
       "something_else" -> "should_not",
       PRIMARY_KEYS_KEY -> "a",
     )
-    OrderFieldConfig.from(configs, List("a")) shouldBe OrderFieldConfig(OrderFieldInserter.FieldName.some,
-                                                                        OrderFieldInserter,
+    OrderFieldConfig.from(configs, List("a")) shouldBe OrderFieldConfig(
+      EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName.some,
     )
   }
 
@@ -47,6 +46,6 @@ class OrderFieldConfigTest extends AnyFunSuite with Matchers {
       ORDER_FIELD_NAME_KEY -> "abc",
       PRIMARY_KEYS_KEY     -> "a",
     )
-    OrderFieldConfig.from(configs, List("a")) shouldBe OrderFieldConfig("abc".some, NoOpOrderFieldInserter)
+    OrderFieldConfig.from(configs, List("a")) shouldBe OrderFieldConfig("abc".some)
   }
 }

@@ -16,12 +16,10 @@
 
 package com.celonis.kafka.connect.ems.config
 
-import cats.syntax.option._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ORDER_FIELD_NAME_KEY
-import com.celonis.kafka.connect.ems.conversion.NoOpOrderFieldInserter
-import com.celonis.kafka.connect.ems.conversion.OrderFieldInserter
+import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadataFieldInserter
 
-case class OrderFieldConfig(name: Option[String], inserter: OrderFieldInserter)
+case class OrderFieldConfig(name: Option[String])
 
 object OrderFieldConfig {
   def from(props: Map[String, _], primaryKeys: List[String]): OrderFieldConfig = {
@@ -29,18 +27,10 @@ object OrderFieldConfig {
     val name =
       if (primaryKeys.nonEmpty)
         configFieldName.orElse(
-          OrderFieldInserter.FieldName.some,
+          Some(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName),
         )
       else None
 
-    val inserter = if (primaryKeys.nonEmpty) {
-      // if a value is set by the user, then we don't use the auto-injected one. It is expected the field name is
-      // present since the connector won't validate it
-      configFieldName.map(_ => NoOpOrderFieldInserter).getOrElse(OrderFieldInserter)
-    } else {
-      // we don't have a PK, therefore do not use any inserter
-      NoOpOrderFieldInserter
-    }
-    OrderFieldConfig(name, inserter)
+    OrderFieldConfig(name)
   }
 }

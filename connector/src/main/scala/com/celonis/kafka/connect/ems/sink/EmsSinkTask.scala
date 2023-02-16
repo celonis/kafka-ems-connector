@@ -23,7 +23,6 @@ import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.config.ObfuscationConfig
-import com.celonis.kafka.connect.ems.config.OrderFieldConfig
 import com.celonis.kafka.connect.ems.conversion.DataConverter
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
@@ -37,6 +36,8 @@ import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.Version
 import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue
 import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue.ValueAndSchema
+import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadata
+import com.celonis.kafka.connect.transform.fields.FieldInserter
 import com.celonis.kafka.connect.transform.flatten.Flattener
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -60,13 +61,13 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private var pksValidator:             PrimaryKeysValidator     = _
   private var sinkName:                 String                   = _
 
-  private var maxRetries:          Int                       = 0
-  private var retriesLeft:         Int                       = maxRetries
-  private var flattener:           Flattener                 = _
-  private var errorPolicy:         ErrorPolicy               = ErrorPolicy.Retry
-  private var obfuscation:         Option[ObfuscationConfig] = None
-  private var orderField:          OrderFieldConfig          = _
-  private val emsSinkConfigurator: EmsSinkConfigurator       = new DefaultEmsSinkConfigurator
+  private var maxRetries:            Int                       = 0
+  private var retriesLeft:           Int                       = maxRetries
+  private var flattener:             Flattener                 = _
+  private var errorPolicy:           ErrorPolicy               = ErrorPolicy.Retry
+  private var obfuscation:           Option[ObfuscationConfig] = None
+  private val emsSinkConfigurator:   EmsSinkConfigurator       = new DefaultEmsSinkConfigurator
+  private var kafkaMetadataInserter: FieldInserter             = _
 
   override def version(): String = Version.implementationVersion
 
@@ -105,13 +106,13 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         writers,
       )
 
-    maxRetries   = config.retries.retries
-    retriesLeft  = maxRetries
-    errorPolicy  = config.errorPolicy
-    pksValidator = new PrimaryKeysValidator(config.primaryKeys)
-    obfuscation  = config.obfuscation
-    orderField   = config.orderField
-    flattener    = Flattener.fromConfig(config.flattenerConfig)
+    maxRetries            = config.retries.retries
+    retriesLeft           = maxRetries
+    errorPolicy           = config.errorPolicy
+    pksValidator          = new PrimaryKeysValidator(config.primaryKeys)
+    obfuscation           = config.obfuscation
+    flattener             = Flattener.fromConfig(config.flattenerConfig)
+    kafkaMetadataInserter = FieldInserter.embeddedKafkaMetadata(config.embedKafkaMetadata, config.orderField.name)
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
@@ -125,10 +126,13 @@ class EmsSinkTask extends SinkTask with StrictLogging {
           val recordValue = maybeFlattenValue(record)
 
           for {
-            transformedValue <- IO.fromEither(orderField.inserter.add(recordValue,
-                                                                      record.kafkaPartition(),
-                                                                      record.kafkaOffset(),
-            ))
+            transformedValue <- IO(
+              kafkaMetadataInserter.insertFields(
+                recordValue,
+                EmbeddedKafkaMetadata(record.kafkaPartition(), record.kafkaOffset(), record.timestamp()),
+              ),
+            )
+
             v <- IO.fromEither(DataConverter.apply(transformedValue))
             _ <- IO(logger.info("[{}] EmsSinkTask:put obfuscation={}", sinkName, obfuscation))
             value <- obfuscation.fold(IO.pure(v)) { o =>
