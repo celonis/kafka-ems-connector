@@ -69,12 +69,27 @@ final class RecordTransformer(
 }
 
 object RecordTransformer {
-  def fromConfig(config: EmsSinkConfig): RecordTransformer =
+  def fromConfig(
+    sinkName:        String,
+    flattenerConfig: Option[FlattenerConfig],
+    primaryKeys:     List[String],
+    obfuscation:     Option[ObfuscationConfig],
+    inserter:      FieldInserter,
+  ): RecordTransformer =
     new RecordTransformer(
+      sinkName,
+      Flattener.fromConfig(flattenerConfig),
+      new PrimaryKeysValidator(primaryKeys),
+      obfuscation,
+      inserter,
+    )
+
+  def fromConfig(config: EmsSinkConfig): RecordTransformer =
+    fromConfig(
       config.sinkName,
-      Flattener.fromConfig(config.flattenerConfig),
-      new PrimaryKeysValidator(config.primaryKeys),
+      config.flattenerConfig,
+      config.primaryKeys,
       config.obfuscation,
-      FieldInserter.embeddedKafkaMetadata(config.embedKafkaMetadata, config.orderField.name),
+      FieldInserter.embeddedKafkaMetadata(config.embedKafkaMetadata, config.orderField.name)
     )
 }
