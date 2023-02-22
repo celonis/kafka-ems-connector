@@ -15,12 +15,14 @@
  */
 
 package com.celonis.kafka.connect.ems.storage
+import cats.implicits.toShow
 import cats.syntax.either._
 import com.celonis.kafka.connect.ems.errors.InvalidInputException
+import com.celonis.kafka.connect.ems.model.RecordMetadata
 import org.apache.avro.generic.GenericRecord
 
 class PrimaryKeysValidator(pks: List[String]) {
-  def validate(record: GenericRecord): Either[Throwable, Unit] =
+  def validate(record: GenericRecord, metadata: RecordMetadata): Either[InvalidInputException, Unit] =
     if (pks.isEmpty) ().asRight
     else {
       val missingFields = pks.flatMap { pk =>
@@ -30,7 +32,20 @@ class PrimaryKeysValidator(pks: List[String]) {
         }
       }
       if (missingFields.nonEmpty)
-        InvalidInputException(s"Incoming record is missing these primary key(-s):${missingFields.mkString(",")}").asLeft
-      else ().asRight
+        InvalidInputException(
+          s"Incoming record is missing these primary key(-s):${missingFields.mkString(
+            ",",
+          )} for record ${metadata.show}",
+        ).asLeft
+      else {
+        //PK values cannot be null
+        val nullablePKs = pks.filter(pk => Option(record.get(pk)).isEmpty)
+        if (nullablePKs.isEmpty)
+          ().asRight
+        else
+          InvalidInputException(
+            s"Incoming record cannot has null for the following primary key(-s):${nullablePKs.mkString(",")} for record ${metadata.show}",
+          ).asLeft
+      }
     }
 }

@@ -138,9 +138,9 @@ class EmsSinkTask extends SinkTask with StrictLogging {
             value <- obfuscation.fold(IO.pure(v)) { o =>
               IO.fromEither(v.obfuscate(o).leftMap(FailedObfuscationException))
             }
-            _       <- IO.fromEither(pksValidator.validate(value))
             tp       = TopicPartition(new Topic(record.topic()), new Partition(record.kafkaPartition()))
             metadata = RecordMetadata(tp, new Offset(record.kafkaOffset()))
+            _       <- IO.fromEither(pksValidator.validate(value, metadata))
             _       <- writerManager.write(Record(value, metadata))
           } yield ()
         }
