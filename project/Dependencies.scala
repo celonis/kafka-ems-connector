@@ -80,7 +80,7 @@ object Dependencies {
     val httpClientVersion       = "4.5.13"
     val json4sVersion           = "4.0.5"
     val jacksonVersion          = "2.12.6"
-    val jacksonDatabindVersion  = "2.12.6.1"
+    val jacksonDatabindVersion  = "2.12.7.1"
     val slf4jTestingVersion     = "2.0.0-alpha1"
   }
 
