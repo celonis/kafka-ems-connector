@@ -22,12 +22,8 @@ import cats.effect.kernel.Async
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.HttpClientConfig
 import com.celonis.kafka.connect.ems.errors.UploadFailedException
-import com.celonis.kafka.connect.ems.storage.EmsUploader.ChunkSize
 import com.celonis.kafka.connect.ems.storage.EmsUploader.buildUri
 import com.typesafe.scalalogging.StrictLogging
-import fs2.io.file.Files
-import fs2.io.file.Flags
-import fs2.io.file.Path
 import okhttp3.OkHttpClient
 import org.http4s._
 import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
@@ -38,7 +34,6 @@ import org.http4s.multipart.Part
 import org.http4s.okhttp.client.OkHttpBuilder
 import org.typelevel.ci.CIString
 
-import java.io.File
 import java.net.URL
 import javax.ws.rs.core.UriBuilder
 import scala.annotation.nowarn
@@ -66,10 +61,7 @@ class EmsUploader[F[_]](
 
     def uploadWithClient(client: Client[F]): F[EmsUploadResponse] = {
       val attributes = Vector(
-        Part.fileData[F](EmsUploader.FileName,
-                         fileName,
-                         Files[F].readAll(Path.fromNioPath(uploadRequest.file.toPath), ChunkSize, Flags.Read),
-        ),
+        Part.fileData[F](EmsUploader.FileName, fileName, uploadRequest.output.stream),
       )
       val pks                                  = primaryKeys.map(nel => nel.mkString_(","))
       val uri                                  = buildUri(baseUrl, targetTable, connectionId, clientId, fallbackVarcharLength, pks, maybeOrderFieldName)
@@ -108,19 +100,19 @@ class EmsUploader[F[_]](
       case Status.InternalServerError =>
         response.as[EmsServerErrorResponse]
           .redeemWith(
-            t => unmarshalError(t, request.file, response),
+            t => unmarshalError(t, request.output, response),
             { msg =>
               val error = UploadFailedException(response.status, msg.message, null)
-              genericError(error, request.file, error.msg, response)
+              genericError(error, request.output, error.msg, response)
             },
           )
       case Status.BadRequest =>
         response.as[EmsBadRequestResponse]
           .redeemWith(
-            t => unmarshalError(t, request.file, response),
+            t => unmarshalError(t, request.output, response),
             { msg =>
               val error = UploadFailedException(response.status, msg.errors.flatMap(_.error).mkString(","), null)
-              genericError(error, request.file, error.msg, response)
+              genericError(error, request.output, error.msg, response)
             },
           )
 
@@ -128,37 +120,37 @@ class EmsUploader[F[_]](
         //try to parse as server error response. We don't know all the response types
         response.as[EmsServerErrorResponse]
           .redeemWith(
-            t => unmarshalError(t, request.file, response),
+            t => unmarshalError(t, request.output, response),
             { msg =>
               val error = UploadFailedException(response.status, msg.message, null)
-              genericError(error, request.file, error.msg, response)
+              genericError(error, request.output, error.msg, response)
             },
           )
     }
 
-  private def genericError(throwable: Throwable, file: File, msg: String, response: Response[F]): F[Throwable] = {
+  private def genericError(throwable: Throwable, output: Output, msg: String, response: Response[F]): F[Throwable] = {
     val error = UploadFailedException(
       response.status,
-      s"Failed to upload the file:$file. Status code:${response.status.show}. $msg",
+      s"Failed to upload ${output.show}. Status code:${response.status.show}. $msg",
       throwable,
     )
     A.delay(
       logger.error(
-        s"Failed to upload the file:$file. Status code:${response.status.show}, Error:${error.msg}",
+        s"Failed to upload ${output.show}. Status code:${response.status.show}, Error:${error.msg}",
         error,
       ),
     ).flatMap(_ => A.raiseError(error))
   }
 
-  private def unmarshalError(throwable: Throwable, file: File, response: Response[F]): F[Throwable] = {
+  private def unmarshalError(throwable: Throwable, output: Output, response: Response[F]): F[Throwable] = {
     val error = UploadFailedException(
       response.status,
-      s"Failed to upload the file:$file. Status code:${response.status.show}. Cannot unmarshal the response.",
+      s"Failed to upload ${output.show}. Status code:${response.status.show}. Cannot unmarshal the response.",
       throwable,
     )
     A.delay(
       logger.error(
-        s"Failed to upload the file:$file. Status code:${response.status.show}, Error:${error.msg}",
+        s"Failed to upload ${output.show}. Status code:${response.status.show}, Error:${error.msg}",
         error,
       ),
     ).flatMap(_ => A.raiseError(error))

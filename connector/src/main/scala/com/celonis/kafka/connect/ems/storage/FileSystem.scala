@@ -17,22 +17,33 @@
 package com.celonis.kafka.connect.ems.storage
 
 import com.celonis.kafka.connect.ems.model.TopicPartition
-import com.typesafe.scalalogging.StrictLogging
 
-import java.io.BufferedOutputStream
-import java.io.File
-import java.io.FileOutputStream
-import java.io.OutputStream
+
+import java.io._
 import java.nio.file.Path
 import java.nio.file.Paths
 
-object FileSystem extends StrictLogging {
-  def deleteDir(file: File): Boolean = {
+trait FileSystemHelper {
+  def deleteDir(file: File): Boolean
+  def cleanup(dir:    Path, sinkName: String, tp: TopicPartition): Unit
+  //def createOutput(dir: Path, sinkName: String, topicPartition: TopicPartition): FileAndStream
+}
+
+object InMemoryFileSystem extends FileSystemHelper {
+  override def deleteDir(file: File): Boolean = true
+
+  override def cleanup(dir: Path, sinkName: String, tp: TopicPartition): Unit = ()
+
+  def createOutput(dir: Path, sinkName: String, topicPartition: TopicPartition): InMemoryFile =
+    new InMemoryFile(new ByteArrayOutputStream())
+}
+object FileSystem extends FileSystemHelper {
+  override def deleteDir(file: File): Boolean = {
     Option(file.listFiles()).foreach(_.foreach(deleteDir))
     file.delete()
   }
 
-  def cleanup(dir: Path, sinkName: String, tp: TopicPartition): Unit = {
+  override def cleanup(dir: Path, sinkName: String, tp: TopicPartition): Unit = {
     //cleanup the file for the given topic and partition
     val topicPartitionDir =
       Paths.get(dir.toString, sinkName, tp.topic.value, tp.partition.value.toString)
@@ -88,4 +99,25 @@ class FileAndStream(stream: OutputStream, file: File) extends AutoCloseable {
   def size:    Long = _size
 
   def outputFile(): File = file
+}
+
+class InMemoryFile(stream: ByteArrayOutputStream) extends AutoCloseable {
+  private var _size:    Long = stream.toByteArray.length.toLong
+  override def close(): Unit = stream.close()
+
+  def write(b: Int): Unit = {
+    stream.write(b)
+    _size += Integer.BYTES
+  }
+  def write(b: Array[Byte]): Unit = {
+    stream.write(b)
+    _size += b.length
+  }
+  def write(b: Array[Byte], off: Int, len: Int): Unit = {
+    stream.write(b, off, len)
+    _size += len
+  }
+
+  def flush(): Unit = stream.flush()
+  def size:    Long = _size
 }
