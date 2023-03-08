@@ -12,6 +12,6 @@ addSbtPlugin("ch.epfl.scala"                     % "sbt-bloop"          % "1.4.8
 addSbtPlugin("com.eed3si9n"                      % "sbt-buildinfo"      % "0.10.0")
 addSbtPlugin("com.typesafe.sbt"                  % "sbt-license-report" % "1.2.0")
 
-addSbtPlugin("net.vonbuchholtz"    % "sbt-dependency-check" % "3.1.1")
+addSbtPlugin("net.vonbuchholtz" % "sbt-dependency-check" % "3.1.1")
 addDependencyTreePlugin
-libraryDependencies += "org.slf4j" % "slf4j-nop"            % "1.7.25"
+libraryDependencies += "org.slf4j" % "slf4j-nop" % "1.7.25"
