@@ -17,12 +17,18 @@
 package com.celonis.kafka.connect.ems.sink
 
 import cats.data.NonEmptyList
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{CLOSE_EVERY_CONNECTION_DEFAULT_VALUE => CLOSE_CONN_DEFAULT, CONNECTION_POOL_KEEPALIVE_MILLIS_DEFAULT_VALUE => KEEPALIVE_DEFAULT, CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE => MAX_IDLE_DEFAULT, _}
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
+  CLOSE_EVERY_CONNECTION_DEFAULT_VALUE => CLOSE_CONN_DEFAULT,
+  CONNECTION_POOL_KEEPALIVE_MILLIS_DEFAULT_VALUE => KEEPALIVE_DEFAULT,
+  CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE => MAX_IDLE_DEFAULT,
+  _,
+}
 import com.celonis.kafka.connect.ems.config._
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
-import com.celonis.kafka.connect.ems.storage.{ParquetFileCleanupRename, WorkingDirectory}
+import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
+import com.celonis.kafka.connect.ems.storage.WorkingDirectory
 import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadataFieldInserter
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
