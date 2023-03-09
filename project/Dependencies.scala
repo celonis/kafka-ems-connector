@@ -12,7 +12,7 @@ object Dependencies {
   // scala versions
   val scalaOrganization      = "org.scala-lang"
   val scala212Version        = "2.12.13"
-  val scala213Version        = "2.13.5"
+  val scala213Version        = "2.13.10"
   val supportedScalaVersions = List(scala213Version)
 
   val commonResolvers = Seq(
@@ -34,7 +34,7 @@ object Dependencies {
     val scalaCheckVersion              = "1.14.3"
     val randomDataGeneratorVersion     = "2.8"
 
-    val enumeratumVersion = "1.7.0"
+    val enumeratumVersion = "1.7.2"
 
     val kafkaVersion = "3.1.0"
 
@@ -68,6 +68,7 @@ object Dependencies {
     val wiremockJre8Version = "2.25.1"
     val parquetVersion      = "1.12.2"
     val hadoopVersion       = "3.3.4"
+    val woodstockVersion    = "5.4.0"
 
     val nettyVersion = "4.1.89.Final"
 
@@ -170,6 +171,8 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.databind"))
     .excludeAll(ExclusionRule(organization = "com.google.protobuf"))
     .excludeAll(ExclusionRule(organization = "commons-net"))
+    .excludeAll(ExclusionRule(organization = "org.apache.kerby"))
+    .excludeAll(ExclusionRule(organization = "org.apache.zookeeper"))
     .exclude("org.apache.hadoop", "hadoop-annotations")
     .exclude("org.apache.hadoop", "hadoop-auth")
 
@@ -184,9 +187,14 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.core"))
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.databind"))
     .excludeAll(ExclusionRule(organization = "com.google.protobuf"))
+    .excludeAll(ExclusionRule(organization = "org.apache.zookeeper"))
     .exclude("org.apache.hadoop", "hadoop-yarn-common")
+    .exclude("org.apache.hadoop", "hadoop-hdfs-client")
     .exclude("org.apache.hadoop", "hadoop-yarn-client")
 
+  //this is a vulnerability fix. hadoop-common brings 5.3.0 and there is no new version of hadoop-common addressing the issue
+  // hence the build brings 5.4.0
+  lazy val woodstock = "com.fasterxml.woodstox" % "woodstox-core" % Versions.woodstockVersion
   // testcontainers module dependencies
   val testcontainersCore       = "org.testcontainers"        % "testcontainers"         % Versions.testcontainersVersion
   val testcontainersKafka      = "org.testcontainers"        % "kafka"                  % Versions.testcontainersVersion
@@ -293,6 +301,7 @@ trait Dependencies {
     parquetHadoop,
     hadoopCommon,
     hadoopMapReduce,
+    woodstock,
   ) ++ enumeratum ++ circe ++ http4s ++ nettyDeps).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))

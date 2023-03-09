@@ -37,6 +37,7 @@ import org.typelevel.ci.CIString
 
 import java.util.Base64
 import scala.util.Try
+import scala.util.matching.Regex
 
 class ProxyEndpoint[F[_]: Concurrent](
   auth: Option[BasicAuthentication],
@@ -67,7 +68,7 @@ class ProxyEndpoint[F[_]: Concurrent](
   }
 
   def splitAuth(authHeaderValue: String): Option[String] = {
-    val reg = "^Basic ([A-Za-z0-9]*)$".r("base64gp")
+    val reg = new Regex("^Basic ([A-Za-z0-9]*)$", "base64gp")
     for {
       matches <- reg.findFirstMatchIn(authHeaderValue)
     } yield matches.group("base64gp")
