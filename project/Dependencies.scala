@@ -170,6 +170,7 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.databind"))
     .excludeAll(ExclusionRule(organization = "com.google.protobuf"))
     .excludeAll(ExclusionRule(organization = "commons-net"))
+    .excludeAll(ExclusionRule(organization = "com.fasterxml.woodstox"))
     .exclude("org.apache.hadoop", "hadoop-annotations")
     .exclude("org.apache.hadoop", "hadoop-auth")
 
