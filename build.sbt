@@ -2,8 +2,6 @@ import Settings._
 import sbt._
 
 ThisBuild / scalafixDependencies ++= Dependencies.scalafixDeps
-// This line ensures that sources are downloaded for dependencies, when using Bloop
-bloopExportJarClassifiers in Global := Some(Set("sources"))
 
 val generateManifest = taskKey[Seq[File]]("generateManifest")
 
