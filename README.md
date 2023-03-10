@@ -101,6 +101,17 @@ git push origin vx.y.z
 
 The release will be automatically generated after the action has finished successfully.
 
+## Locally run a vulnerability scan
+
+- Make sure you have [dependency-check](https://owasp.org/www-project-dependency-check/) installed
+- Generate the jar for the connector:
+```
+sbt> project kafka-ems-connector; clean; generateManifest; project connector; set assembly / test := {}; assembly 
+``` 
+- Use `dependency-check` to scan the jar:
+```
+dependency-check -s ./connector/target/scala-2.13/kafka-ems-sink-assembly-1.1-SNAPSHOT.jar
+```
 
 ## Bugs and Feedback
 For bugs, questions and discussions please use the GitHub Issues.
