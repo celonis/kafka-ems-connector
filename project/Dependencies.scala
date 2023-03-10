@@ -175,6 +175,7 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "org.apache.zookeeper"))
     .exclude("org.apache.hadoop", "hadoop-annotations")
     .exclude("org.apache.hadoop", "hadoop-auth")
+    .exclude("org.apache.hadoop.thirdparty", "hadoop-shaded-protobuf_3_7")
 
   lazy val hadoopMapReduce = ("org.apache.hadoop" % "hadoop-mapreduce-client-core" % Versions.hadoopVersion)
     .excludeAll(ExclusionRule(organization = "javax.servlet"))
