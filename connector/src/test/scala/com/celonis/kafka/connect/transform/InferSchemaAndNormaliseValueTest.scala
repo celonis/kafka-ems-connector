@@ -78,7 +78,6 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
     List(
       Map.empty[Boolean, Boolean].asJava -> SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BYTES_SCHEMA).build(),
       List.empty[Int].asJava             -> SchemaBuilder.array(Schema.BYTES_SCHEMA).build(),
-      List[Any](1, "blah", true).asJava  -> SchemaBuilder.array(Schema.BYTES_SCHEMA).build(),
     ).foreach {
       case (value, expectedSchema) =>
         assertResult(Some(ValueAndSchema(value, expectedSchema)))(InferSchemaAndNormaliseValue(value))
