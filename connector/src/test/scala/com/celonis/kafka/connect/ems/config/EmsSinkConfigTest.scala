@@ -259,7 +259,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         false,
       )
 
-      val inputMap: Map[String, _] = Map(
+      val inputMap = Map[String, Any](
         ENDPOINT_KEY                -> sinkConfig.url.toString,
         TARGET_TABLE_KEY            -> sinkConfig.target,
         AUTHORIZATION_KEY           -> sinkConfig.authorization.header,

@@ -53,7 +53,8 @@ object Settings extends Dependencies {
 
     val commonOptions = Seq(
       // standard settings
-      "-target:jvm-1.8",
+      "-release",
+      "8",
       "-encoding",
       "UTF-8",
       "-unchecked",
