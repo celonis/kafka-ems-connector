@@ -14,6 +14,11 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import com.celonis.kafka.connect.ems.obfuscation.ObfuscationUtils._
 import cats.syntax.either._
+import com.celonis.kafka.connect.ems.model.Offset
+import com.celonis.kafka.connect.ems.model.Partition
+import com.celonis.kafka.connect.ems.model.RecordMetadata
+import com.celonis.kafka.connect.ems.model.Topic
+import com.celonis.kafka.connect.ems.model.TopicPartition
 import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadata
 import com.celonis.kafka.connect.transform.fields.FieldInserter
 
@@ -44,7 +49,11 @@ final class RecordTransformer(
       value <- obfuscation.fold(IO.pure(v)) { o =>
         IO.fromEither(v.obfuscate(o).leftMap(FailedObfuscationException))
       }
-      _ <- IO.fromEither(pksValidator.validate(value))
+      metadata = RecordMetadata(
+        TopicPartition(new Topic(sinkRecord.topic()), new Partition(sinkRecord.kafkaPartition())),
+        new Offset(sinkRecord.kafkaOffset()),
+      )
+      _ <- IO.fromEither(pksValidator.validate(value, metadata))
     } yield value
   }
 

@@ -15,10 +15,12 @@
  */
 
 package com.celonis.kafka.connect.ems.storage
+import cats.implicits.toShow
 import com.celonis.kafka.connect.ems.errors.InvalidInputException
-import org.apache.avro.generic.GenericRecord
+import com.celonis.kafka.connect.ems.model._
 import org.apache.avro.Schema
 import org.apache.avro.SchemaBuilder
+import org.apache.avro.generic.GenericRecord
 import org.mockito.Mockito.when
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -38,7 +40,8 @@ class PrimaryKeysValidatorTests extends AnyFunSuite with Matchers with MockitoSu
     ))
 
     val validator = new PrimaryKeysValidator(Nil)
-    validator.validate(record) shouldBe Right(())
+    val metadata  = RecordMetadata(TopicPartition(new Topic("a"), new Partition(1)), new Offset(100))
+    validator.validate(record, metadata) shouldBe Right(())
   }
 
   test("returns an error if the field is not present") {
@@ -58,8 +61,9 @@ class PrimaryKeysValidatorTests extends AnyFunSuite with Matchers with MockitoSu
     )
 
     val validator = new PrimaryKeysValidator(List("d"))
-    validator.validate(record) shouldBe Left(
-      InvalidInputException("Incoming record is missing these primary key(-s):d"),
+    val metadata  = RecordMetadata(TopicPartition(new Topic("a"), new Partition(1)), new Offset(100))
+    validator.validate(record, metadata) shouldBe Left(
+      InvalidInputException(s"Incoming record is missing these primary key(-s):d for record ${metadata.show}"),
     )
   }
 
@@ -78,13 +82,16 @@ class PrimaryKeysValidatorTests extends AnyFunSuite with Matchers with MockitoSu
         ).asJava,
       ),
     )
-
-    new PrimaryKeysValidator(List("c", "d")).validate(record) shouldBe Left(
-      InvalidInputException("Incoming record is missing these primary key(-s):d"),
+    when(record.get("a")).thenReturn("a")
+    when(record.get("b")).thenReturn(true)
+    when(record.get("c")).thenReturn(1)
+    val metadata = RecordMetadata(TopicPartition(new Topic("a"), new Partition(1)), new Offset(100))
+    new PrimaryKeysValidator(List("c", "d")).validate(record, metadata) shouldBe Left(
+      InvalidInputException(s"Incoming record is missing these primary key(-s):d for record ${metadata.show}"),
     )
 
-    new PrimaryKeysValidator(List("c", "A")).validate(record) shouldBe Left(
-      InvalidInputException("Incoming record is missing these primary key(-s):A"),
+    new PrimaryKeysValidator(List("c", "A")).validate(record, metadata) shouldBe Left(
+      InvalidInputException(s"Incoming record is missing these primary key(-s):A for record ${metadata.show}"),
     )
   }
 
@@ -103,7 +110,38 @@ class PrimaryKeysValidatorTests extends AnyFunSuite with Matchers with MockitoSu
         ).asJava,
       ),
     )
+    when(record.get("a")).thenReturn("a")
+    when(record.get("b")).thenReturn(true)
+    when(record.get("c")).thenReturn(1)
 
-    new PrimaryKeysValidator(List("c", "a", "b")).validate(record) shouldBe Right(())
+    val metadata = RecordMetadata(TopicPartition(new Topic("a"), new Partition(1)), new Offset(100))
+    new PrimaryKeysValidator(List("c", "a", "b")).validate(record, metadata) shouldBe Right(())
+  }
+
+  test("return an error when at least one of the PK is null") {
+    val record = mock[GenericRecord]
+    when(record.getSchema).thenReturn(
+      Schema.createRecord(
+        "r",
+        "",
+        "ns",
+        false,
+        List(
+          new Schema.Field("a", SchemaBuilder.builder.stringType()),
+          new Schema.Field("b", SchemaBuilder.builder.booleanType()),
+          new Schema.Field("c", SchemaBuilder.builder.intType()),
+        ).asJava,
+      ),
+    )
+    when(record.get("a")).thenReturn("a")
+    when(record.get("b")).thenReturn(null)
+    when(record.get("c")).thenReturn(null)
+
+    val metadata = RecordMetadata(TopicPartition(new Topic("a"), new Partition(1)), new Offset(100))
+    new PrimaryKeysValidator(List("c", "b")).validate(record, metadata) shouldBe Left(
+      InvalidInputException(
+        s"Incoming record cannot has null for the following primary key(-s):c,b for record ${metadata.show}",
+      ),
+    )
   }
 }
