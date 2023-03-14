@@ -74,14 +74,22 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
     assertResult(Some(ValueAndSchema(expectedValue, expectedSchema)))(InferSchemaAndNormaliseValue(value))
   }
 
-  test("Infers heterogeneous collections as byte collections") {
+  test("Succeeds with empty collections") {
     List(
       Map.empty[Boolean, Boolean].asJava -> SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BYTES_SCHEMA).build(),
       List.empty[Int].asJava             -> SchemaBuilder.array(Schema.BYTES_SCHEMA).build(),
-      List[Any](1, "blah", true).asJava  -> SchemaBuilder.array(Schema.BYTES_SCHEMA).build(),
     ).foreach {
       case (value, expectedSchema) =>
         assertResult(Some(ValueAndSchema(value, expectedSchema)))(InferSchemaAndNormaliseValue(value))
+    }
+  }
+
+  test("Fails with non-empty heterogeneous collections") {
+    List(
+      List[Any](1, "blah", true).asJava,
+      List(List[Any](1, "blah")).asJava,
+    ).foreach { value =>
+      assertResult(None)(InferSchemaAndNormaliseValue(value))
     }
   }
 
