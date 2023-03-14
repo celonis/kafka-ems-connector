@@ -50,11 +50,11 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private var writerManager:            WriterManager[IO]        = _
   private var sinkName:                 String                   = _
 
-  private var maxRetries:            Int                 = 0
-  private var retriesLeft:           Int                 = maxRetries
-  private var errorPolicy:           ErrorPolicy         = ErrorPolicy.Retry
-  private var transformer:           RecordTransformer   = _
-  private val emsSinkConfigurator:   EmsSinkConfigurator = new DefaultEmsSinkConfigurator
+  private var maxRetries:          Int                 = 0
+  private var retriesLeft:         Int                 = maxRetries
+  private var errorPolicy:         ErrorPolicy         = ErrorPolicy.Retry
+  private var transformer:         RecordTransformer   = _
+  private val emsSinkConfigurator: EmsSinkConfigurator = new DefaultEmsSinkConfigurator
 
   override def version(): String = Version.implementationVersion
 
