@@ -21,7 +21,7 @@ import com.celonis.kafka.connect.ems.data.ComplexObject
 import com.celonis.kafka.connect.ems.model.Partition
 import com.celonis.kafka.connect.ems.model.Topic
 import com.celonis.kafka.connect.ems.model.TopicPartition
-import com.celonis.kafka.connect.ems.storage.FileSystem
+import com.celonis.kafka.connect.ems.storage.FileSystemOperations
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
 import com.celonis.kafka.connect.ems.storage.SampleData
 import com.celonis.kafka.connect.ems.storage.WorkingDirectory
@@ -31,14 +31,16 @@ import org.apache.kafka.connect.json.JsonConverterConfig
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
+import java.nio.file.Files
 import scala.jdk.CollectionConverters._
 
 class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDirectory with SampleData {
+  val fsOps = new FileSystemOperations(fsImpl)
   test("rollover on schema change returns true") {
     withDir { dir =>
       val sinkName       = "sA"
       val topicPartition = TopicPartition(new Topic("B"), new Partition(2))
-      val output         = FileSystem.createOutput(dir, sinkName, topicPartition)
+      val output         = fsOps.createOutput(dir, sinkName, topicPartition)
       output.size shouldBe 0L
       val formatWriter =
         ParquetFormatWriter.from(output, simpleSchemaV1, ParquetConfig.Default, new NoOpExploder().explode)
@@ -51,7 +53,7 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
     withDir { dir =>
       val sinkName       = "sA"
       val topicPartition = TopicPartition(new Topic("C"), new Partition(1))
-      val output         = FileSystem.createOutput(dir, sinkName, topicPartition)
+      val output         = fsOps.createOutput(dir, sinkName, topicPartition)
       output.size shouldBe 0L
       val formatWriter =
         ParquetFormatWriter.from(output, simpleSchemaV1, ParquetConfig.Default, new NoOpExploder().explode)
@@ -63,8 +65,10 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
     withDir { dir =>
       val sinkName       = "sA"
       val topicPartition = TopicPartition(new Topic("A"), new Partition(2))
-      val output         = FileSystem.createOutput(dir, sinkName, topicPartition)
-      output.size shouldBe output.outputFile().length()
+      val output         = fsOps.createOutput(dir, sinkName, topicPartition)
+
+      Files.size(output.outputFile()) shouldBe 0
+
       val formatWriter =
         ParquetFormatWriter.from(output, simpleSchemaV1, ParquetConfig.Default, new NoOpExploder().explode)
       val struct = buildSimpleStruct()
@@ -78,7 +82,7 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
     withDir { dir =>
       val sinkName       = "sA"
       val topicPartition = TopicPartition(new Topic("A"), new Partition(2))
-      val output         = FileSystem.createOutput(dir, sinkName, topicPartition)
+      val output         = fsOps.createOutput(dir, sinkName, topicPartition)
 
       val entry =
         ComplexObject(8,
@@ -116,8 +120,8 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
     withDir { dir =>
       val sinkName       = "sA"
       val topicPartition = TopicPartition(new Topic("A"), new Partition(2))
-      val output         = FileSystem.createOutput(dir, sinkName, topicPartition)
-      output.size shouldBe output.outputFile().length()
+      val output         = fsOps.createOutput(dir, sinkName, topicPartition)
+      output.size shouldBe Files.size(output.outputFile())
       val count = 100
       val formatWriter = ParquetFormatWriter.from(output,
                                                   simpleSchemaV1,

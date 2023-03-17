@@ -1,7 +1,9 @@
 import Dependencies.Versions.jacksonDatabindVersion
 import Dependencies.Versions.jacksonVersion
+import Dependencies.Versions.jimfsVersion
 import Dependencies.Versions.nettyVersion
 import Dependencies.Versions.nimbusJoseJwtVersion
+import Dependencies.Versions.memoryfilesystemVersion
 import Dependencies._
 import sbt._
 
@@ -73,6 +75,10 @@ object Dependencies {
     val nettyVersion = "4.1.89.Final"
 
     val nimbusJoseJwtVersion = "9.22"
+
+    val jimfsVersion = "1.2"
+
+    val memoryfilesystemVersion = "2.5.0"
 
     val jerseyCommonVersion = "2.35"
 
@@ -225,6 +231,7 @@ object Dependencies {
 
   lazy val nimbusJoseJwt = "com.nimbusds" % "nimbus-jose-jwt" % nimbusJoseJwtVersion
 
+  lazy val jimfs = "com.google.jimfs" % "jimfs" % jimfsVersion
 }
 
 trait Dependencies {
@@ -303,6 +310,7 @@ trait Dependencies {
     hadoopCommon,
     hadoopMapReduce,
     woodstock,
+    jimfs,
   ) ++ enumeratum ++ circe ++ http4s ++ nettyDeps).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))

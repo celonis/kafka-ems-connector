@@ -29,6 +29,7 @@ import com.typesafe.scalalogging.StrictLogging
 import io.circe.syntax.EncoderOps
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 /**
@@ -47,6 +48,7 @@ class WriterManager[F[_]](
   writerBuilder: WriterBuilder,
   writersRef:    Ref[F, Map[TopicPartition, Writer]],
   fileCleanup:   ParquetFileCleanup,
+  fileSystem:    FileSystemOperations,
 )(
   implicit
   A: Async[F],
@@ -82,7 +84,7 @@ class WriterManager[F[_]](
         file = writer.state.file
         _ <- A.delay(
           logger.info(
-            s"Uploading file:$file size:${file.length()} for topic-partition:${TopicPartition.show.show(state.topicPartition)} and offset:${state.offset.show}",
+            s"Uploading file:$file size:${Files.size(file)} for topic-partition:${TopicPartition.show.show(state.topicPartition)} and offset:${state.offset.show}",
           ),
         )
         uploadRequest = UploadRequest(file, state.topicPartition.topic, state.topicPartition.partition, state.offset)
@@ -112,7 +114,7 @@ class WriterManager[F[_]](
       writers <- writersRef.get.map(_.values.toList)
       _       <- writers.traverse(w => A.delay(w.close()))
       _       <- writersRef.update(_ => Map.empty)
-      _       <- partitions.toList.traverse(partition => A.delay(FileSystem.cleanup(workingDir, sinkName, partition)))
+      _       <- partitions.toList.traverse(partition => A.delay(fileSystem.cleanup(workingDir, sinkName, partition)))
     } yield ()
 
   def close(partitions: List[TopicPartition]): F[Unit] =
@@ -133,7 +135,7 @@ class WriterManager[F[_]](
       _          <- A.delay(logger.info(s"[{}] Received call to WriterManager.close()", sinkName))
       writers    <- writersRef.get.map(_.values.toList)
       partitions <- writers.traverse(w => A.delay(w.close()).map(_ => w.state.topicPartition))
-      _          <- partitions.traverse(partition => A.delay(FileSystem.cleanup(workingDir, sinkName, partition)))
+      _          <- partitions.traverse(partition => A.delay(fileSystem.cleanup(workingDir, sinkName, partition)))
       _          <- writersRef.update(_ => Map.empty)
     } yield ()
 
@@ -186,10 +188,11 @@ class WriterManager[F[_]](
 
 object WriterManager extends LazyLogging {
   def from[F[_]](
-    config:   EmsSinkConfig,
-    sinkName: String,
-    uploader: Uploader[F],
-    writers:  Ref[F, Map[TopicPartition, Writer]],
+    config:     EmsSinkConfig,
+    sinkName:   String,
+    uploader:   Uploader[F],
+    writers:    Ref[F, Map[TopicPartition, Writer]],
+    fileSystem: FileSystemOperations,
   )(
     implicit
     A: Async[F],
@@ -198,8 +201,15 @@ object WriterManager extends LazyLogging {
       sinkName,
       uploader,
       config.workingDir,
-      new WriterBuilderImpl(config.workingDir, sinkName, config.commitPolicy, config.parquet, config.explode),
+      new WriterBuilderImpl(config.workingDir,
+                            sinkName,
+                            config.commitPolicy,
+                            config.parquet,
+                            config.explode,
+                            fileSystem,
+      ),
       writers,
       config.parquet.cleanup,
+      fileSystem,
     )
 }

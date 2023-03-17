@@ -20,43 +20,50 @@ import com.celonis.kafka.connect.ems.model.TopicPartition
 import com.typesafe.scalalogging.StrictLogging
 
 import java.io.BufferedOutputStream
-import java.io.File
-import java.io.FileOutputStream
 import java.io.OutputStream
+import java.nio.file.FileSystems
+import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 
-object FileSystem extends StrictLogging {
-  def deleteDir(file: File): Boolean = {
-    Option(file.listFiles()).foreach(_.foreach(deleteDir))
-    file.delete()
+object FileSystemOperations {
+  lazy val Default: FileSystemOperations = new FileSystemOperations(FileSystems.getDefault)
+}
+
+class FileSystemOperations(fs: java.nio.file.FileSystem) extends StrictLogging {
+
+  def deleteDir(dir: Path): Unit = {
+    if (Files.isDirectory(dir))
+      Files.list(dir).forEach(deleteDir(_))
+
+    if (Files.exists(dir)) Files.delete(dir)
   }
 
   def cleanup(dir: Path, sinkName: String, tp: TopicPartition): Unit = {
     //cleanup the file for the given topic and partition
     val topicPartitionDir =
-      Paths.get(dir.toString, sinkName, tp.topic.value, tp.partition.value.toString)
-    deleteDir(topicPartitionDir.toFile)
+      fs.getPath(dir.toString, sinkName, tp.topic.value, tp.partition.value.toString)
+    deleteDir(topicPartitionDir)
     ()
   }
 
   def createOutput(dir: Path, sinkName: String, topicPartition: TopicPartition): FileAndStream = {
-    val sinkDir = Paths.get(dir.toString, sinkName).toFile
-    if (!sinkDir.exists()) sinkDir.mkdir()
-    val topicDir = Paths.get(dir.toString, sinkName, topicPartition.topic.value).toFile
-    if (!topicDir.exists()) topicDir.mkdir()
+    val sinkDir = fs.getPath(dir.toString, sinkName)
+    if (!Files.exists(sinkDir)) Files.createDirectory(sinkDir)
+
+    val topicDir = fs.getPath(dir.toString, sinkName, topicPartition.topic.value)
+    if (!Files.exists(topicDir)) Files.createDirectory(topicDir)
+
     val topicPartitionDir =
-      Paths.get(dir.toString, sinkName, topicPartition.topic.value, topicPartition.partition.value.toString).toFile
-    if (!topicPartitionDir.exists()) topicPartitionDir.mkdir()
-    val filePath = Paths.get(topicPartitionDir.toString, topicPartition.partition.value.toString + ".parquet")
-    val file     = filePath.toFile
-    if (file.exists()) {
-      file.delete()
+      fs.getPath(dir.toString, sinkName, topicPartition.topic.value, topicPartition.partition.value.toString)
+    if (!Files.exists(topicPartitionDir)) Files.createDirectory(topicPartitionDir)
+
+    val filePath = fs.getPath(topicPartitionDir.toString, topicPartition.partition.value.toString + ".parquet")
+    if (Files.exists(filePath)) {
+      Files.delete(filePath)
     }
-    file.createNewFile()
-    val outputFile           = new FileOutputStream(file)
-    val bufferedOutputStream = new BufferedOutputStream(outputFile)
-    new FileAndStream(bufferedOutputStream, file)
+    val outputStream         = Files.newOutputStream(filePath)
+    val bufferedOutputStream = new BufferedOutputStream(outputStream)
+    new FileAndStream(bufferedOutputStream, filePath)
   }
 }
 
@@ -67,8 +74,8 @@ object FileSystem extends StrictLogging {
   * @param stream - Instance of the [[OutputStream]] to write the parquet data
   * @param file - The file it's writing to
   */
-class FileAndStream(stream: OutputStream, file: File) extends AutoCloseable {
-  private var _size:    Long = file.length()
+class FileAndStream(stream: OutputStream, file: Path) extends AutoCloseable {
+  private var _size:    Long = 0
   override def close(): Unit = stream.close()
 
   def write(b: Int): Unit = {
@@ -87,5 +94,5 @@ class FileAndStream(stream: OutputStream, file: File) extends AutoCloseable {
   def flush(): Unit = stream.flush()
   def size:    Long = _size
 
-  def outputFile(): File = file
+  def outputFile(): Path = file
 }

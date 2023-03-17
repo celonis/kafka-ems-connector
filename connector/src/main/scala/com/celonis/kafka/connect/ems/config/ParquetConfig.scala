@@ -33,7 +33,7 @@ object ParquetConfig {
         .getOrElse(DEBUG_KEEP_TMP_FILES_DEFAULT)
       ParquetConfig(
         rowGroupSize = rowGroupSize,
-        cleanup      = if (keepParquetFiles) ParquetFileCleanupRename else ParquetFileCleanupDelete,
+        cleanup      = if (keepParquetFiles) ParquetFileCleanupRename.Default else ParquetFileCleanupDelete,
       )
     }
 

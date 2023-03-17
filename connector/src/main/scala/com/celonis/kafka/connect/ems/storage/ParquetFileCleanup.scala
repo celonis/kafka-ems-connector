@@ -17,27 +17,29 @@
 package com.celonis.kafka.connect.ems.storage
 import com.celonis.kafka.connect.ems.model.Offset
 
-import java.io.File
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.nio.file.{FileSystems, Files, Path}
 
+//TODO: can we move these under FileSystemOperations?
 sealed trait ParquetFileCleanup {
-  def clean(file: File, offset: Offset): Unit
+  def clean(file: Path, offset: Offset): Unit
 }
 
 object ParquetFileCleanupDelete extends ParquetFileCleanup {
-  override def clean(file: File, offset: Offset): Unit = {
-    file.delete()
+  override def clean(file: Path, offset: Offset): Unit = {
+    Files.delete(file)
     ()
   }
 }
 
-object ParquetFileCleanupRename extends ParquetFileCleanup {
-  def renamedFile(file: File, offset: Offset): Path =
-    Paths.get(file.getParentFile.toPath.toString, offset.value.toString + ".parquet")
-  override def clean(file: File, offset: Offset): Unit = {
+object ParquetFileCleanupRename {
+  val Default = new ParquetFileCleanupRename(FileSystems.getDefault)
+}
+class ParquetFileCleanupRename(fs: java.nio.file.FileSystem) extends ParquetFileCleanup {
+  def renamedFile(file: Path, offset: Offset): Path =
+    fs.getPath(file.getParent.toString, offset.value.toString + ".parquet")
+  override def clean(file: Path, offset: Offset): Unit = {
     val newFile = renamedFile(file, offset)
-    file.renameTo(newFile.toFile)
+    Files.move(file, newFile)
     ()
   }
 }

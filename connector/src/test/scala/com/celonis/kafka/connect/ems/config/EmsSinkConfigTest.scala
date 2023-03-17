@@ -270,7 +270,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         ERROR_RETRY_INTERVAL        -> sinkConfig.retries.interval,
         NBR_OF_RETRIES_KEY          -> sinkConfig.retries.retries,
         TMP_DIRECTORY_KEY           -> dir.toString,
-        DEBUG_KEEP_TMP_FILES_KEY    -> (sinkConfig.parquet.cleanup == ParquetFileCleanupRename),
+        DEBUG_KEEP_TMP_FILES_KEY    -> sinkConfig.parquet.cleanup.isInstanceOf[ParquetFileCleanupRename],
         PARQUET_FLUSH_KEY           -> sinkConfig.parquet.rowGroupSize,
         PRIMARY_KEYS_KEY            -> sinkConfig.primaryKeys.mkString(","),
         CONNECTION_ID_KEY           -> sinkConfig.connectionId.get,
