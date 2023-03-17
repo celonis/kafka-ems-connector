@@ -21,6 +21,7 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.model.CommitPolicy
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
+import com.celonis.kafka.connect.ems.storage.FileSystemOperations
 import com.celonis.kafka.connect.transform.FlattenerConfig
 import org.apache.commons.validator.routines.UrlValidator
 
@@ -47,6 +48,7 @@ case class EmsSinkConfig(
   orderField:             OrderFieldConfig,
   flattenerConfig:        Option[FlattenerConfig],
   embedKafkaMetadata:     Boolean,
+  useInMemoryFileSystem:  Boolean,
 )
 
 object EmsSinkConfig {
@@ -118,7 +120,8 @@ object EmsSinkConfig {
       error                 <- ErrorPolicy.extract(props)
       commitPolicy          <- extractCommitPolicy(props)
       retry                 <- RetryConfig.extractRetry(props)
-      tempDir               <- extractWorkingDirectory(props)
+      useInMemoryFs          = PropertiesHelper.getBoolean(props, USE_IN_MEMORY_FS_KEY).getOrElse(USE_IN_MEMORY_FS_DEFAULT)
+      tempDir               <- if (useInMemoryFs) Right(FileSystemOperations.InMemoryPseudoDir) else extractWorkingDirectory(props)
       parquetConfig         <- ParquetConfig.extract(props)
       primaryKeys           <- extractPrimaryKeys(props)
       connectionId           = PropertiesHelper.getString(props, CONNECTION_ID_KEY).map(_.trim).filter(_.nonEmpty)
@@ -150,6 +153,6 @@ object EmsSinkConfig {
       orderConfig,
       flattenerConfig,
       includeEmbeddedMetadata,
+      useInMemoryFs,
     )
-
 }

@@ -17,6 +17,8 @@
 package com.celonis.kafka.connect.ems.storage
 
 import com.celonis.kafka.connect.ems.model.TopicPartition
+import com.google.common.jimfs.Configuration
+import com.google.common.jimfs.Jimfs
 import com.typesafe.scalalogging.StrictLogging
 
 import java.io.BufferedOutputStream
@@ -26,7 +28,12 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 object FileSystemOperations {
-  lazy val Default: FileSystemOperations = new FileSystemOperations(FileSystems.getDefault)
+  private val jimfs = Jimfs.newFileSystem(Configuration.unix())
+
+  val InMemoryPseudoDir = jimfs.getPath("/pseudo/dir/memory/")
+
+  lazy val Default:  FileSystemOperations = new FileSystemOperations(FileSystems.getDefault)
+  lazy val InMemory: FileSystemOperations = new FileSystemOperations(jimfs)
 }
 
 class FileSystemOperations(fs: java.nio.file.FileSystem) extends StrictLogging {

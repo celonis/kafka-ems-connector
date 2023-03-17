@@ -75,7 +75,13 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     val writers = Ref.unsafe[IO, Map[TopicPartition, Writer]](Map.empty)
     blockingExecutionContext = BlockingExecutionContext("io-http-blocking")
 
-    writerManager =
+    writerManager = {
+      val fileSystemOperations =
+        if (config.useInMemoryFileSystem)
+          FileSystemOperations.InMemory
+        else
+          FileSystemOperations.Default
+
       WriterManager.from[IO](
         config,
         sinkName,
@@ -93,8 +99,9 @@ class EmsSinkTask extends SinkTask with StrictLogging {
           config.orderField.name,
         ),
         writers,
-        FileSystemOperations.Default,
+        fileSystemOperations,
       )
+    }
 
     maxRetries  = config.retries.retries
     retriesLeft = maxRetries

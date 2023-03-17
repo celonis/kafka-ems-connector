@@ -172,4 +172,10 @@ object EmsSinkConfigConstants {
     "Embed Kafka metadata such as partition, offset and timestamp as additional record fields."
   val EMBED_KAFKA_EMBEDDED_METADATA_DEFAULT = true
 
+
+  val USE_IN_MEMORY_FS_KEY = s"${CONNECTOR_PREFIX}.inmemfs.enable"
+  val USE_IN_MEMORY_FS_DOC =
+    "Rather than writing to the host file system, buffer parquet data files in memory"
+  val USE_IN_MEMORY_FS_DEFAULT = false
+
 }

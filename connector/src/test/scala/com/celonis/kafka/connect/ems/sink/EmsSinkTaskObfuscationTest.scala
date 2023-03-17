@@ -70,7 +70,8 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         ExplodeConfig.None,
         OrderFieldConfig(Some(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName)),
         None,
-        false,
+        embedKafkaMetadata    = false,
+        useInMemoryFileSystem = false,
       )
       val config = Map(
         ENDPOINT_KEY                -> sinkConfig.url.toString,
