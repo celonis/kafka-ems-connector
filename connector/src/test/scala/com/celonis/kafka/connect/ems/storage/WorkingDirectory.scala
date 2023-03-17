@@ -15,7 +15,9 @@
  */
 
 package com.celonis.kafka.connect.ems.storage
-import java.nio.file.{FileSystem, Files, Path}
+import java.nio.file.FileSystem
+import java.nio.file.Files
+import java.nio.file.Path
 import com.google.common.jimfs.Configuration
 import com.google.common.jimfs.Jimfs
 

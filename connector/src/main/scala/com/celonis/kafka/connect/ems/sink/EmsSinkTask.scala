@@ -25,12 +25,15 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model._
-import com.celonis.kafka.connect.ems.storage.{EmsUploader, FileSystemOperations, Writer, WriterManager}
+import com.celonis.kafka.connect.ems.storage.EmsUploader
+import com.celonis.kafka.connect.ems.storage.FileSystemOperations
+import com.celonis.kafka.connect.ems.storage.Writer
+import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.Version
 import com.celonis.kafka.connect.transform.RecordTransformer
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
-import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
+import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
@@ -90,7 +93,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
           config.orderField.name,
         ),
         writers,
-        FileSystemOperations.Default
+        FileSystemOperations.Default,
       )
 
     maxRetries  = config.retries.retries

@@ -17,7 +17,9 @@
 package com.celonis.kafka.connect.ems.storage
 import cats.Show
 import cats.implicits.toShow
-import com.celonis.kafka.connect.ems.model.{Offset, Partition, Topic}
+import com.celonis.kafka.connect.ems.model.Offset
+import com.celonis.kafka.connect.ems.model.Partition
+import com.celonis.kafka.connect.ems.model.Topic
 
 import java.nio.file.Path
 case class UploadRequest(file: Path, topic: Topic, partition: Partition, offset: Offset)

@@ -38,9 +38,15 @@ import java.io.FileOutputStream
 import java.net.URL
 import java.util.UUID
 import scala.collection.immutable.Queue
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{CLOSE_EVERY_CONNECTION_DEFAULT_VALUE => CLOSE_CONN_DEFAULT}
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{CONNECTION_POOL_KEEPALIVE_MILLIS_DEFAULT_VALUE => KEEPALIVE_DEFAULT}
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE => MAX_IDLE_DEFAULT}
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
+  CLOSE_EVERY_CONNECTION_DEFAULT_VALUE => CLOSE_CONN_DEFAULT,
+}
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
+  CONNECTION_POOL_KEEPALIVE_MILLIS_DEFAULT_VALUE => KEEPALIVE_DEFAULT,
+}
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
+  CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE => MAX_IDLE_DEFAULT,
+}
 
 import java.nio.file.Path
 class EmsUploaderTests extends AnyFunSuite with Matchers {
@@ -66,14 +72,16 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                               auth,
                               targetTable,
       )
-    val fileResource = Resource.make[IO, Path](IO {
-      val file = new File(filePath)
-      file.createNewFile()
-      val fw = new FileOutputStream(file)
-      fw.write(fileContent)
-      fw.close()
-      file.toPath
-    })(path => IO(java.nio.file.Files.delete(path)))
+    val fileResource = Resource.make[IO, Path](
+      IO {
+        val file = new File(filePath)
+        file.createNewFile()
+        val fw = new FileOutputStream(file)
+        fw.write(fileContent)
+        fw.close()
+        file.toPath
+      },
+    )(path => IO(java.nio.file.Files.delete(path)))
 
     (for {
       server <- serverResource

@@ -23,7 +23,7 @@ import com.google.common.jimfs.Jimfs
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import java.nio.file.{Files}
+import java.nio.file.Files
 import java.util.UUID
 
 class FileSystemOperationsTests extends AnyFunSuite with Matchers {
@@ -75,7 +75,6 @@ class FileSystemOperationsTests extends AnyFunSuite with Matchers {
   test("create the output path") {
     val dir = fs.getPath(UUID.randomUUID().toString)
     Files.createDirectory(dir)
-
 
     val sink      = "abc"
     val topic     = "customers"

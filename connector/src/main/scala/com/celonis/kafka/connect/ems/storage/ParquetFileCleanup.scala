@@ -17,7 +17,9 @@
 package com.celonis.kafka.connect.ems.storage
 import com.celonis.kafka.connect.ems.model.Offset
 
-import java.nio.file.{FileSystems, Files, Path}
+import java.nio.file.FileSystems
+import java.nio.file.Files
+import java.nio.file.Path
 
 //TODO: can we move these under FileSystemOperations?
 sealed trait ParquetFileCleanup {

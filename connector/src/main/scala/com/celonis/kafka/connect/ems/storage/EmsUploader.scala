@@ -135,7 +135,12 @@ class EmsUploader[F[_]](
           )
     }
 
-  private def genericError(throwable: Throwable, file: java.nio.file.Path, msg: String, response: Response[F]): F[Throwable] = {
+  private def genericError(
+    throwable: Throwable,
+    file:      java.nio.file.Path,
+    msg:       String,
+    response:  Response[F],
+  ): F[Throwable] = {
     val error = UploadFailedException(
       response.status,
       s"Failed to upload the file:$file. Status code:${response.status.show}. $msg",
