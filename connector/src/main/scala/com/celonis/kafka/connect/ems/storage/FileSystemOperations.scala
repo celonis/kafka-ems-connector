@@ -30,7 +30,11 @@ import java.nio.file.Path
 object FileSystemOperations {
   private val jimfs = Jimfs.newFileSystem(Configuration.unix())
 
-  val InMemoryPseudoDir = jimfs.getPath("/pseudo/dir/memory/")
+  lazy val InMemoryPseudoDir = {
+    val path = jimfs.getPath("/in-mem/pseudo/dir")
+    Files.createDirectories(path)
+    path
+  }
 
   lazy val Default:  FileSystemOperations = new FileSystemOperations(FileSystems.getDefault)
   lazy val InMemory: FileSystemOperations = new FileSystemOperations(jimfs)

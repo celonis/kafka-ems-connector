@@ -359,7 +359,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
       ()
     }
   }
-  test(s"hardcodes the working directory if in memory file system is enabled") {
+  test(s"hardcodes the working directory and forces Parquet file deletion if in memory file system is enabled") {
     val policy         = DefaultCommitPolicy(1000000L, 10.seconds.toMillis, 1000)
     val orderFieldName = "justfortest"
     val expected = EmsSinkConfig(
@@ -385,16 +385,19 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     )
 
     val inputMap: Map[String, _] = Map(
-      ENDPOINT_KEY                -> expected.url.toString,
-      TARGET_TABLE_KEY            -> expected.target,
-      AUTHORIZATION_KEY           -> expected.authorization.header,
-      ERROR_POLICY_KEY            -> expected.errorPolicy.entryName,
-      COMMIT_SIZE_KEY             -> policy.fileSize,
-      COMMIT_INTERVAL_KEY         -> policy.interval,
-      COMMIT_RECORDS_KEY          -> policy.records,
-      ERROR_RETRY_INTERVAL        -> expected.retries.interval,
-      NBR_OF_RETRIES_KEY          -> expected.retries.retries,
-      TMP_DIRECTORY_KEY           -> "/some/where/else",
+      ENDPOINT_KEY         -> expected.url.toString,
+      TARGET_TABLE_KEY     -> expected.target,
+      AUTHORIZATION_KEY    -> expected.authorization.header,
+      ERROR_POLICY_KEY     -> expected.errorPolicy.entryName,
+      COMMIT_SIZE_KEY      -> policy.fileSize,
+      COMMIT_INTERVAL_KEY  -> policy.interval,
+      COMMIT_RECORDS_KEY   -> policy.records,
+      ERROR_RETRY_INTERVAL -> expected.retries.interval,
+      NBR_OF_RETRIES_KEY   -> expected.retries.retries,
+      // these will be overriden
+      TMP_DIRECTORY_KEY        -> "/some/where/else",
+      DEBUG_KEEP_TMP_FILES_KEY -> "true",
+      //
       PRIMARY_KEYS_KEY            -> expected.primaryKeys.mkString(","),
       CONNECTION_ID_KEY           -> expected.connectionId.get,
       FALLBACK_VARCHAR_LENGTH_KEY -> expected.fallbackVarCharLengths.orNull,

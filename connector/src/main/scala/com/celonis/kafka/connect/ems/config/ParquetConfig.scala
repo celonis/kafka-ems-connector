@@ -27,13 +27,13 @@ case class ParquetConfig(rowGroupSize: Int, cleanup: ParquetFileCleanup)
 object ParquetConfig {
   val Default: ParquetConfig = ParquetConfig(1000, ParquetFileCleanupDelete)
 
-  def extract(props: Map[String, _]): Either[String, ParquetConfig] =
+  def extract(props: Map[String, _], useInMemFs: Boolean): Either[String, ParquetConfig] =
     ParquetConfig.extractParquetFlushRecords(props).map { rowGroupSize =>
       val keepParquetFiles = booleanOr(props, DEBUG_KEEP_TMP_FILES_KEY, DEBUG_KEEP_TMP_FILES_DOC)
         .getOrElse(DEBUG_KEEP_TMP_FILES_DEFAULT)
       ParquetConfig(
         rowGroupSize = rowGroupSize,
-        cleanup      = if (keepParquetFiles) ParquetFileCleanupRename.Default else ParquetFileCleanupDelete,
+        cleanup      = if (!useInMemFs && keepParquetFiles) ParquetFileCleanupRename.Default else ParquetFileCleanupDelete,
       )
     }
 

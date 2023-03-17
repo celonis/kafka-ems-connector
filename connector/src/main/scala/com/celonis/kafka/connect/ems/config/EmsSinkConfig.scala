@@ -122,7 +122,7 @@ object EmsSinkConfig {
       retry                 <- RetryConfig.extractRetry(props)
       useInMemoryFs          = PropertiesHelper.getBoolean(props, USE_IN_MEMORY_FS_KEY).getOrElse(USE_IN_MEMORY_FS_DEFAULT)
       tempDir               <- if (useInMemoryFs) Right(FileSystemOperations.InMemoryPseudoDir) else extractWorkingDirectory(props)
-      parquetConfig         <- ParquetConfig.extract(props)
+      parquetConfig         <- ParquetConfig.extract(props, useInMemoryFs)
       primaryKeys           <- extractPrimaryKeys(props)
       connectionId           = PropertiesHelper.getString(props, CONNECTION_ID_KEY).map(_.trim).filter(_.nonEmpty)
       fallbackVarCharLength <- extractFallbackVarcharLength(props)
