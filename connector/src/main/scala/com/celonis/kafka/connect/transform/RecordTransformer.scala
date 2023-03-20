@@ -74,7 +74,7 @@ object RecordTransformer {
     flattenerConfig: Option[FlattenerConfig],
     primaryKeys:     List[String],
     obfuscation:     Option[ObfuscationConfig],
-    inserter:      FieldInserter,
+    inserter:        FieldInserter,
   ): RecordTransformer =
     new RecordTransformer(
       sinkName,
@@ -90,6 +90,6 @@ object RecordTransformer {
       config.flattenerConfig,
       config.primaryKeys,
       config.obfuscation,
-      FieldInserter.embeddedKafkaMetadata(config.embedKafkaMetadata, config.orderField.name)
+      FieldInserter.embeddedKafkaMetadata(config.embedKafkaMetadata, config.orderField.name),
     )
 }

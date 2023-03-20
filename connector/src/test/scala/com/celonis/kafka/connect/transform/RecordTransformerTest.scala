@@ -37,7 +37,7 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
   test("With Chunking disabled, heterogeneous arrays prevents flattening, even with discardCollection enabled") {
     pendingUntilFixed {
       val value = Map(
-        "foo" -> "bar",
+        "foo"                 -> "bar",
         "heterogeneous_array" -> List[Any]("a", 1, true).asJava,
       ).asJava
 
@@ -55,7 +55,7 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
 
   private def flattenTransform(record: SinkRecord, discardCollections: Boolean = false): GenericRecord = {
     val flattenerConfig = Some(FlattenerConfig(discardCollections = discardCollections, None))
-    val transformer = RecordTransformer.fromConfig("mySink", flattenerConfig, Nil, None, FieldInserter.noop)
+    val transformer     = RecordTransformer.fromConfig("mySink", flattenerConfig, Nil, None, FieldInserter.noop)
     transformer.transform(record).unsafeRunSync()
   }
 
