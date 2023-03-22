@@ -47,10 +47,6 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     }
   }
 
-  test("With embed kafka metadata disabled, doesn't include partition/offset fields") {
-
-  }
-
   private def chunkTransform(record: SinkRecord, maxChunks: Int, chunkSize: Int): GenericRecord = {
     val flattenerConfig = Some(FlattenerConfig(discardCollections = false, Some(JsonBlobChunks(maxChunks, chunkSize))))
     val transformer     = RecordTransformer.fromConfig("mySink", flattenerConfig, Nil, None, FieldInserter.noop)
