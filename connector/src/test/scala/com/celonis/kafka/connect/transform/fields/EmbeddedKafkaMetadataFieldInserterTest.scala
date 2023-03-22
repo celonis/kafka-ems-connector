@@ -3,6 +3,7 @@ package com.celonis.kafka.connect.transform.fields
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
+import scala.jdk.CollectionConverters._
 import java.time.Instant
 import EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName
 
@@ -21,13 +22,18 @@ class EmbeddedKafkaMetadataFieldInserterTest extends org.scalatest.funsuite.AnyF
         .insertFields(struct, EmbeddedKafkaMetadata(0, 10, timestamp))
     }
   }
-  test("FieldInserter returns a real inserter if flag is set to false but order fields is set to __celonis_order") {
+  test(
+    "FieldInserter returns a CelonisOrder inserter if flag is set to false but order fields is set to __celonis_order",
+  ) {
     val kafkaMeta = EmbeddedKafkaMetadata(0, 10, timestamp)
+    val transformedStruct = FieldInserter.embeddedKafkaMetadata(doInsert = false, Some(CelonisOrderFieldName))
+      .insertFields(struct, kafkaMeta).asInstanceOf[Struct]
+
     assertResult(kafkaMeta.offset) {
-      val transformedStruct = FieldInserter.embeddedKafkaMetadata(doInsert = false, Some(CelonisOrderFieldName))
-        .insertFields(struct, kafkaMeta).asInstanceOf[Struct]
       transformedStruct.get(CelonisOrderFieldName)
     }
+
+    assertResult(Set("f1", CelonisOrderFieldName))(transformedStruct.schema().fields().asScala.map(_.name()).toSet)
   }
 
   test("fieldInserter adds partition and offset to a non-empty struct") {
@@ -38,14 +44,12 @@ class EmbeddedKafkaMetadataFieldInserterTest extends org.scalatest.funsuite.AnyF
           .field("kafkaOffset", Schema.INT64_SCHEMA)
           .field("kafkaTimestamp", Schema.INT64_SCHEMA)
           .field("kafkaPartitionOffset", Schema.STRING_SCHEMA)
-          .field("__celonis_order", Schema.INT64_SCHEMA)
 
       val exp = new Struct(updatedSchema.build())
       exp.put("kafkaPartition", 1)
       exp.put("kafkaOffset", 101L)
       exp.put("kafkaPartitionOffset", "1_101")
       exp.put("kafkaTimestamp", timestamp)
-      exp.put("__celonis_order", 101L)
       exp.put("f1", 1000L)
       exp
     }
@@ -56,7 +60,7 @@ class EmbeddedKafkaMetadataFieldInserterTest extends org.scalatest.funsuite.AnyF
     }
   }
 
-  test("fieldInserter adds partition and offset to an empty struct") {
+  test("fieldInserter adds embedded metadata and celonis order when both are required") {
     val schema = SchemaBuilder.struct()
     val struct = new Struct(schema.build())
 
@@ -79,7 +83,7 @@ class EmbeddedKafkaMetadataFieldInserterTest extends org.scalatest.funsuite.AnyF
     }
 
     assertResult(expected) {
-      FieldInserter.embeddedKafkaMetadata(doInsert = true, None)
+      FieldInserter.embeddedKafkaMetadata(doInsert = true, Some(CelonisOrderFieldName))
         .insertFields(struct, EmbeddedKafkaMetadata(1, 101, timestamp))
     }
   }
