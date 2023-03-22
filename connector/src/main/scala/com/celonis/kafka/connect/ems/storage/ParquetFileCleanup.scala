@@ -21,7 +21,6 @@ import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 
-//TODO: can we move these under FileSystemOperations?
 sealed trait ParquetFileCleanup {
   def clean(file: Path, offset: Offset): Unit
 }
@@ -37,7 +36,7 @@ object ParquetFileCleanupRename {
   val Default = new ParquetFileCleanupRename(FileSystems.getDefault)
 }
 class ParquetFileCleanupRename(fs: java.nio.file.FileSystem) extends ParquetFileCleanup {
-  def renamedFile(file: Path, offset: Offset): Path =
+  private[storage] def renamedFile(file: Path, offset: Offset): Path =
     fs.getPath(file.getParent.toString, offset.value.toString + ".parquet")
   override def clean(file: Path, offset: Offset): Unit = {
     val newFile = renamedFile(file, offset)

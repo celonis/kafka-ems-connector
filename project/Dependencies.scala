@@ -3,7 +3,6 @@ import Dependencies.Versions.jacksonVersion
 import Dependencies.Versions.jimfsVersion
 import Dependencies.Versions.nettyVersion
 import Dependencies.Versions.nimbusJoseJwtVersion
-import Dependencies.Versions.memoryfilesystemVersion
 import Dependencies._
 import sbt._
 
@@ -77,8 +76,6 @@ object Dependencies {
     val nimbusJoseJwtVersion = "9.22"
 
     val jimfsVersion = "1.2"
-
-    val memoryfilesystemVersion = "2.5.0"
 
     val jerseyCommonVersion = "2.35"
 
