@@ -56,14 +56,13 @@ trait KafkaConnectContainerPerSuite extends MockServerContainerPerSuite { this: 
       .withNetwork(network)
       .withNetworkAliases("kafka")
 
-  lazy val kafkaConnectContainer: KafkaConnectContainer = {
+  lazy val kafkaConnectContainer: KafkaConnectContainer =
     KafkaConnectContainer(
       confluentPlatformVersion,
       kafkaContainer          = kafkaContainer,
       schemaRegistryContainer = schemaRegistryContainer(),
       connectPluginJar        = connectPluginJar(),
     )
-  }
 
   // Override for different SchemaRegistryContainer configs
   def schemaRegistryContainer(): Option[SchemaRegistryContainer] = Some(
@@ -129,14 +128,18 @@ trait KafkaConnectContainerPerSuite extends MockServerContainerPerSuite { this: 
     }
   }
 
-  /**
-    * Drain a kafka topic.
+  /** Drain a kafka topic.
     *
-    * @param consumer the kafka consumer
-    * @param expectedRecordCount the expected record count
-    * @tparam K the key type
-    * @tparam V the value type
-    * @return the records
+    * @param consumer
+    *   the kafka consumer
+    * @param expectedRecordCount
+    *   the expected record count
+    * @tparam K
+    *   the key type
+    * @tparam V
+    *   the value type
+    * @return
+    *   the records
     */
   def drain[K, V](consumer: KafkaConsumer[K, V], expectedRecordCount: Int): List[ConsumerRecord[K, V]] = {
     val allRecords = ListBuffer[ConsumerRecord[K, V]]()

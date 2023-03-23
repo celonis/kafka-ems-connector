@@ -69,7 +69,7 @@ class SchemaLessJsonValueConverterTest extends AnyFunSuite with Matchers {
     val record = convert(schemaAndValue.value())
       .getOrElse(fail("Should convert the map"))
 
-    //Jackson transforming the json to Map the fields order is not retained
+    // Jackson transforming the json to Map the fields order is not retained
     record.getSchema.getFields.asScala.map(_.name()).toList.sorted shouldBe List("idType",
                                                                                  "colorDepth",
                                                                                  "threshold",
@@ -88,7 +88,7 @@ class SchemaLessJsonValueConverterTest extends AnyFunSuite with Matchers {
     record.getSchema.getField("exclude").schema().getType shouldBe Schema.Type.RECORD
 
     record.getSchema.getField("evars").schema().getType shouldBe Schema.Type.RECORD
-    //record.getSchema.getField("evars").schema().isNullable shouldBe true
+    // record.getSchema.getField("evars").schema().isNullable shouldBe true
 
     val evarsSchema = record.getSchema.getField("evars").schema()
     evarsSchema.getFields.asScala.map(_.name()).toList shouldBe List("evarsa")

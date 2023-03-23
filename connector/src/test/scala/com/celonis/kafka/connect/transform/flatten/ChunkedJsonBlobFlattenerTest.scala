@@ -91,7 +91,7 @@ class ChunkedJsonBlobFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
     val config = JsonBlobChunks(
       chunks                = 3,
       fallbackVarcharLength = 2,
-    ) //^ record byte size will be greater than 3*2 = 6 bytes!
+    ) // ^ record byte size will be greater than 3*2 = 6 bytes!
 
     val flattener = new ChunkedJsonBlobFlattener(config)
 

@@ -46,9 +46,8 @@ private object StructFlattener {
     )
   }
 
-  /**
-    * Weird hack due to the fact that the connect json converter does not handle `Map`s as structs.
-    * This should go once we are converting maps into structs upstream
+  /** Weird hack due to the fact that the connect json converter does not handle `Map`s as structs. This should go once
+    * we are converting maps into structs upstream
     */
   private def schemaOfCollection(value: Any): Option[Schema] = value match {
     case value: java.util.Map[_, _] =>

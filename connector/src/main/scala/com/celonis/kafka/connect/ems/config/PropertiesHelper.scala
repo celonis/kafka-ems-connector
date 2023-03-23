@@ -55,8 +55,7 @@ object PropertiesHelper {
     props: Map[String, _],
     key:   String,
     docs:  String,
-  )(fn:    (Map[String, _], String) => Option[T],
-  ): Either[String, T] =
+  )(fn: (Map[String, _], String) => Option[T]): Either[String, T] =
     fn(props, key) match {
       case Some(value) => value.asRight[String]
       case None        => error(key, docs)

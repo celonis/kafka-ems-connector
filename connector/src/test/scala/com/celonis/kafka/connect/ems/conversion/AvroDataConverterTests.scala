@@ -122,7 +122,7 @@ class AvroDataConverterTests extends AnyFunSuite with Matchers {
       .put("int_field", 2)
       .put("long_field", 2L)
 
-    //val avroSchema = ToAvroDataConverter.convertSchema(containerSchema)
+    // val avroSchema = ToAvroDataConverter.convertSchema(containerSchema)
 
     val avroData = new AvroData(0)
 

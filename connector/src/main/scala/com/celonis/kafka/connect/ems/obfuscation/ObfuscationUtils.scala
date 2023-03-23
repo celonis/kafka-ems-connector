@@ -39,8 +39,7 @@ object ObfuscationUtils {
     def obfuscate(
       fields:      NonEmptyList[ObfuscatedField],
       obfuscation: DataObfuscation,
-      path:        Vector[String],
-    ): Either[String, GenericRecord] =
+      path:        Vector[String]): Either[String, GenericRecord] =
       record.getSchema.getFields.asScala.toList.zipWithIndex.traverse {
         case (field, i) =>
           Option(record.get(i)) match {
@@ -69,8 +68,8 @@ object ObfuscationUtils {
                       val invalidFilters = matchedFilters.collect { case f if f.path.tail.isEmpty => f }
                       if (invalidFilters.nonEmpty) {
                         s"Invalid obfuscation path:${invalidFilters.map(f => path ++ f.path.toList).map(
-                          _.mkString("."),
-                        ).mkString(",")}. Path: ${(path :+ field.name()).mkString(".")} resolves to object.".asLeft
+                            _.mkString("."),
+                          ).mkString(",")}. Path: ${(path :+ field.name()).mkString(".")} resolves to object.".asLeft
                       } else {
                         r.obfuscate(
                           NonEmptyList.fromListUnsafe(matchedFilters.map(f =>
@@ -108,8 +107,8 @@ object ObfuscationUtils {
 
                     case _ =>
                       s"Invalid obfuscation path: ${(path ++ head.path.toList).mkString(
-                        ".",
-                      )}. Path: ${(path :+ field.name()).mkString(".")} resolves to ${field.schema().getType} which is not allowed.".asLeft
+                          ".",
+                        )}. Path: ${(path :+ field.name()).mkString(".")} resolves to ${field.schema().getType} which is not allowed.".asLeft
                   }
                 case Nil => (i -> value).asRight[String]
               }
@@ -129,8 +128,7 @@ object ObfuscationUtils {
     def obfuscate(
       fields:      NonEmptyList[ObfuscatedField],
       obfuscation: DataObfuscation,
-      path:        Vector[String],
-    ): Either[String, GenericData.Array[_]] = {
+      path:        Vector[String]): Either[String, GenericData.Array[_]] = {
       val invalidFields = fields.filterNot(_.path.head == "value")
       if (invalidFields.nonEmpty)
         s"Invalid obfuscation path:${(path ++ invalidFields.head.path.toList).mkString(".")}. The value resolves to an array and it requires: value. For example: playersName.value (when playersName is a sequence of strings), players.value.name.".asLeft
@@ -140,7 +138,7 @@ object ObfuscationUtils {
         if (lastPath.nonEmpty && notLastPath.nonEmpty)
           s"Invalid obfuscation path. There are overlapping paths: ${fields.map(f => (path ++ f.path.toList).mkString(".")).toList.mkString(",")}.".asLeft
         else {
-          //we have primitives only
+          // we have primitives only
           val items = if (lastPath.nonEmpty) {
             array.iterator().asScala.toList.traverse {
               case null => null.asInstanceOf[Any].asRight
@@ -148,13 +146,13 @@ object ObfuscationUtils {
               case s: String => obfuscation.obfuscate(s).asRight
               case _ =>
                 s"Invalid obfuscation path: ${fields.map(f => (path ++ f.path.toList).mkString(".")).toList.mkString(
-                  ",",
-                )}. Obfuscation resolves array element to ${array.getSchema.getType} which is not allowed.".asLeft[
+                    ",",
+                  )}. Obfuscation resolves array element to ${array.getSchema.getType} which is not allowed.".asLeft[
                   String,
                 ]
             }
           } else {
-            //it obfuscates further for Struct/Arrays
+            // it obfuscates further for Struct/Arrays
             array.iterator().asScala.toList.traverse {
               case null => null.asInstanceOf[Any].asRight[String]
               case r: GenericRecord =>
@@ -182,8 +180,8 @@ object ObfuscationUtils {
 
               case _ =>
                 s"Invalid obfuscation path: ${fields.map(f => (path ++ f.path.toList).mkString(".")).toList.mkString(
-                  ",",
-                )}. Obfuscation resoles array element to ${array.getSchema.getType}.".asLeft[Any]
+                    ",",
+                  )}. Obfuscation resoles array element to ${array.getSchema.getType}.".asLeft[Any]
             }
           }
           items.map(items => new GenericData.Array[Any](array.getSchema, items.asJava))

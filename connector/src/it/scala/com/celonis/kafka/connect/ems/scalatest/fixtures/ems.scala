@@ -20,8 +20,7 @@ object ems {
     obfuscationFields: Option[String]          = None,
     sha512Salt:        Option[String]          = None,
     flattenerConfig:   Option[FlattenerConfig] = None,
-  )(testCode:          (String, EmsSinkTask, String) => Any,
-  ): Unit = {
+  )(testCode: (String, EmsSinkTask, String) => Any): Unit = {
     val sourceTopic = randomTopicName()
     val emsTable    = randomEmsTable()
     var props = Map(

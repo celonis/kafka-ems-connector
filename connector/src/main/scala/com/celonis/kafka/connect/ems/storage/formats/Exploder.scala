@@ -40,18 +40,18 @@ class NoOpExploder extends Exploder {
 
 class ListExploder extends Exploder with LazyLogging {
 
-  /**
-    * Given a structure that matches
-    * A GenericRecord containing a single Array containing multiple GenericRecords
+  /** Given a structure that matches A GenericRecord containing a single Array containing multiple GenericRecords
     *
     * GenericRecord (type 1)
-    * - Array[]
+    *   - Array[]
     * -- GenericRecord (type 2)
     *
     * This flattens these out to return a Seq of GenericRecord of the second type.
     *
-    * @param genericRecord original container
-    * @return the flattened structure
+    * @param genericRecord
+    *   original container
+    * @return
+    *   the flattened structure
     */
   override def explode(genericRecord: GenericRecord): NonEmptySeq[GenericRecord] = {
 

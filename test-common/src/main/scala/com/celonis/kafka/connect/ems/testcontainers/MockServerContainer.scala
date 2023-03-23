@@ -52,7 +52,6 @@ object MockServerContainer {
 
   def apply(
     networkAlias: String = defaultNetworkAlias,
-    dockerTag:    String = defaultTag,
-  ): MockServerContainer =
+    dockerTag:    String = defaultTag): MockServerContainer =
     new MockServerContainer(dockerImage, dockerTag, networkAlias)
 }
