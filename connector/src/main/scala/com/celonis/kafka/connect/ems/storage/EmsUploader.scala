@@ -91,8 +91,7 @@ class EmsUploader[F[_]](
   }
 
   def createHttpClient(
-    okHttpClient: OkHttpClient,
-  ): Resource[F, Client[F]] =
+    okHttpClient: OkHttpClient): Resource[F, Client[F]] =
     OkHttpBuilder[F](okHttpClient).resource
 
   private def buildHeadersList(multipart: Multipart[F]) =
@@ -125,7 +124,7 @@ class EmsUploader[F[_]](
           )
 
       case _ =>
-        //try to parse as server error response. We don't know all the response types
+        // try to parse as server error response. We don't know all the response types
         response.as[EmsServerErrorResponse]
           .redeemWith(
             t => unmarshalError(t, request.file, response),
@@ -183,8 +182,7 @@ object EmsUploader {
     clientId:              String,
     fallbackVarcharLength: Option[Int],
     pks:                   Option[String],
-    orderableField:        Option[String],
-  ): Uri = {
+    orderableField:        Option[String]): Uri = {
     val builder = connectionId.foldLeft(UriBuilder.fromUri(base.toURI)
       .queryParam(TargetTable, targetTable)) {
       case (builder, connection) => builder.queryParam(ConnectionId, connection)

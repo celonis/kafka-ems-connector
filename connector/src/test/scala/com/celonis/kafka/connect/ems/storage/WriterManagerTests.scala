@@ -109,7 +109,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       when(writer1.shouldFlush).thenReturn(false)
       when(writer2.shouldFlush).thenReturn(false)
 
-      //open the writers
+      // open the writers
       (for {
         _ <- manager.write(record1)
         _ <- manager.write(record2)
@@ -120,7 +120,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       verify(writer1, times(1)).write(record1)
       verify(writer2, times(1)).write(record2)
 
-      //trigger the upload if applicable
+      // trigger the upload if applicable
       manager.maybeUploadData().unsafeRunSync()
       verifyNoInteractions(uploader)
     }
@@ -154,7 +154,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       when(writer2.shouldFlush).thenReturn(false)
       when(writer3.shouldFlush).thenReturn(false)
 
-      //open the writers
+      // open the writers
       (for {
         _ <- manager.write(record1)
         _ <- manager.write(record2)
@@ -203,7 +203,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       when(writer2.shouldFlush).thenReturn(false)
       when(writer3.shouldFlush).thenReturn(false)
 
-      //open the writers
+      // open the writers
       (for {
         _ <- manager.write(record1)
         _ <- manager.write(record2)
@@ -280,7 +280,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       when(writer2.shouldFlush).thenReturn(false)
       when(writer3.shouldFlush).thenReturn(false)
 
-      //open the writers
+      // open the writers
       (for {
         _ <- manager.write(record1)
         _ <- manager.write(record2)
@@ -342,7 +342,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       when(writer2.shouldFlush).thenReturn(false)
       when(writer3.shouldFlush).thenReturn(false)
 
-      //open the writers
+      // open the writers
       (for {
         _ <- manager.write(record1)
         _ <- manager.write(record2)
@@ -406,7 +406,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       when(writer2.shouldFlush).thenReturn(false)
       when(writer3.shouldFlush).thenReturn(false)
 
-      //open the writers
+      // open the writers
       (for {
         _ <- manager.write(record1)
         _ <- manager.write(record2)
@@ -473,7 +473,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       when(writer2.shouldFlush).thenReturn(false)
       when(writer3.shouldFlush).thenReturn(false)
 
-      //open the writers
+      // open the writers
       (for {
         _ <- manager.write(record1)
         _ <- manager.write(record2)
@@ -564,7 +564,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
 
       val manager = new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty), ParquetFileCleanupDelete)
 
-      //open the writers
+      // open the writers
       manager.write(record1).unsafeRunSync()
 
       val file1 = new File("abc1")

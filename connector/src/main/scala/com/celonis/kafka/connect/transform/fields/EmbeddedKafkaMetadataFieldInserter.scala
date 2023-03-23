@@ -13,7 +13,7 @@ object EmbeddedKafkaMetadataFieldInserter {
   private val Timestamp                = "kafkaTimestamp"
   private val PartitionOffsetFieldName = "kafkaPartitionOffset"
 
-  //legacy field, kept for backward compatibility with previous connector versions
+  // legacy field, kept for backward compatibility with previous connector versions
   private[connect] val CelonisOrderFieldName = "__celonis_order"
 
   private val PartitionOffsetTimestampFields = Seq(

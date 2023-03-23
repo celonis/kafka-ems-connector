@@ -27,7 +27,9 @@ case class ErrorEntry(attribute: Option[String], error: Option[String], errorCod
 object ErrorEntry {
   implicit val codec: Codec[ErrorEntry] = deriveCodec
 
-  implicit def entityDecoder(implicit concurrent: Concurrent[IO]): EntityDecoder[IO, ErrorEntry] =
+  implicit def entityDecoder(
+    implicit
+    concurrent: Concurrent[IO]): EntityDecoder[IO, ErrorEntry] =
     jsonOf[IO, ErrorEntry]
 }
 case class EmsBadRequestResponse(errors: List[ErrorEntry])
@@ -35,7 +37,9 @@ case class EmsBadRequestResponse(errors: List[ErrorEntry])
 object EmsBadRequestResponse {
   implicit val codec: Codec[EmsBadRequestResponse] = deriveCodec
 
-  implicit def entityDecoder(implicit concurrent: Concurrent[IO]): EntityDecoder[IO, EmsBadRequestResponse] =
+  implicit def entityDecoder(
+    implicit
+    concurrent: Concurrent[IO]): EntityDecoder[IO, EmsBadRequestResponse] =
     jsonOf[IO, EmsBadRequestResponse]
 }
 
@@ -46,6 +50,8 @@ case class EmsServerErrorResponse(
 object EmsServerErrorResponse {
   implicit val codec: Codec[EmsServerErrorResponse] = deriveCodec
 
-  implicit def entityDecoder(implicit concurrent: Concurrent[IO]): EntityDecoder[IO, EmsServerErrorResponse] =
+  implicit def entityDecoder(
+    implicit
+    concurrent: Concurrent[IO]): EntityDecoder[IO, EmsServerErrorResponse] =
     jsonOf[IO, EmsServerErrorResponse]
 }

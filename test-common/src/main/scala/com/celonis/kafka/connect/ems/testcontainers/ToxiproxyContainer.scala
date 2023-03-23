@@ -42,7 +42,6 @@ object ToxiproxyContainer {
 
   def apply(
     networkAlias: String,
-    dockerTag:    String = defaultTag,
-  ): ToxiproxyContainer =
+    dockerTag:    String = defaultTag): ToxiproxyContainer =
     new ToxiproxyContainer(dockerImage, dockerTag, networkAlias)
 }

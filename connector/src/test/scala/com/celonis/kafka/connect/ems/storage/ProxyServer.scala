@@ -30,8 +30,7 @@ object ProxyServer {
     authorization: Option[BasicAuthentication],
   )(
     implicit
-    A: Async[F],
-  ): Resource[F, Server] =
+    A: Async[F]): Resource[F, Server] =
     BlazeServerBuilder[F]
       .withExecutionContext(ExecutionContext.global)
       .bindLocal(proxyPort)

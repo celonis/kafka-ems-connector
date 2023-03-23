@@ -26,16 +26,16 @@ import java.nio.file.Path
 
 trait WriterBuilder {
 
-  /**
-    * Creates a new writer from an existing one. This happens only when the data(i.e. file) is committed
-    * @param writer - An instance of [[Writer]]
+  /** Creates a new writer from an existing one. This happens only when the data(i.e. file) is committed
+    * @param writer
+    *   \- An instance of [[Writer]]
     * @return
     */
   def writerFrom(writer: Writer): Writer
 
-  /**
-    * Creates a new [[Writer]] whenever the first record arrives for a topic-partition.
-    * @param record - An instance of [[Record]]
+  /** Creates a new [[Writer]] whenever the first record arrives for a topic-partition.
+    * @param record
+    *   \- An instance of [[Record]]
     * @return
     */
   def writerFrom(record: Record): Writer
@@ -49,9 +49,9 @@ class WriterBuilderImpl(
   explode:      ExplodeConfig,
 ) extends WriterBuilder {
 
-  /**
-    * Creates a new writer from an existing one. This happens only when the data(i.e. file) is committed
-    * @param writer - An instance of [[Writer]]
+  /** Creates a new writer from an existing one. This happens only when the data(i.e. file) is committed
+    * @param writer
+    *   \- An instance of [[Writer]]
     * @return
     */
   def writerFrom(writer: Writer): Writer = {
@@ -71,9 +71,9 @@ class WriterBuilderImpl(
     new EmsWriter(sinkName, commitPolicy, formatWriter, newState)
   }
 
-  /**
-    * Creates a new [[Writer]] whenever the first record arrives for a topic-partition.
-    * @param record - An instance of [[Record]]
+  /** Creates a new [[Writer]] whenever the first record arrives for a topic-partition.
+    * @param record
+    *   \- An instance of [[Record]]
     * @return
     */
   def writerFrom(record: Record): Writer = {
@@ -82,7 +82,7 @@ class WriterBuilderImpl(
       ParquetFormatWriter.from(output, explode.explodeSchema(record.value.getSchema), parquet, explode.toExplodeFn)
     val state = WriterState(
       record.metadata.topicPartition,
-      //creates the state from the record. the data hasn't been yet written
+      // creates the state from the record. the data hasn't been yet written
       // The connector uses this to filter out records which were processed
       new Offset(record.metadata.offset.value - 1),
       None,

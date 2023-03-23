@@ -91,7 +91,7 @@ class EmsUploaderUriTests extends AnyFunSuite with Matchers {
     ) shouldBe Uri.fromString(
       s"https://foo.panda.com/api?${EmsUploader.TargetTable}=tableA&${EmsUploader.ConnectionId}=connection1&${EmsUploader.ClientId}=$testClientIdEncoded&${EmsUploader.FallbackVarcharLength}=89&${EmsUploader.PrimaryKeys}=${URLEncoder.encode(pks,
                                                                                                                                                                                                                                                 "UTF-8",
-      )}&${EmsUploader.OrderFieldName}=$sortable",
+        )}&${EmsUploader.OrderFieldName}=$sortable",
     ).getOrElse(fail("should parse the URL"))
   }
 }

@@ -93,7 +93,7 @@ class ProxyEndpoint[F[_]: Concurrent](
     val proxyAuthHeader = req.headers.get(CIString("proxy-authorization"))
     proxyAuthHeader match {
       case Some(header: NonEmptyList[Header.Raw]) => Some(header.head.value)
-      case None => None
+      case None                                   => None
     }
   }
 }

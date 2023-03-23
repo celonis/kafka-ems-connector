@@ -22,8 +22,7 @@ import com.celonis.kafka.connect.ems.model.TopicPartition
 import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadata
 import com.celonis.kafka.connect.transform.fields.FieldInserter
 
-/**
-  * The main business transformation.
+/** The main business transformation.
   *
   * This class integrates all the components used to transform a connect sink record into an AVRO generic record
   */
@@ -74,8 +73,7 @@ object RecordTransformer {
     flattenerConfig: Option[FlattenerConfig],
     primaryKeys:     List[String],
     obfuscation:     Option[ObfuscationConfig],
-    inserter:        FieldInserter,
-  ): RecordTransformer =
+    inserter:        FieldInserter): RecordTransformer =
     new RecordTransformer(
       sinkName,
       Flattener.fromConfig(flattenerConfig),

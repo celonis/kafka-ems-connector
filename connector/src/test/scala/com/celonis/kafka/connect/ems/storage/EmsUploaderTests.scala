@@ -86,15 +86,16 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
       case (_, file) =>
         for {
           uploader <- IO(
-            new EmsUploader[IO](new URL(s"http://localhost:$port$path"),
-                                auth,
-                                targetTable,
-                                Some("id2"),
-                                "CelonisKafka2Ems vx.Test",
-                                None,
-                                None,
-                                UnproxiedHttpClientConfig(defaultPoolingConfig),
-                                None,
+            new EmsUploader[IO](
+              new URL(s"http://localhost:$port$path"),
+              auth,
+              targetTable,
+              Some("id2"),
+              "CelonisKafka2Ems vx.Test",
+              None,
+              None,
+              UnproxiedHttpClientConfig(defaultPoolingConfig),
+              None,
             ),
           )
           response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
@@ -140,15 +141,16 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
       case (_, file) =>
         for {
           uploader <- IO(
-            new EmsUploader[IO](new URL(s"http://localhost:$port$path"),
-                                "invalid auth",
-                                targetTable,
-                                None,
-                                "CelonisKafka2Ems vx.Test",
-                                None,
-                                None,
-                                UnproxiedHttpClientConfig(defaultPoolingConfig),
-                                None,
+            new EmsUploader[IO](
+              new URL(s"http://localhost:$port$path"),
+              "invalid auth",
+              targetTable,
+              None,
+              "CelonisKafka2Ems vx.Test",
+              None,
+              None,
+              UnproxiedHttpClientConfig(defaultPoolingConfig),
+              None,
             ),
           )
           e <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100))).attempt
@@ -176,9 +178,8 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
     val fileContent      = Array[Byte](1, 2, 3, 4)
     val mapRef           = Ref.unsafe[IO, Map[String, Array[Byte]]](Map.empty)
     val expectedResponse = EmsUploadResponse("id1", filePath, "b1", "new", "c1".some, None, None)
-    val responseQueueRef: Ref[IO, Queue[() => EmsUploadResponse]] = {
+    val responseQueueRef: Ref[IO, Queue[() => EmsUploadResponse]] =
       Ref.unsafe[IO, Queue[() => EmsUploadResponse]](Queue(() => expectedResponse))
-    }
     val proxyServerResource = ProxyServer.resource[IO](proxyPort, proxyAuth)
     val serverResource =
       HttpServer.resource[IO](serverPort,
@@ -236,9 +237,8 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
     val fileContent      = Array[Byte](1, 2, 3, 4)
     val mapRef           = Ref.unsafe[IO, Map[String, Array[Byte]]](Map.empty)
     val expectedResponse = EmsUploadResponse("id1", filePath, "b1", "new", "c1".some, None, None)
-    val responseQueueRef: Ref[IO, Queue[() => EmsUploadResponse]] = {
+    val responseQueueRef: Ref[IO, Queue[() => EmsUploadResponse]] =
       Ref.unsafe[IO, Queue[() => EmsUploadResponse]](Queue(() => expectedResponse))
-    }
     val proxyServerResource = ProxyServer.resource[IO](proxyPort, proxyAuth)
     val serverResource =
       HttpServer.resource[IO](serverPort,

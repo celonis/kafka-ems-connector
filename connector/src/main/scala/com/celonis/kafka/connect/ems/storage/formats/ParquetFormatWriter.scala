@@ -49,14 +49,13 @@ object ParquetFormatWriter {
     output:    FileAndStream,
     schema:    Schema,
     config:    ParquetConfig,
-    explodeFn: GenericRecord => NonEmptySeq[GenericRecord],
-  ): ParquetFormatWriter = {
+    explodeFn: GenericRecord => NonEmptySeq[GenericRecord]): ParquetFormatWriter = {
     val outputFile = new ParquetOutputFile(output)
 
     val writer: ParquetWriter[AnyRef] = AvroParquetWriter
       .builder[AnyRef](outputFile)
-      //.withPageSize(DEFAULT_PAGE_SIZE)
-      //.withWriterVersion(ParquetProperties.WriterVersion.PARQUET_2_0)
+      // .withPageSize(DEFAULT_PAGE_SIZE)
+      // .withWriterVersion(ParquetProperties.WriterVersion.PARQUET_2_0)
       .withCompressionCodec(CompressionCodecName.SNAPPY)
       .withRowGroupSize(config.rowGroupSize.toLong)
       .withSchema(schema)

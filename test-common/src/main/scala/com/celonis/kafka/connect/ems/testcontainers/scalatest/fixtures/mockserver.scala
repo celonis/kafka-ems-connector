@@ -28,8 +28,7 @@ object mockserver {
   )(testCode: => Any,
   )(
     implicit
-    mockServerClient: MockServerClient,
-  ): Unit =
+    mockServerClient: MockServerClient): Unit =
     try {
       mockServerClient.when(request).respond(response)
       val _ = testCode

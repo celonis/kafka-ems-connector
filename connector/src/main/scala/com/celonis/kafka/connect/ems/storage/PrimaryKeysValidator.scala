@@ -34,11 +34,11 @@ class PrimaryKeysValidator(pks: List[String]) {
       if (missingFields.nonEmpty)
         InvalidInputException(
           s"Incoming record is missing these primary key(-s):${missingFields.mkString(
-            ",",
-          )} for record ${metadata.show}",
+              ",",
+            )} for record ${metadata.show}",
         ).asLeft
       else {
-        //PK values cannot be null
+        // PK values cannot be null
         val nullablePKs = pks.filter(pk => Option(record.get(pk)).isEmpty)
         if (nullablePKs.isEmpty)
           ().asRight

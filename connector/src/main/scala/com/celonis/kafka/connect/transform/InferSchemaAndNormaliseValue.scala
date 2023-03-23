@@ -12,11 +12,9 @@ import cats.syntax.traverse._
 
 import scala.collection.immutable.ListMap
 
-/**
-  * This component does multiple things:
-  * 1. It infers the connect schema of the connect value
-  * 2. It normalises the value, replacing Maps (coming from json) to Structs
-  * 3. It replaces non-avro field names with avro field names (in maps only for now)
+/** This component does multiple things:
+  *   1. It infers the connect schema of the connect value 2. It normalises the value, replacing Maps (coming from json)
+  *      to Structs 3. It replaces non-avro field names with avro field names (in maps only for now)
   *
   * We should split inference from normalisation, even if that will complicate the implementation
   */
@@ -24,8 +22,8 @@ object InferSchemaAndNormaliseValue {
 
   /** Tries to infer a non-flat Kafka connect schema for a value.
     *
-    * This is expected to be called with a top-level java.util.Map (i.e. the Kafka Connect
-    * internal representation for schemaless JSON objects).
+    * This is expected to be called with a top-level java.util.Map (i.e. the Kafka Connect internal representation for
+    * schemaless JSON objects).
     *
     * @param value
     * @return
