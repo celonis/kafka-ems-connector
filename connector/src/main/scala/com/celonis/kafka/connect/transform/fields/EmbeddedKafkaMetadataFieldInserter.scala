@@ -33,8 +33,8 @@ class EmbeddedKafkaMetadataFieldInserter(fieldsToInsert: FieldsToInsert) extends
   override def insertFields(value: Any, meta: EmbeddedKafkaMetadata): Any =
     value match {
       case value: Struct =>
-        val s       = value.schema()
-        val fields  = s.fields().asScala.toList
+        val s        = value.schema()
+        val fields   = s.fields().asScala.toList
         val startIdx = fields.map(_.index()).maxOption.map(_ + 1).getOrElse(0)
 
         val additionalFields = fieldsToInsert match {
