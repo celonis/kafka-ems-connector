@@ -9,8 +9,10 @@ object FieldInserter {
   }
 
   def embeddedKafkaMetadata(doInsert: Boolean, configuredOrderField: Option[String]): FieldInserter =
-    if (doInsert || configuredOrderField.contains(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName))
-      EmbeddedKafkaMetadataFieldInserter
-    else
-      noop
+    (doInsert, configuredOrderField.contains(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName)) match {
+      case (true, true)   => new EmbeddedKafkaMetadataFieldInserter(FieldsToInsert.All)
+      case (true, false)  => new EmbeddedKafkaMetadataFieldInserter(FieldsToInsert.PartitionOffsetTimestamp)
+      case (false, true)  => new EmbeddedKafkaMetadataFieldInserter(FieldsToInsert.CelonisOrder)
+      case (false, false) => noop
+    }
 }

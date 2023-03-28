@@ -49,7 +49,7 @@ case class WriterState(
 object WriterState {
   implicit val show: Show[WriterState] = Show.show { state =>
     s"${state.topicPartition.topic.show}-${state.topicPartition.partition.show}:${state.offset.show} ${state.committedOffset.map(
-      _.value.toString,
-    ).getOrElse("-")} records=${state.records} fileSize=${state.fileSize} lastWrite=${state.lastWriteTs}"
+        _.value.toString,
+      ).getOrElse("-")} records=${state.records} fileSize=${state.fileSize} lastWrite=${state.lastWriteTs}"
   }
 }

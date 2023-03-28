@@ -25,8 +25,12 @@ trait EmsUploadResponseProvider[F[_]] {
   def get: F[EmsUploadResponse]
 }
 
-class QueueEmsUploadResponseProvider[F[_]](ref: Ref[F, Queue[() => EmsUploadResponse]])(implicit S: Sync[F])
-    extends EmsUploadResponseProvider[F] {
+class QueueEmsUploadResponseProvider[F[_]](
+  ref: Ref[F, Queue[() => EmsUploadResponse]],
+)(
+  implicit
+  S: Sync[F],
+) extends EmsUploadResponseProvider[F] {
   override def get: F[EmsUploadResponse] =
     for {
       queue                 <- ref.get

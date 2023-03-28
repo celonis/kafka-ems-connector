@@ -1,7 +1,7 @@
 // Activate the following only when needed to use specific tasks like `whatDependsOn` etc...
 //addDependencyTreePlugin
 
-addSbtPlugin("org.scalameta"                     % "sbt-scalafmt"       % "2.3.1")
+addSbtPlugin("org.scalameta"                     % "sbt-scalafmt"       % "2.4.6")
 addSbtPlugin("com.typesafe.sbt"                  % "sbt-git"            % "1.0.0")
 addSbtPlugin("io.spray"                          % "sbt-revolver"       % "0.9.1")
 addSbtPlugin("org.scoverage"                     % "sbt-scoverage"      % "1.9.3")

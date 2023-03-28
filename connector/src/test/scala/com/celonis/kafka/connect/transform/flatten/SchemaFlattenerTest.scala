@@ -120,7 +120,7 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
 
   lazy val collectionFixtures = List(
     mutable.HashMap("hello" -> true) -> SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BOOLEAN_SCHEMA).build(),
-    List("hello", "world") -> SchemaBuilder.array(Schema.STRING_SCHEMA).build(),
+    List("hello", "world")           -> SchemaBuilder.array(Schema.STRING_SCHEMA).build(),
   )
 
   private def flatten(schema: Schema, discardCollections: Boolean = false): Schema =

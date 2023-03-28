@@ -32,14 +32,13 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
-  * Manages the lifecycle of [[Writer]] instances.
+/** Manages the lifecycle of [[Writer]] instances.
   *
-  * A given sink may be writing to multiple locations (partitions), and therefore
-  * it is convenient to extract this to another class.
+  * A given sink may be writing to multiple locations (partitions), and therefore it is convenient to extract this to
+  * another class.
   *
-  * This class is not thread safe as it is not designed to be shared between concurrent
-  * sinks, since file handles cannot be safely shared without considerable overhead.
+  * This class is not thread safe as it is not designed to be shared between concurrent sinks, since file handles cannot
+  * be safely shared without considerable overhead.
   */
 class WriterManager[F[_]](
   sinkName:      String,
@@ -54,8 +53,7 @@ class WriterManager[F[_]](
   A: Async[F],
 ) extends StrictLogging {
 
-  /**
-    * Uploads the data to EMS if the commit policy is met.
+  /** Uploads the data to EMS if the commit policy is met.
     * @return
     */
   def maybeUploadData(): F[Unit] = {
@@ -69,14 +67,14 @@ class WriterManager[F[_]](
 
   private case class CommitWriterResult(newWriter: Writer, offset: TopicPartitionOffset)
 
-  /**
-    *  Committing a file created by the writer, will result creating a new writer
-    * @param writer - An instance of [[Writer]]
+  /** Committing a file created by the writer, will result creating a new writer
+    * @param writer
+    *   \- An instance of [[Writer]]
     * @return
     */
   private def commit(writer: Writer, buildFn: => Writer): F[Option[CommitWriterResult]] = {
     val state = writer.state
-    //check if data was written to the file
+    // check if data was written to the file
     if (state.records == 0) A.pure(None)
     else {
       for {
@@ -105,9 +103,9 @@ class WriterManager[F[_]](
     }
   }
 
-  /**
-    * When a partition is opened we cleanup the folder where the temp files are accumulating
-    * @param partitions - A set of topic-partition tuples which the current task will own
+  /** When a partition is opened we cleanup the folder where the temp files are accumulating
+    * @param partitions
+    *   \- A set of topic-partition tuples which the current task will own
     */
   def open(partitions: Set[TopicPartition]): F[Unit] =
     for {
@@ -126,7 +124,7 @@ class WriterManager[F[_]](
       writersMap   <- writersRef.get
       _            <- partitions.flatMap(writersMap.get).traverse(w => A.delay(w.close()))
       newWritersMap = writersMap -- partitions.toSet
-      //do not cleanup the folders. on open partitions we do that.
+      // do not cleanup the folders. on open partitions we do that.
       _ <- writersRef.update(_ => newWritersMap)
     } yield ()
 
@@ -165,10 +163,10 @@ class WriterManager[F[_]](
       _ <- if (latestWriter.shouldFlush) commit(latestWriter, writerBuilder.writerFrom(latestWriter)) else A.pure(None)
     } yield ()
 
-  /**
-    * Extracts the current offset for a given topic partition.
-    *  If a topic partition does not have a committed offset, it won't be returned to avoid Connect committing the offset
-    * @param currentOffsets - A sequence of topic-partition tuples and their offset information
+  /** Extracts the current offset for a given topic partition. If a topic partition does not have a committed offset, it
+    * won't be returned to avoid Connect committing the offset
+    * @param currentOffsets
+    *   \- A sequence of topic-partition tuples and their offset information
     * @return
     */
   def preCommit(currentOffsets: Map[TopicPartition, OffsetAndMetadata]): F[Map[TopicPartition, OffsetAndMetadata]] =
@@ -195,8 +193,7 @@ object WriterManager extends LazyLogging {
     fileSystem: FileSystemOperations,
   )(
     implicit
-    A: Async[F],
-  ): WriterManager[F] =
+    A: Async[F]): WriterManager[F] =
     new WriterManager(
       sinkName,
       uploader,

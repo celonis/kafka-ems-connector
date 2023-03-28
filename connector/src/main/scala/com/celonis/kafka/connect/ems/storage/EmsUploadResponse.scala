@@ -35,6 +35,8 @@ case class EmsUploadResponse(
 object EmsUploadResponse {
   implicit val codec: Codec[EmsUploadResponse] = deriveCodec
 
-  implicit def entityDecoder(implicit concurrent: Concurrent[IO]): EntityDecoder[IO, EmsUploadResponse] =
+  implicit def entityDecoder(
+    implicit
+    concurrent: Concurrent[IO]): EntityDecoder[IO, EmsUploadResponse] =
     jsonOf[IO, EmsUploadResponse]
 }

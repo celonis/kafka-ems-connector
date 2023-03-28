@@ -113,7 +113,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     val io = for {
       _ <- IO(logger.info("[{}] EmsSinkTask:put records={}", sinkName, records.size()))
       _ <- records.asScala
-        //filter our "deletes" for now
+        // filter our "deletes" for now
         .filter(_.value() != null)
         .toList
         .traverse { record =>
@@ -139,8 +139,9 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   }
 
   override def preCommit(
-    currentOffsets: util.Map[KafkaTopicPartition, OffsetAndMetadata],
-  ): util.Map[KafkaTopicPartition, OffsetAndMetadata] = {
+    currentOffsets: util.Map[KafkaTopicPartition, OffsetAndMetadata]): util.Map[KafkaTopicPartition,
+                                                                                OffsetAndMetadata,
+  ] = {
     def getDebugInfo(in: util.Map[KafkaTopicPartition, OffsetAndMetadata]): String =
       in.asScala.map {
         case (k, v) =>
@@ -187,10 +188,8 @@ class EmsSinkTask extends SinkTask with StrictLogging {
       .unsafeRunSync()
   }
 
-  /**
-    * Whenever close is called, the topics and partitions assigned to this task
-    * may be changing, eg, in a re-balance. Therefore, we must commit our open files
-    * for those (topic,partitions) to ensure no records are lost.
+  /** Whenever close is called, the topics and partitions assigned to this task may be changing, eg, in a re-balance.
+    * Therefore, we must commit our open files for those (topic,partitions) to ensure no records are lost.
     */
   override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
     val topicPartitions =
@@ -225,7 +224,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   }
 
   private def maybeSetErrorInterval(config: EmsSinkConfig): Unit =
-    //if error policy is retry set retry interval
+    // if error policy is retry set retry interval
     config.errorPolicy match {
       case Retry => Option(context).foreach(_.timeout(config.retries.interval))
       case _     =>

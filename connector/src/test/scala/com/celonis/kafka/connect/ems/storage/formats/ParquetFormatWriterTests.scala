@@ -57,7 +57,7 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
       output.size shouldBe 0L
       val formatWriter =
         ParquetFormatWriter.from(output, simpleSchemaV1, ParquetConfig.Default, new NoOpExploder().explode)
-      formatWriter.size shouldBe 4L //4 BYTES from MAGIC PAR1
+      formatWriter.size shouldBe 4L // 4 BYTES from MAGIC PAR1
     }
   }
 

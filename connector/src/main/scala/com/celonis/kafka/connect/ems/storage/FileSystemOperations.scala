@@ -50,7 +50,7 @@ class FileSystemOperations(fs: java.nio.file.FileSystem) extends StrictLogging {
   }
 
   def cleanup(dir: Path, sinkName: String, tp: TopicPartition): Unit = {
-    //cleanup the file for the given topic and partition
+    // cleanup the file for the given topic and partition
     val topicPartitionDir =
       fs.getPath(dir.toString, sinkName, tp.topic.value, tp.partition.value.toString)
     deleteDir(topicPartitionDir)
@@ -78,12 +78,13 @@ class FileSystemOperations(fs: java.nio.file.FileSystem) extends StrictLogging {
   }
 }
 
-/**
-  * Wraps writing to an output. Unfortunately Parquet library hides the actual writer in [[PositionOutputStream]] implementation
-  * and there's no way to get the correct data size written and the one in the buffers.
-  * As a result this class updates the size it writes.
-  * @param stream - Instance of the [[OutputStream]] to write the parquet data
-  * @param file - The file it's writing to
+/** Wraps writing to an output. Unfortunately Parquet library hides the actual writer in [[PositionOutputStream]]
+  * implementation and there's no way to get the correct data size written and the one in the buffers. As a result this
+  * class updates the size it writes.
+  * @param stream
+  *   \- Instance of the [[OutputStream]] to write the parquet data
+  * @param file
+  *   \- The file it's writing to
   */
 class FileAndStream(stream: OutputStream, file: Path) extends AutoCloseable {
   private var _size:    Long = 0

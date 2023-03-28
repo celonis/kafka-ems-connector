@@ -22,7 +22,11 @@ import org.testcontainers.containers.ToxiproxyContainer
 
 object connect {
 
-  def withConnectionCut(testCode: => Any)(implicit proxy: ToxiproxyContainer.ContainerProxy): Unit = {
+  def withConnectionCut(
+    testCode: => Any,
+  )(
+    implicit
+    proxy: ToxiproxyContainer.ContainerProxy): Unit = {
     proxy.setConnectionCut(true)
     try {
       val _ = testCode
@@ -36,8 +40,7 @@ object connect {
   )(testCode:        => Any,
   )(
     implicit
-    kafkaConnectClient: KafkaConnectClient,
-  ): Unit = {
+    kafkaConnectClient: KafkaConnectClient): Unit = {
     kafkaConnectClient.registerConnector(connectorConfig)
     try {
       kafkaConnectClient.waitConnectorInRunningState(connectorConfig.name)

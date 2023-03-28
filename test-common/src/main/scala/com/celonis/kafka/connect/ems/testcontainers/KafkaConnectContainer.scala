@@ -96,8 +96,7 @@ object KafkaConnectContainer {
     confluentPlatformVersion: String,
     kafkaContainer:           KafkaContainer,
     schemaRegistryContainer:  Option[SchemaRegistryContainer] = None,
-    connectPluginJar:         Path,
-  ): KafkaConnectContainer =
+    connectPluginJar:         Path): KafkaConnectContainer =
     new KafkaConnectContainer(imageName.withTag(confluentPlatformVersion),
                               kafkaContainer,
                               schemaRegistryContainer,

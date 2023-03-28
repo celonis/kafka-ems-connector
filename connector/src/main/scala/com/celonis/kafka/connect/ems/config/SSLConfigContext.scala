@@ -29,16 +29,17 @@ object SSLConfigContext {
   def apply(config: SSLConfig): SSLContext =
     getSSLContext(config)
 
-  /**
-    * Get a SSL Connect for a given set of credentials
+  /** Get a SSL Connect for a given set of credentials
     *
-    * @param config An SSLConfig containing key and truststore credentials
-    * @return a SSLContext
+    * @param config
+    *   An SSLConfig containing key and truststore credentials
+    * @return
+    *   a SSLContext
     */
   def getSSLContext(config: SSLConfig): SSLContext = {
     val useClientCertAuth = config.useClientCert
 
-    //is client certification authentication set
+    // is client certification authentication set
     val keyManagers: Array[KeyManager] = if (useClientCertAuth) {
       getKeyManagers(config)
     } else {
@@ -53,11 +54,12 @@ object SSLConfigContext {
     ctx
   }
 
-  /**
-    * Get an array of Trust Managers
+  /** Get an array of Trust Managers
     *
-    * @param config An SSLConfig containing key and truststore credentials
-    * @return An Array of TrustManagers
+    * @param config
+    *   An SSLConfig containing key and truststore credentials
+    * @return
+    *   An Array of TrustManagers
     */
   def getTrustManagers(config: SSLConfig): Array[TrustManager] = {
     val tsf = new FileInputStream(config.trustStorePath)
@@ -68,11 +70,12 @@ object SSLConfigContext {
     tmf.getTrustManagers
   }
 
-  /**
-    * Get an array of Key Managers
+  /** Get an array of Key Managers
     *
-    * @param config An SSLConfig containing key and truststore credentials
-    * @return An Array of KeyManagers
+    * @param config
+    *   An SSLConfig containing key and truststore credentials
+    * @return
+    *   An Array of KeyManagers
     */
   def getKeyManagers(config: SSLConfig): Array[KeyManager] = {
     require(config.keyStorePath.nonEmpty, "Key store path is not set!")
@@ -87,8 +90,7 @@ object SSLConfigContext {
 
 }
 
-/**
-  * Class for holding key and truststore settings
+/** Class for holding key and truststore settings
   */
 case class SSLConfig(
   trustStorePath: String,

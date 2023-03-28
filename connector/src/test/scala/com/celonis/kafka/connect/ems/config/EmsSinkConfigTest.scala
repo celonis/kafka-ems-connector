@@ -143,18 +143,19 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
   }
 
   test(s"returns THROW if $ERROR_POLICY_KEY is missing") {
-    withMissingConfig(ERROR_POLICY_KEY)({
+    withMissingConfig(ERROR_POLICY_KEY) {
       case Left(_) => fail(s"Should not fail ")
       case Right(value) =>
         value.errorPolicy shouldBe ErrorPolicy.Throw
         ()
-    })
+    }
   }
 
   test(s"returns default if $PARQUET_FLUSH_KEY is missing") {
     withMissingConfig(PARQUET_FLUSH_KEY) {
       case Left(_) => fail("should not fail")
-      case Right(value) => value.parquet.rowGroupSize shouldBe PARQUET_FLUSH_DEFAULT
+      case Right(value) =>
+        value.parquet.rowGroupSize shouldBe PARQUET_FLUSH_DEFAULT
         ()
     }
   }
@@ -162,7 +163,8 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
   test(s"returns default if $DEBUG_KEEP_TMP_FILES_KEY is missing") {
     withMissingConfig(DEBUG_KEEP_TMP_FILES_KEY) {
       case Left(_) => fail("should not fail")
-      case Right(value) => value.parquet.cleanup shouldBe ParquetFileCleanupDelete
+      case Right(value) =>
+        value.parquet.cleanup shouldBe ParquetFileCleanupDelete
         ()
     }
   }
@@ -170,7 +172,8 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
   test(s"returns default if $PRIMARY_KEYS_KEY is missing") {
     withMissingConfig(PRIMARY_KEYS_KEY) {
       case Left(_) => fail("should not fail")
-      case Right(value) => value.primaryKeys shouldBe Nil
+      case Right(value) =>
+        value.primaryKeys shouldBe Nil
         ()
     }
   }
@@ -178,7 +181,8 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
   test(s"returns default if $CONNECTION_ID_KEY is missing") {
     withMissingConfig(CONNECTION_ID_KEY) {
       case Left(_) => fail("should not fail")
-      case Right(value) => value.connectionId shouldBe None
+      case Right(value) =>
+        value.connectionId shouldBe None
         ()
     }
   }
@@ -186,7 +190,8 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
   test(s"returns default if $FALLBACK_VARCHAR_LENGTH_KEY is missing") {
     withMissingConfig(FALLBACK_VARCHAR_LENGTH_KEY) {
       case Left(_) => fail("should not fail")
-      case Right(value) => value.fallbackVarCharLengths shouldBe None
+      case Right(value) =>
+        value.fallbackVarCharLengths shouldBe None
         ()
     }
   }

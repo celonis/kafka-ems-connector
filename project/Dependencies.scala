@@ -138,8 +138,8 @@ object Dependencies {
     .exclude("org.slf4j", "slf4j-log4j12")
     .exclude("org.apache.kafka", "kafka-clients")
     .exclude("javax.ws.rs", "javax.ws.rs-api")
-    //.exclude("io.confluent", "kafka-schema-registry-client")
-    //.exclude("io.confluent", "kafka-schema-serializer")
+    // .exclude("io.confluent", "kafka-schema-registry-client")
+    // .exclude("io.confluent", "kafka-schema-serializer")
     .excludeAll(ExclusionRule(organization = "io.swagger"))
     .excludeAll(ExclusionRule(organization = "org.codehaus.jackson"))
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson"))
@@ -196,7 +196,7 @@ object Dependencies {
     .exclude("org.apache.hadoop", "hadoop-hdfs-client")
     .exclude("org.apache.hadoop", "hadoop-yarn-client")
 
-  //this is a vulnerability fix. hadoop-common brings 5.3.0 and there is no new version of hadoop-common addressing the issue
+  // this is a vulnerability fix. hadoop-common brings 5.3.0 and there is no new version of hadoop-common addressing the issue
   // hence the build brings 5.4.0
   lazy val woodstock = "com.fasterxml.woodstox" % "woodstox-core" % Versions.woodstockVersion
   // testcontainers module dependencies
@@ -289,7 +289,7 @@ trait Dependencies {
   )
   val jacksonDeps = Seq(jacksonCore, jacksonModuleScala, jacksonDatabind)
 
-  //Specific modules dependencies
+  // Specific modules dependencies
   val emsSinkDeps: Seq[ModuleID] = (Seq(
     kafkaConnectJson,
     confluentAvroConverter,

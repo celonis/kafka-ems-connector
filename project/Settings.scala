@@ -45,8 +45,8 @@ object Settings extends Dependencies {
 
   val legalCopyrightSettings = Seq(
     organizationName := "Celonis SE",
-    startYear := Some(Calendar.getInstance().get(Calendar.YEAR)),
-    licenses := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.html")),
+    startYear        := Some(Calendar.getInstance().get(Calendar.YEAR)),
+    licenses         := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.html")),
   )
   object ScalacFlags {
     val availableProcessors: String = java.lang.Runtime.getRuntime.availableProcessors.toString
@@ -74,7 +74,7 @@ object Settings extends Dependencies {
     )
 
     val lintings = List(
-      "-Xlint:adapted-args", //TODO kept commented when streaming was merged in. Review.
+      "-Xlint:adapted-args", // TODO kept commented when streaming was merged in. Review.
       "-Xlint:constant",
       "-Xlint:delayedinit-select",
       "-Xlint:doc-detached",
@@ -83,7 +83,7 @@ object Settings extends Dependencies {
       "-Xlint:missing-interpolator",
       "-Xlint:nullary-unit",
       "-Xlint:option-implicit",
-      //"-Xlint:package-object-classes", //TODO kept commented when streaming was merged in. Review.
+      // "-Xlint:package-object-classes", //TODO kept commented when streaming was merged in. Review.
       "-Xlint:poly-implicit-overload",
       "-Xlint:private-shadow",
       "-Xlint:stars-align",
@@ -105,7 +105,7 @@ object Settings extends Dependencies {
         "-Ywarn-infer-any",
         "-Ywarn-macros:after",
         "-Ywarn-nullary-override",
-        //"-Ywarn-nullary-unit",
+        // "-Ywarn-nullary-unit",
         "-Ywarn-numeric-widen",
         "-Ywarn-unused:implicits",
         "-Ywarn-unused:locals",
@@ -150,18 +150,18 @@ object Settings extends Dependencies {
         // advanced options
         "-Xcheckinit",
         // TODO Verify whether this is right...
-        //"-Wconf:msg=import scala\\.collection\\.compat\\._:s"
+        // "-Wconf:msg=import scala\\.collection\\.compat\\._:s"
       ) ++ warnings ++ lintings
     }
   }
 
   private val commonSettings: Seq[Setting[_]] = legalCopyrightSettings ++ Seq(
-    organization := "com.celonis.kafka.connect",
-    version := artifactVersion,
+    organization      := "com.celonis.kafka.connect",
+    version           := artifactVersion,
     scalaOrganization := scalaOrganizationUsed,
-    scalaVersion := scalaVersionUsed,
-    isSnapshot := artifactVersion.contains("SNAPSHOT"),
-    //publishTo := artifactoryRepo,
+    scalaVersion      := scalaVersionUsed,
+    isSnapshot        := artifactVersion.contains("SNAPSHOT"),
+    // publishTo := artifactoryRepo,
     kindProjectorPlugin,
     betterMonadicFor,
     semanticdbEnabled := true,
@@ -171,8 +171,8 @@ object Settings extends Dependencies {
 
   val rootSettings: Seq[Setting[_]] = commonSettings ++ Seq(
     crossScalaVersions := Nil,
-    publish / skip := true,
-    publishArtifact := false,
+    publish / skip     := true,
+    publishArtifact    := false,
   )
 
   val modulesSettings: Seq[Setting[_]] = commonSettings ++ Seq(
@@ -185,13 +185,13 @@ object Settings extends Dependencies {
       }
     },
     Compile / console / scalacOptions := ScalacFlags.commonOptions,
-    Global / cancelable := true,
-    Compile / fork := true,
-    Compile / trapExit := false,
-    Compile / connectInput := true,
-    Compile / outputStrategy := Some(StdoutOutput),
+    Global / cancelable               := true,
+    Compile / fork                    := true,
+    Compile / trapExit                := false,
+    Compile / connectInput            := true,
+    Compile / outputStrategy          := Some(StdoutOutput),
     resolvers ++= projectResolvers,
-    //libraryDependencies ++= mainDeps,
+    // libraryDependencies ++= mainDeps,
     crossScalaVersions := supportedScalaVersionsUsed,
     /*Global / concurrentRestrictions := {
       val max = java.lang.Runtime.getRuntime.availableProcessors
@@ -222,8 +222,7 @@ object Settings extends Dependencies {
       requiresFork:              Boolean,
       requiresParallelExecution: Boolean,
       frameworks:                Seq[TestFramework],
-      dependencies:              Seq[ModuleID],
-    ): Project =
+      dependencies:              Seq[ModuleID]): Project =
       project
         .configs(config)
         .settings(
@@ -232,9 +231,9 @@ object Settings extends Dependencies {
           ),
           inConfig(config)(
             defaultSettings ++ Seq(
-              fork := requiresFork,
-              parallelExecution := requiresParallelExecution,
-              testFrameworks := frameworks,
+              fork                        := requiresFork,
+              parallelExecution           := requiresParallelExecution,
+              testFrameworks              := frameworks,
               classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
             ) ++ scalafixConfigSettings(config),
           ),
@@ -247,8 +246,7 @@ object Settings extends Dependencies {
     def configureTests(
       requiresFork:              Boolean            = false,
       requiresParallelExecution: Boolean            = false,
-      frameworks:                Seq[TestFramework] = Seq(ScalaTest),
-    ): Project =
+      frameworks:                Seq[TestFramework] = Seq(ScalaTest)): Project =
       configure(requiresFork, requiresParallelExecution, frameworks, scalaTestFunSuiteDeps).enablePlugins(
         ScoverageSbtPlugin,
       )
@@ -260,8 +258,7 @@ object Settings extends Dependencies {
     def configureIntegrationTests(
       requiresFork:              Boolean            = false,
       requiresParallelExecution: Boolean            = false,
-      frameworks:                Seq[TestFramework] = Seq(ScalaTest),
-    ): Project =
+      frameworks:                Seq[TestFramework] = Seq(ScalaTest)): Project =
       configure(requiresFork, requiresParallelExecution, frameworks, scalaTestFunSuiteDeps).enablePlugins(
         ScoverageSbtPlugin,
       )
@@ -272,8 +269,7 @@ object Settings extends Dependencies {
     def configureFunctionalTests(
       requiresFork:              Boolean            = false,
       requiresParallelExecution: Boolean            = true,
-      frameworks:                Seq[TestFramework] = Seq(ScalaTest),
-    ): Project =
+      frameworks:                Seq[TestFramework] = Seq(ScalaTest)): Project =
       configure(requiresFork, requiresParallelExecution, frameworks, scalaTestFunSuiteDeps)
   }
 
@@ -282,8 +278,7 @@ object Settings extends Dependencies {
     def configureE2ETests(
       requiresFork:              Boolean            = false,
       requiresParallelExecution: Boolean            = true,
-      frameworks:                Seq[TestFramework] = Seq(ScalaTest),
-    ): Project =
+      frameworks:                Seq[TestFramework] = Seq(ScalaTest)): Project =
       configure(requiresFork, requiresParallelExecution, frameworks, scalaTestFunSuiteDeps)
   }
 
