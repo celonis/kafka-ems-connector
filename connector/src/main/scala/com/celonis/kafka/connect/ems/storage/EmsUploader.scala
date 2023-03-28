@@ -38,7 +38,6 @@ import org.http4s.multipart.Part
 import org.http4s.okhttp.client.OkHttpBuilder
 import org.typelevel.ci.CIString
 
-import java.io.File
 import java.net.URL
 import javax.ws.rs.core.UriBuilder
 import scala.annotation.nowarn
@@ -68,7 +67,7 @@ class EmsUploader[F[_]](
       val attributes = Vector(
         Part.fileData[F](EmsUploader.FileName,
                          fileName,
-                         Files[F].readAll(Path.fromNioPath(uploadRequest.file.toPath), ChunkSize, Flags.Read),
+                         Files[F].readAll(Path.fromNioPath(uploadRequest.file), ChunkSize, Flags.Read),
         ),
       )
       val pks                                  = primaryKeys.map(nel => nel.mkString_(","))
@@ -135,7 +134,11 @@ class EmsUploader[F[_]](
           )
     }
 
-  private def genericError(throwable: Throwable, file: File, msg: String, response: Response[F]): F[Throwable] = {
+  private def genericError(
+    throwable: Throwable,
+    file:      java.nio.file.Path,
+    msg:       String,
+    response:  Response[F]): F[Throwable] = {
     val error = UploadFailedException(
       response.status,
       s"Failed to upload the file:$file. Status code:${response.status.show}. $msg",
@@ -149,7 +152,7 @@ class EmsUploader[F[_]](
     ).flatMap(_ => A.raiseError(error))
   }
 
-  private def unmarshalError(throwable: Throwable, file: File, response: Response[F]): F[Throwable] = {
+  private def unmarshalError(throwable: Throwable, file: java.nio.file.Path, response: Response[F]): F[Throwable] = {
     val error = UploadFailedException(
       response.status,
       s"Failed to upload the file:$file. Status code:${response.status.show}. Cannot unmarshal the response.",

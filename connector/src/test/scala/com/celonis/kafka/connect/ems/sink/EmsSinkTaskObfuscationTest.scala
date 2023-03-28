@@ -70,7 +70,8 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         ExplodeConfig.None,
         OrderFieldConfig(Some(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName)),
         None,
-        false,
+        embedKafkaMetadata    = false,
+        useInMemoryFileSystem = false,
       )
       val config = Map(
         ENDPOINT_KEY                -> sinkConfig.url.toString,
@@ -83,7 +84,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         ERROR_RETRY_INTERVAL        -> sinkConfig.retries.interval.toString,
         NBR_OF_RETRIES_KEY          -> sinkConfig.retries.retries.toString,
         TMP_DIRECTORY_KEY           -> dir.toString,
-        DEBUG_KEEP_TMP_FILES_KEY    -> (sinkConfig.parquet.cleanup == ParquetFileCleanupRename).toString,
+        DEBUG_KEEP_TMP_FILES_KEY    -> sinkConfig.parquet.cleanup.isInstanceOf[ParquetFileCleanupRename].toString,
         PARQUET_FLUSH_KEY           -> sinkConfig.parquet.rowGroupSize.toString,
         PRIMARY_KEYS_KEY            -> sinkConfig.primaryKeys.mkString(","),
         CONNECTION_ID_KEY           -> sinkConfig.connectionId.get,

@@ -26,6 +26,7 @@ import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model._
 import com.celonis.kafka.connect.ems.storage.EmsUploader
+import com.celonis.kafka.connect.ems.storage.FileSystemOperations
 import com.celonis.kafka.connect.ems.storage.Writer
 import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.Version
@@ -74,7 +75,13 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     val writers = Ref.unsafe[IO, Map[TopicPartition, Writer]](Map.empty)
     blockingExecutionContext = BlockingExecutionContext("io-http-blocking")
 
-    writerManager =
+    writerManager = {
+      val fileSystemOperations =
+        if (config.useInMemoryFileSystem)
+          FileSystemOperations.InMemory
+        else
+          FileSystemOperations.Default
+
       WriterManager.from[IO](
         config,
         sinkName,
@@ -92,7 +99,9 @@ class EmsSinkTask extends SinkTask with StrictLogging {
           config.orderField.name,
         ),
         writers,
+        fileSystemOperations,
       )
+    }
 
     maxRetries  = config.retries.retries
     retriesLeft = maxRetries

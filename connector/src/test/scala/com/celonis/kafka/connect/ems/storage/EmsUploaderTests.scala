@@ -47,6 +47,8 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
   CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE => MAX_IDLE_DEFAULT,
 }
+
+import java.nio.file.Path
 class EmsUploaderTests extends AnyFunSuite with Matchers {
 
   private val defaultPoolingConfig: PoolingConfig =
@@ -70,14 +72,16 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                               auth,
                               targetTable,
       )
-    val fileResource: Resource[IO, File] = Resource.make[IO, File](IO {
-      val file = new File(filePath)
-      file.createNewFile()
-      val fw = new FileOutputStream(file)
-      fw.write(fileContent)
-      fw.close()
-      file
-    })(file => IO(file.delete()).map(_ => ()))
+    val fileResource = Resource.make[IO, Path](
+      IO {
+        val file = new File(filePath)
+        file.createNewFile()
+        val fw = new FileOutputStream(file)
+        fw.write(fileContent)
+        fw.close()
+        file.toPath
+      },
+    )(path => IO(java.nio.file.Files.delete(path)))
 
     (for {
       server <- serverResource
@@ -153,7 +157,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
               None,
             ),
           )
-          e <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100))).attempt
+          e <- uploader.upload(UploadRequest(file.toPath, new Topic("a"), new Partition(0), new Offset(100))).attempt
         } yield {
           e match {
             case Left(value) =>
@@ -217,7 +221,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
               None,
             ),
           )
-          response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
+          response <- uploader.upload(UploadRequest(file.toPath, new Topic("a"), new Partition(0), new Offset(100)))
           map      <- mapRef.get
         } yield {
           response shouldBe expectedResponse
@@ -276,7 +280,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
               None,
             ),
           )
-          response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
+          response <- uploader.upload(UploadRequest(file.toPath, new Topic("a"), new Partition(0), new Offset(100)))
           map      <- mapRef.get
         } yield {
           response shouldBe expectedResponse

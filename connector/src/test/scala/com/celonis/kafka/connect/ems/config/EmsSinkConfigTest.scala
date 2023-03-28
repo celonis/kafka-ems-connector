@@ -33,6 +33,7 @@ import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
+import com.celonis.kafka.connect.ems.storage.FileSystemOperations
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
 import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadataFieldInserter
@@ -75,7 +76,8 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         ExplodeConfig.None,
         OrderFieldConfig(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName.some),
         None,
-        true,
+        embedKafkaMetadata    = true,
+        useInMemoryFileSystem = false,
       )
 
       val inputMap: Map[String, _] = Map(
@@ -261,7 +263,8 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         ExplodeConfig.None,
         OrderFieldConfig(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName.some),
         None,
-        false,
+        embedKafkaMetadata    = false,
+        useInMemoryFileSystem = false,
       )
 
       val inputMap = Map[String, Any](
@@ -275,7 +278,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         ERROR_RETRY_INTERVAL        -> sinkConfig.retries.interval,
         NBR_OF_RETRIES_KEY          -> sinkConfig.retries.retries,
         TMP_DIRECTORY_KEY           -> dir.toString,
-        DEBUG_KEEP_TMP_FILES_KEY    -> (sinkConfig.parquet.cleanup == ParquetFileCleanupRename),
+        DEBUG_KEEP_TMP_FILES_KEY    -> sinkConfig.parquet.cleanup.isInstanceOf[ParquetFileCleanupRename],
         PARQUET_FLUSH_KEY           -> sinkConfig.parquet.rowGroupSize,
         PRIMARY_KEYS_KEY            -> sinkConfig.primaryKeys.mkString(","),
         CONNECTION_ID_KEY           -> sinkConfig.connectionId.get,
@@ -323,7 +326,8 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         ExplodeConfig.None,
         OrderFieldConfig(orderFieldName.some),
         None,
-        true,
+        embedKafkaMetadata    = true,
+        useInMemoryFileSystem = false,
       )
 
       val inputMap: Map[String, _] = Map(
@@ -359,6 +363,56 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
       dir.delete()
       ()
     }
+  }
+  test(s"hardcodes the working directory and forces Parquet file deletion if in memory file system is enabled") {
+    val policy         = DefaultCommitPolicy(1000000L, 10.seconds.toMillis, 1000)
+    val orderFieldName = "justfortest"
+    val expected = EmsSinkConfig(
+      "sink1",
+      new URL("https://teamA.realmB.celonis.cloud/continuous-batch-processing/api/v1/abc-pool/items"),
+      "tableA",
+      Some("id222"),
+      AuthorizationHeader("AppKey 123"),
+      Retry,
+      policy,
+      RetryConfig(10, 1000),
+      FileSystemOperations.InMemoryPseudoDir,
+      ParquetConfig.Default,
+      List("a", "b"),
+      Some(512),
+      None,
+      UnproxiedHttpClientConfig(defaultPoolingConfig),
+      ExplodeConfig.None,
+      OrderFieldConfig(orderFieldName.some),
+      None,
+      embedKafkaMetadata    = true,
+      useInMemoryFileSystem = true,
+    )
+
+    val inputMap: Map[String, _] = Map(
+      ENDPOINT_KEY         -> expected.url.toString,
+      TARGET_TABLE_KEY     -> expected.target,
+      AUTHORIZATION_KEY    -> expected.authorization.header,
+      ERROR_POLICY_KEY     -> expected.errorPolicy.entryName,
+      COMMIT_SIZE_KEY      -> policy.fileSize,
+      COMMIT_INTERVAL_KEY  -> policy.interval,
+      COMMIT_RECORDS_KEY   -> policy.records,
+      ERROR_RETRY_INTERVAL -> expected.retries.interval,
+      NBR_OF_RETRIES_KEY   -> expected.retries.retries,
+      // these will be overriden
+      TMP_DIRECTORY_KEY        -> "/some/where/else",
+      DEBUG_KEEP_TMP_FILES_KEY -> "true",
+      //
+      PRIMARY_KEYS_KEY            -> expected.primaryKeys.mkString(","),
+      CONNECTION_ID_KEY           -> expected.connectionId.get,
+      FALLBACK_VARCHAR_LENGTH_KEY -> expected.fallbackVarCharLengths.orNull,
+      ORDER_FIELD_NAME_KEY        -> orderFieldName,
+      USE_IN_MEMORY_FS_KEY        -> "true",
+    )
+    EmsSinkConfig.from(
+      expected.sinkName,
+      inputMap,
+    ) shouldBe Right(expected)
   }
 
   private def testMissingConfig(key: String, docs: String): Unit =
