@@ -138,8 +138,7 @@ class EmsUploader[F[_]](
     throwable: Throwable,
     file:      java.nio.file.Path,
     msg:       String,
-    response:  Response[F],
-  ): F[Throwable] = {
+    response:  Response[F]): F[Throwable] = {
     val error = UploadFailedException(
       response.status,
       s"Failed to upload the file:$file. Status code:${response.status.show}. $msg",

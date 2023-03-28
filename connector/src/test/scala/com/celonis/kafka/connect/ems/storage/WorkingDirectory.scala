@@ -25,11 +25,14 @@ import java.util.UUID
 
 trait WorkingDirectory {
 
-  protected implicit val fsImpl: FileSystem = {
+  protected implicit val fsImpl: FileSystem =
     Jimfs.newFileSystem(Configuration.unix())
-  }
 
-  protected def withDir[T](fn: Path => T)(implicit fs: FileSystem): Unit = {
+  protected def withDir[T](
+    fn: Path => T,
+  )(
+    implicit
+    fs: FileSystem): Unit = {
     val dir = fs.getPath(UUID.randomUUID().toString)
     Files.createDirectory(dir)
     try {
