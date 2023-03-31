@@ -4,28 +4,22 @@
 ## Local dev environment
 
 This project top-level folder contains a [docker-compose file](docker-compose.yml) allowing to run locally a Kafka broker,
-Schema-Registry, Kafka-connect (via [Fast Data Dev](https://github.com/lensesio/fast-data-dev)) and Confluent [Control Center](https://docs.confluent.io/platform/current/control-center/index.html) as a UI. 
-This is intended to facilitate exploratory testing the connector.
+Schema-Registry, Kafka-connect and Lenses all packaged into a single fat Docker container.
+This is intended to facilitate exploratory testing and interacting with the connector.
 
-In order for Kafka Connect to discover the connector, before running `docker-compose` you will have to set the environment variable
+In order for Kafka Connect to discover the EMS Sink connector, before running `docker-compose` you will have to set the environment variable
 `CONNECTOR_PATH` to an absolute path pointing at a directory containing the EMS Kafka sink jar.
+Additionally, you will have to request a [License to use Lenses Box](https://lenses.io/downloads/lenses/). The license key is issued automatically and delivered
+to your email address once you submit the form.
 
 ```bash
 # assuming you have previously run `sbt assembly`
 export CONNECTOR_PATH=$PWD/connector/target/scala-2.13/
+export LENSES_EULA="https://licenses.lenses.io/download/lensesdl?id=<LICENSE_ID_HERE>"
 ```
 
-With the above variable set, running `docker-compose up` should spin up two containers. After a few seconds, you should be
-able to access Confluent Control Center by pointing your browser to `http://localhost:9024`.
-
-From there, you can run a new connector instance by navigating to `Connect Clusters > Connect Default > Add Connector` and picking `EmsSinkConnector` from the list of available connectors.
-
-![Control Center](images/control-center.png)
-
-Please refer the [Examples](https://github.com/celonis/kafka-ems-connector/wiki/Examples) wiki entry for ready to use configuration snippets covering most common use cases.
-
-**Tip:** If you do not see `EmsSinkConnector` in the list, verify that `CONNECTOR_PATH` points to an existing folder on the docker host, 
-and contains the expected standalone jar.
+With the above variable set, running `docker-compose up` should spin up the Lenses box container. After a couple of minutes, you should be
+able to access the Lenses UI by pointing your browser to `http://localhost:3030`.
 
 ## Key connector components
 
@@ -64,7 +58,7 @@ might not accessible.
 ### Record transformations
 
 The record transformation logic is encapsulated within the `ems.transform.RecordTransformer` class. This class wraps the 
-_glue code_ necessary to address a number of transformations which we detail in the sections below. It's important to notice that:
+_glue code_ necessary to address a number of transformations steps which we detail in the following sections. It's important to notice that:
 
 - Transformation functions take as their inputs both the schema and the actual values. This is because the Kafka Connect API
   expects a matching schemas to be supplied as a constructor dependency of each `Struct` value created.
@@ -74,13 +68,26 @@ _glue code_ necessary to address a number of transformations which we detail in 
 
 #### Schema Inference
 
+In this step we attempt at inferring a Schema when the incoming Kafka Connect record has a null schema value
+; this is the case of JSON formatted topic. The inferred schema is then fed into the flattening function, so it will
+contain nested structures if present.
 
+There corner cases that cause the inference to fail: most noticeably these include arrays containing values of different types
+(e.g. `[1, true, 1029.0, "x"]`).
 
 #### Record flattening
 
+The connector provides a default flattening strategy which applies the following simple rules:
+- array fields are JSON-encoded and transformed into nullable strings
+- nested fields names are concatenated to their parent path and appended to the top-level struct
+
 #### Chunked JSON blobs
+
+An alternative flattening strategy is the _chunked JSON blob_ encoding. This strategy is aimed at providing an escape hatch in cases
+where the input record has to be ingested in its original shape there exist records that are too big to fit within the maximum EMS string field length.
+(i.e. 65,000 bytes).
 
 #### Obfuscation of sensitive fields
 
-
-## Main program flow
+We also provide support for some basic field-level obfuscation. Please refer to the project Wiki for usage details and to the
+`ObfuscationUtils` module for the relevant source code.
