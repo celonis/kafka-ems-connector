@@ -37,6 +37,9 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_PO
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EMBED_KAFKA_EMBEDDED_METADATA_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EMBED_KAFKA_EMBEDDED_METADATA_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EMBED_KAFKA_EMBEDDED_METADATA_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DEFAULT
@@ -59,9 +62,6 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_ENA
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EMBED_KAFKA_EMBEDDED_METADATA_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EMBED_KAFKA_EMBEDDED_METADATA_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EMBED_KAFKA_EMBEDDED_METADATA_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETIRES_DEFAULT
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
@@ -97,6 +97,9 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.USE_IN_MEMORY_FS_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.USE_IN_MEMORY_FS_DOC
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.USE_IN_MEMORY_FS_KEY
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
@@ -461,6 +464,13 @@ object EmsSinkConfigDef {
       EMBED_KAFKA_EMBEDDED_METADATA_DEFAULT,
       Importance.MEDIUM,
       EMBED_KAFKA_EMBEDDED_METADATA_DOC,
+    )
+    .define(
+      USE_IN_MEMORY_FS_KEY,
+      Type.BOOLEAN,
+      USE_IN_MEMORY_FS_DEFAULT,
+      Importance.MEDIUM,
+      USE_IN_MEMORY_FS_DOC,
     )
 }
 

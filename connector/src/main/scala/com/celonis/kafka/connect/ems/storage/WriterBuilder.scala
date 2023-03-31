@@ -47,6 +47,7 @@ class WriterBuilderImpl(
   commitPolicy: CommitPolicy,
   parquet:      ParquetConfig,
   explode:      ExplodeConfig,
+  fileSystem:   FileSystemOperations,
 ) extends WriterBuilder {
 
   /** Creates a new writer from an existing one. This happens only when the data(i.e. file) is committed
@@ -57,7 +58,7 @@ class WriterBuilderImpl(
   def writerFrom(writer: Writer): Writer = {
     val currentState   = writer.state
     val topicPartition = currentState.topicPartition
-    val output         = FileSystem.createOutput(tempDir, sinkName, topicPartition)
+    val output         = fileSystem.createOutput(tempDir, sinkName, topicPartition)
     val newState = currentState.copy(
       committedOffset = Some(currentState.offset),
       fileSize        = 0.toLong,
@@ -77,7 +78,7 @@ class WriterBuilderImpl(
     * @return
     */
   def writerFrom(record: Record): Writer = {
-    val output = FileSystem.createOutput(tempDir, sinkName, record.metadata.topicPartition)
+    val output = fileSystem.createOutput(tempDir, sinkName, record.metadata.topicPartition)
     val formatWriter =
       ParquetFormatWriter.from(output, explode.explodeSchema(record.value.getSchema), parquet, explode.toExplodeFn)
     val state = WriterState(

@@ -24,10 +24,12 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 
-import java.io.File
+import java.nio.file.FileSystems
 import scala.concurrent.duration._
 
 class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with SampleData {
+
+  val fs = FileSystems.getDefault
 
   test("writes a records and updates the state") {
     val formatWriter = mock[FormatWriter]
@@ -46,7 +48,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
         startingRecords,
         System.currentTimeMillis(),
         simpleSchemaV1,
-        new File("abc"),
+        fs.getPath("abc"),
       ),
     )
 
@@ -82,7 +84,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
       1,
       System.currentTimeMillis(),
       simpleSchemaV1,
-      new File("abc"),
+      fs.getPath("abc"),
     )
     val emsWriter =
       new EmsWriter("sinkA", DefaultCommitPolicy(10000, 1000.minutes.toMillis, 10000), formatWriter, expected)
@@ -114,7 +116,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
         startingRecords,
         System.currentTimeMillis(),
         simpleSchemaV1,
-        new File("abc"),
+        fs.getPath("abc"),
       ),
     )
 
@@ -159,7 +161,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
         startingRecords,
         System.currentTimeMillis(),
         simpleSchemaV1,
-        new File("abc"),
+        fs.getPath("abc"),
       ),
     )
 
@@ -184,7 +186,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
         startingRecords,
         System.currentTimeMillis(),
         simpleSchemaV1,
-        new File("abc"),
+        fs.getPath("abc"),
       ),
     )
 
@@ -207,7 +209,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
         startingRecords,
         System.currentTimeMillis(),
         simpleSchemaV1,
-        new File("abc"),
+        fs.getPath("abc"),
       ),
     )
 
@@ -230,7 +232,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
         startingRecords,
         System.currentTimeMillis(),
         simpleSchemaV1,
-        new File("abc"),
+        fs.getPath("abc"),
       ),
     )
 
@@ -258,7 +260,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
         startingRecords,
         System.currentTimeMillis(),
         simpleSchemaV1,
-        new File("abc"),
+        fs.getPath("abc"),
       ),
     )
 

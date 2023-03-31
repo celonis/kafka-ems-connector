@@ -23,7 +23,7 @@ import com.celonis.kafka.connect.ems.model.Record
 import com.celonis.kafka.connect.ems.model.TopicPartition
 import org.apache.avro.Schema
 
-import java.io.File
+import java.nio.file.Path
 
 trait Writer extends AutoCloseable {
   def shouldFlush: Boolean
@@ -43,7 +43,7 @@ case class WriterState(
   records:         Long,
   lastWriteTs:     Long,
   schema:          Schema,
-  file:            File,
+  file:            Path,
 )
 
 object WriterState {

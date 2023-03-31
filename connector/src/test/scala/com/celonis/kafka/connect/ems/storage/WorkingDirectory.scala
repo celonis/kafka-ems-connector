@@ -15,18 +15,30 @@
  */
 
 package com.celonis.kafka.connect.ems.storage
-import java.io.File
+import java.nio.file.FileSystem
+import java.nio.file.Files
 import java.nio.file.Path
+import com.google.common.jimfs.Configuration
+import com.google.common.jimfs.Jimfs
+
 import java.util.UUID
 
 trait WorkingDirectory {
-  protected def withDir[T](fn: Path => T): Unit = {
-    val dir = new File(UUID.randomUUID().toString)
-    dir.mkdir()
+
+  protected implicit val fsImpl: FileSystem =
+    Jimfs.newFileSystem(Configuration.unix())
+
+  protected def withDir[T](
+    fn: Path => T,
+  )(
+    implicit
+    fs: FileSystem): Unit = {
+    val dir = fs.getPath(UUID.randomUUID().toString)
+    Files.createDirectory(dir)
     try {
-      fn(dir.toPath)
+      fn(dir)
     } finally {
-      FileSystem.deleteDir(dir)
+      new FileSystemOperations(fs).deleteDir(dir)
       ()
     }
     ()
