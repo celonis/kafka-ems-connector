@@ -9,7 +9,7 @@ import org.apache.kafka.connect.storage.Converter
 import java.util
 
 final class XmlConverter extends Converter {
-  private val mapper = new XmlMapper()
+  private val mapper        = new XmlMapper()
   private val typeReference = new TypeReference[Any]() {}
 
   override def configure(configs: util.Map[String, _], isKey: Boolean): Unit = ()
@@ -18,7 +18,7 @@ final class XmlConverter extends Converter {
     throw new NotImplementedError("XML Serialization has not been implemented")
 
   override def toConnectData(topic: String, value: Array[Byte]): SchemaAndValue = {
-    val node          = mapper.readValue(value, typeReference)
+    val node = mapper.readValue(value, typeReference)
     new SchemaAndValue(null, node)
   }
 }
