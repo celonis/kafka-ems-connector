@@ -158,6 +158,12 @@ trait KafkaConnectContainerPerSuite extends MockServerContainerPerSuite { this: 
       classOf[KafkaAvroSerializer],
     )(f)
 
+  def withStringStringProducer[A](f: KafkaProducer[String, String] => A): A =
+    withProducer(
+      classOf[StringSerializer],
+      classOf[StringSerializer],
+    )(f)
+
   def sendDummyAvroRecord(topic: String): Unit = {
     val valueSchema = SchemaBuilder.record("record").fields()
       .requiredString("a")
