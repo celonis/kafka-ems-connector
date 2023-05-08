@@ -1,5 +1,6 @@
 package com.celonis.kafka.connect.ems.converter
 
+import org.apache.kafka.connect.data.SchemaAndValue
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -7,6 +8,10 @@ import scala.collection.immutable.ListMap
 import scala.jdk.CollectionConverters._
 
 class XmlConverterTest extends AnyFunSuite with Matchers {
+  test("it should return null schema and value for null input (tombstone messages)") {
+    converter.toConnectData("whatever", null) shouldBe SchemaAndValue.NULL
+  }
+
   test("it should convert xml") {
     val xml =
       """
@@ -26,7 +31,6 @@ class XmlConverterTest extends AnyFunSuite with Matchers {
         |</root>
         |""".stripMargin
 
-    val converter   = new XmlConverter
     val connectData = converter.toConnectData("topic", xml.getBytes)
 
     connectData.schema() shouldBe null
@@ -62,4 +66,6 @@ class XmlConverterTest extends AnyFunSuite with Matchers {
       }
 
   }
+
+  lazy val converter = new XmlConverter
 }

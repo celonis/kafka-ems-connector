@@ -17,8 +17,12 @@ final class XmlConverter extends Converter {
   override def fromConnectData(topic: String, schema: Schema, value: Any): Array[Byte] =
     throw new NotImplementedError("XML Serialization has not been implemented")
 
-  override def toConnectData(topic: String, value: Array[Byte]): SchemaAndValue = {
-    val node = mapper.readValue(value, typeReference)
-    new SchemaAndValue(null, node)
-  }
+  override def toConnectData(topic: String, value: Array[Byte]): SchemaAndValue =
+    value match {
+      case null => SchemaAndValue.NULL
+      case nonNullValue =>
+        val node = mapper.readValue(nonNullValue, typeReference)
+        new SchemaAndValue(null, node)
+    }
+
 }
