@@ -225,6 +225,8 @@ object Dependencies {
     "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion
   lazy val jacksonModuleScala: ModuleID =
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion
+  lazy val jacksonXml: ModuleID =
+    "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % jacksonVersion
 
   lazy val nimbusJoseJwt = "com.nimbusds" % "nimbus-jose-jwt" % nimbusJoseJwtVersion
 
@@ -287,7 +289,7 @@ trait Dependencies {
                       nettyResolver,
                       nettyTransport,
   )
-  val jacksonDeps = Seq(jacksonCore, jacksonModuleScala, jacksonDatabind)
+  val jacksonDeps = Seq(jacksonCore, jacksonModuleScala, jacksonDatabind, jacksonXml)
 
   // Specific modules dependencies
   val emsSinkDeps: Seq[ModuleID] = (Seq(
