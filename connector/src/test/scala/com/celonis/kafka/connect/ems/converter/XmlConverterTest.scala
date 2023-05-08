@@ -1,9 +1,11 @@
 package com.celonis.kafka.connect.ems.converter
 
 import org.apache.kafka.connect.data.SchemaAndValue
+import org.apache.kafka.connect.errors.DataException
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
+import java.nio.charset.StandardCharsets
 import scala.collection.immutable.ListMap
 import scala.jdk.CollectionConverters._
 
@@ -52,6 +54,13 @@ class XmlConverterTest extends AnyFunSuite with Matchers {
 
     value shouldBe expected
 
+  }
+
+  test("it should throw a Connect DataException for deserialisation errors") {
+    an[DataException] should be thrownBy (converter.toConnectData(
+      "topic",
+      "<root>invalid xml</bleah>".getBytes(StandardCharsets.UTF_8),
+    ))
   }
 
   // Recursively transform collections, and preserve Maps traversal order
