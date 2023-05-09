@@ -1,0 +1,54 @@
+version: "2.1"
+
+services:
+  jolokia:
+    image: jolokia/java-jolokia
+    volumes:
+      - /opt/jolokia/
+
+  lenses-box:
+    image: lensesio/box
+    environment:
+#      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
+      KAFKA_SUPER_USERS: User:kafka;
+#      KAFKA_PRINCIPAL_BUILDER_CLASS: de.thmshmm.kafka.CustomPrincipalBuilder
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+      ADV_HOST: localhost
+      FORWARDLOGS: 0
+      #REST_PORT: 0
+      RUNTESTS: 0
+      SAMPLEDATA: 1
+      SUPERVISORWEB: "1"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      #KAFKA_BROKER_ID: 101
+      BROKER_OPTS: "-javaagent:/opt/jolokia/jolokia.jar=port=19581,host=0.0.0.0"
+      ZOOKEEPER_OPTS: "-javaagent:/opt/jolokia/jolokia.jar=port=19585,host=0.0.0.0"
+      SCHEMA_REGISTRY_OPTS: "-javaagent:/opt/jolokia/jolokia.jar=port=19582,host=0.0.0.0"
+      CONNECT_OPTS: "-javaagent:/opt/jolokia/jolokia.jar=port=19584,host=0.0.0.0"
+      # following are required to run SQL Processors in Connect mode (manualy uploaded connector is also required!)
+      CONNECT_CONFIG_PROVIDERS: aes256
+      CONNECT_CONFIG_PROVIDERS_AES256_CLASS: io.lenses.connect.secrets.providers.Aes256DecodingProvider
+      CONNECT_CONFIG_PROVIDERS_AES256_PARAM_AES256_KEY: PasswordPasswordPasswordPassword
+      CONNECT_CONFIG_PROVIDERS_AES256_PARAM_FILE_DIR: /tmp/connect-secrets
+      EULA: ${LENSES_EULA?"Please supply a Lenses license URL. A trail license may be obtained here https://lenses.io/downloads/lenses/"}
+    ports:
+      - 9001:9001 # supervisor web
+      - 9092:9092 # kafka
+      - 2181:2181 # zookeeper
+      - 8083:8083 # connect
+      - 8081:8081 # schema-registry
+      - 9581:9581 # kafka jmx
+      - 9585:9585 # zookeeper jmx
+      - 9584:9584 # connect jmx
+      - 9582:9582 # schema-registry jmx
+      - 3030:3030 # ui
+      - 19581:19581 # kafka jolokia
+      - 19585:19585 # zookeeper jolokia
+      - 19582:19582 # schema registry jolokia
+      - 19584:19584 # connect jolokia
+      - 3333:3333 # visualvm
+    volumes:
+      - ${CONNECTOR_PATH?"An absolute host path where the EMS Kafka connector jar can be found"}:/connectors/
+    volumes_from:
+      - jolokia
+
