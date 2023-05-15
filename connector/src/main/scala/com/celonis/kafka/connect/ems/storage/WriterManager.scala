@@ -155,9 +155,13 @@ class WriterManager[F[_]](
       }
       schema = record.value.getSchema
       latestWriter <- {
-        if (writer.shouldRollover(schema))
-          commit(writer, writerBuilder.writerFrom(record)).map(_.fold(writerBuilder.writerFrom(record))(_.newWriter))
-        else A.pure(writer)
+        if (writer.shouldRollover(schema)) {
+          for {
+            result      <- commit(writer, writerBuilder.writerFrom(record))
+            latestWriter = result.fold(writerBuilder.writerFrom(record))(_.newWriter)
+            _           <- writersRef.update(map => map + (writer.state.topicPartition -> latestWriter))
+          } yield latestWriter
+        } else A.pure(writer)
       }
       _ <- A.delay(latestWriter.write(record))
       _ <- if (latestWriter.shouldFlush) commit(latestWriter, writerBuilder.writerFrom(latestWriter)) else A.pure(None)
