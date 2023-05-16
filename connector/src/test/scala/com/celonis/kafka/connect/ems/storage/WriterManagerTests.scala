@@ -461,6 +461,52 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
     }
   }
 
+  test("commit data when there is a schema change after a flush (i.e. when current writer state is empty)") {
+    withDir { dir =>
+      val sink     = "sinkA"
+      val tp1      = TopicPartition(new Topic("topic"), new Partition(0))
+      val uploader = mock[Uploader[IO]]
+      val builder  = mock[WriterBuilder]
+
+      val file1 = createEmptyFile(dir, "abc1")
+      def simpleWriter(schema: Schema) = new SimpleDummyWriter(2, file1, schema, tp1)
+
+      val manager =
+        new WriterManager[IO](
+          sink,
+          uploader,
+          dir,
+          builder,
+          // make sure current writer has a different schema and 0 records
+          Ref.unsafe(Map(tp1 -> simpleWriter(simpleSchemaV2))),
+          ParquetFileCleanupDelete,
+          fsOps,
+        )
+
+      val struct  = buildSimpleStruct()
+      val record1 = Record(struct, RecordMetadata(tp1, new Offset(10)))
+      val record2 = Record(struct, RecordMetadata(tp1, new Offset(11)))
+
+      // Repeated here because they must not be the same instance
+      when(builder.writerFrom(any[Record])).thenReturn(
+        simpleWriter(simpleSchemaV1),
+        simpleWriter(simpleSchemaV1),
+        simpleWriter(simpleSchemaV1),
+        simpleWriter(simpleSchemaV1),
+      )
+
+      when(builder.writerFrom(any[Writer])).thenReturn(simpleWriter(simpleSchemaV1))
+
+      when(uploader.upload(any[UploadRequest]))
+        .thenReturn(IO(EmsUploadResponse("1", file1.getFileName.toString, "b", "NEW", "c1".some, None, None)))
+
+      manager.write(record1).unsafeRunSync()
+      manager.write(record2).unsafeRunSync()
+
+      verify(uploader, times(1)).upload(any[UploadRequest])
+    }
+  }
+
   test("the uploader throws an exception the state is not corrupted on attempting to write again") {
     withDir { dir =>
       val sink     = "sinkA"
@@ -625,4 +671,32 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
     Files.createFile(path)
     path
   }
+
+  /** A simple writer that just update the number of records at every write
+    */
+  class SimpleDummyWriter(maxRecords: Int, file: Path, baseSchema: Schema, topicPartition: TopicPartition)
+      extends Writer {
+    private var records: Long = 0
+
+    override def shouldFlush: Boolean = records >= maxRecords
+
+    override def write(record: Record): Unit =
+      records += 1
+
+    override def shouldRollover(schema: Schema): Boolean = schema != baseSchema
+
+    override def state: WriterState = WriterState(
+      topicPartition,
+      new Offset(0),
+      None,
+      0,
+      records,
+      1,
+      simpleSchemaV1,
+      file,
+    )
+
+    override def close(): Unit = ()
+  }
+
 }
