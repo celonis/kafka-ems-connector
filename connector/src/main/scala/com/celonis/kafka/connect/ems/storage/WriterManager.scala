@@ -92,7 +92,7 @@ class WriterManager[F[_]](
         _            <- A.delay(fileCleanup.clean(file, state.offset))
         newWriter    <- A.delay(buildFn)
         _            <- A.delay(logger.debug("Creating a new writer for [{}]", writer.state.show))
-        _            <- writersRef.update(map => map + (writer.state.topicPartition -> newWriter))
+        _            <- setWriter(newWriter)
       } yield CommitWriterResult(
         newWriter,
         TopicPartitionOffset(writer.state.topicPartition.topic,
@@ -149,8 +149,7 @@ class WriterManager[F[_]](
         case Some(value) => A.pure(value)
         case None =>
           A.pure(writerBuilder.writerFrom(record)).flatMap { writer =>
-            writersRef.update(map => map + (record.metadata.topicPartition -> writer))
-              .map(_ => writer)
+            setWriter(writer).as(writer)
           }
       }
       schema = record.value.getSchema
@@ -159,7 +158,7 @@ class WriterManager[F[_]](
           for {
             result      <- commit(writer, writerBuilder.writerFrom(record))
             latestWriter = result.fold(writerBuilder.writerFrom(record))(_.newWriter)
-            _           <- writersRef.update(map => map + (writer.state.topicPartition -> latestWriter))
+            _           <- setWriter(latestWriter)
           } yield latestWriter
         } else A.pure(writer)
       }
@@ -186,6 +185,9 @@ class WriterManager[F[_]](
         }
       }
     }.toMap
+
+  private def setWriter(writer: Writer): F[Unit] =
+    writersRef.update(map => map + (writer.state.topicPartition -> writer))
 }
 
 object WriterManager extends LazyLogging {
