@@ -126,7 +126,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       verify(writer2, times(1)).write(record2)
 
       // trigger the upload if applicable
-      manager.maybeUploadData().unsafeRunSync()
+      manager.maybeUploadData.unsafeRunSync()
       verifyNoInteractions(uploader)
     }
   }

@@ -124,8 +124,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
             _          <- writerManager.write(Record(avroRecord, metadata))
           } yield ()
         }
-      _ <- if (records.isEmpty)
-        writerManager.maybeUploadData()
+      _ <- if (records.isEmpty) writerManager.maybeUploadData
       else IO(())
     } yield ()
 
