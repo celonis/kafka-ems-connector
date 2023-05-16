@@ -91,6 +91,7 @@ class WriterManager[F[_]](
         _            <- A.delay(fileCleanup.clean(file, state.offset))
         newWriter    <- A.delay(buildFn)
         _            <- A.delay(logger.debug("Creating a new writer for [{}]", writer.state.show))
+        _            <- setWriter(writer.state.topicPartition, newWriter)
       } yield CommitWriterResult(
         newWriter,
         TopicPartitionOffset(writer.state.topicPartition.topic,
@@ -151,7 +152,7 @@ class WriterManager[F[_]](
           }
       }
       schema = record.value.getSchema
-      latestWriter <- {
+      latestWriter <-
         if (writer.shouldRollover(schema)) {
           for {
             result      <- commit(writer, writerBuilder.writerFrom(record))
@@ -159,7 +160,6 @@ class WriterManager[F[_]](
             _           <- setWriter(writer.state.topicPartition, latestWriter)
           } yield latestWriter
         } else A.pure(writer)
-      }
       _ <- A.delay(latestWriter.write(record))
       _ <- if (latestWriter.shouldFlush) commit(latestWriter, writerBuilder.writerFrom(latestWriter)) else A.pure(None)
     } yield ()
