@@ -56,14 +56,13 @@ class WriterManager[F[_]](
   /** Uploads the data to EMS if the commit policy is met.
     * @return
     */
-  def maybeUploadData(): F[Unit] = {
+  val maybeUploadData: F[Unit] =
     // The data is uploaded sequentially. We might want to parallelize the process
-    logger.debug(s"[{}] Received call to WriterManager.maybeUploadData", sinkName)
     for {
+      _       <- Async[F].delay(logger.debug(s"[{}] Received call to WriterManager.maybeUploadData", sinkName))
       writers <- writersRef.get.map(_.values.filter(_.shouldFlush).toList)
       _       <- writers.traverse(w => commit(w, writerBuilder.writerFrom(w)))
     } yield ()
-  }
 
   private case class CommitWriterResult(newWriter: Writer, offset: TopicPartitionOffset)
 
@@ -92,7 +91,7 @@ class WriterManager[F[_]](
         _            <- A.delay(fileCleanup.clean(file, state.offset))
         newWriter    <- A.delay(buildFn)
         _            <- A.delay(logger.debug("Creating a new writer for [{}]", writer.state.show))
-        _            <- writersRef.update(map => map + (writer.state.topicPartition -> newWriter))
+        _            <- setWriter(writer.state.topicPartition, newWriter)
       } yield CommitWriterResult(
         newWriter,
         TopicPartitionOffset(writer.state.topicPartition.topic,
@@ -128,7 +127,7 @@ class WriterManager[F[_]](
       _ <- writersRef.update(_ => newWritersMap)
     } yield ()
 
-  def close(): F[Unit] =
+  val close: F[Unit] =
     for {
       _          <- A.delay(logger.info(s"[{}] Received call to WriterManager.close()", sinkName))
       writers    <- writersRef.get.map(_.values.toList)
@@ -149,16 +148,18 @@ class WriterManager[F[_]](
         case Some(value) => A.pure(value)
         case None =>
           A.pure(writerBuilder.writerFrom(record)).flatMap { writer =>
-            writersRef.update(map => map + (record.metadata.topicPartition -> writer))
-              .map(_ => writer)
+            setWriter(record.metadata.topicPartition, writer).as(writer)
           }
       }
       schema = record.value.getSchema
-      latestWriter <- {
-        if (writer.shouldRollover(schema))
-          commit(writer, writerBuilder.writerFrom(record)).map(_.fold(writerBuilder.writerFrom(record))(_.newWriter))
-        else A.pure(writer)
-      }
+      latestWriter <-
+        if (writer.shouldRollover(schema)) {
+          for {
+            result      <- commit(writer, writerBuilder.writerFrom(record))
+            latestWriter = result.fold(writerBuilder.writerFrom(record))(_.newWriter)
+            _           <- setWriter(writer.state.topicPartition, latestWriter)
+          } yield latestWriter
+        } else A.pure(writer)
       _ <- A.delay(latestWriter.write(record))
       _ <- if (latestWriter.shouldFlush) commit(latestWriter, writerBuilder.writerFrom(latestWriter)) else A.pure(None)
     } yield ()
@@ -182,6 +183,9 @@ class WriterManager[F[_]](
         }
       }
     }.toMap
+
+  private def setWriter(topicPartition: TopicPartition, writer: Writer): F[Unit] =
+    writersRef.update(map => map + (topicPartition -> writer))
 }
 
 object WriterManager extends LazyLogging {
