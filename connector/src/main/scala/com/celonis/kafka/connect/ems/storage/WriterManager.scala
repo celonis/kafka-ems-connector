@@ -91,7 +91,6 @@ class WriterManager[F[_]](
         _            <- A.delay(fileCleanup.clean(file, state.offset))
         newWriter    <- A.delay(buildFn)
         _            <- A.delay(logger.debug("Creating a new writer for [{}]", writer.state.show))
-        _            <- setWriter(writer.state.topicPartition, newWriter)
       } yield CommitWriterResult(
         newWriter,
         TopicPartitionOffset(writer.state.topicPartition.topic,
@@ -127,7 +126,7 @@ class WriterManager[F[_]](
       _ <- writersRef.update(_ => newWritersMap)
     } yield ()
 
-  def close(): F[Unit] =
+  val close: F[Unit] =
     for {
       _          <- A.delay(logger.info(s"[{}] Received call to WriterManager.close()", sinkName))
       writers    <- writersRef.get.map(_.values.toList)

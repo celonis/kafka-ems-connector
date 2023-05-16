@@ -211,7 +211,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   override def stop(): Unit = {
     (for {
       _ <- IO(logger.debug(s"[{}] EmsSinkTask.Stop", sinkName))
-      _ <- Option(writerManager).fold(IO(()))(_.close())
+      _ <- Option(writerManager).fold(IO(()))(_.close)
       _ <- Option(blockingExecutionContext).fold(IO(()))(ec => IO(ec.close()))
     } yield ()).attempt.unsafeRunSync() match {
       case Left(value) =>
