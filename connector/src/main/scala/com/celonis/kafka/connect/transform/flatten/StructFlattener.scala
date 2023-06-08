@@ -12,8 +12,8 @@ import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 
 private final class StructFlattener(schemaFlattener: SchemaFlattener) extends Flattener {
-  override def flatten(value: Any, schema: Schema): Any =
-    StructFlattener.flatten(value, schemaFlattener.flatten(schema))
+  override def flatten(value: Any, schema: Option[Schema]): Any =
+    StructFlattener.flatten(value, schemaFlattener.flatten(schema.getOrElse(Schema.BYTES_SCHEMA)))
 }
 
 private object StructFlattener {

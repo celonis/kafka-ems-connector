@@ -12,7 +12,7 @@ import org.apache.kafka.connect.data.Struct
 import java.nio.charset.StandardCharsets
 
 private final class ChunkedJsonBlobFlattener(config: JsonBlobChunks) extends Flattener {
-  def flatten(value: Any, originalSchema: Schema): Struct = {
+  def flatten(value: Any, originalSchema: Option[Schema]): Struct = {
     val FlattenerConfig.JsonBlobChunks(maxChunks, emsVarcharLength) = config
 
     val jsonBlobBytes = value match {

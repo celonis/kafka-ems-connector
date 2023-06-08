@@ -18,7 +18,7 @@ class ChunkedJsonBlobFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
       "a_nested_map" -> nested,
     ).asJava
 
-    val connectValue = flattener.flatten(javaMap, Schema.BYTES_SCHEMA) // Schema is not used by the flattener
+    val connectValue = flattener.flatten(javaMap, None) // Schema is not used by the flattener
     val concatenated = (1 to config.chunks).map(n => connectValue.get(s"payload_chunk$n")).mkString("")
 
     val om           = new ObjectMapper()
@@ -32,7 +32,7 @@ class ChunkedJsonBlobFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
     implicit val config: JsonBlobChunks = JsonBlobChunks(2, 10)
     val flattener    = new ChunkedJsonBlobFlattener(config)
     val someString   = ('a' to 'z').take(10).mkString("")
-    val connectValue = flattener.flatten(someString, Schema.STRING_SCHEMA)
+    val connectValue = flattener.flatten(someString, None)
     val concatenated = (1 to config.chunks).flatMap(n => Option(connectValue.get(s"payload_chunk$n"))).mkString("")
     assertResult(someString)(concatenated)
   }
@@ -55,7 +55,7 @@ class ChunkedJsonBlobFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
     struct.put("a_map", Map("hi" -> "there").asJava)
 
     // TODO Missing: , ChunkedJsonBlob.schema(config.jsonBlobChunks.get)
-    val result = flattener.flatten(struct, schema).asInstanceOf[Struct]
+    val result = flattener.flatten(struct, None).asInstanceOf[Struct]
 
     val om           = new ObjectMapper()
     val expectedJson = om.createObjectNode
@@ -74,7 +74,7 @@ class ChunkedJsonBlobFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
   test("generates a schema based on the configured jsonBlobChunks maxChunks value") {
     val config          = JsonBlobChunks(chunks = 3, fallbackVarcharLength = 5)
     val flattener       = new ChunkedJsonBlobFlattener(config)
-    val flattenedSchema = flattener.flatten(Map("a" -> 1).asJava, Schema.BYTES_SCHEMA).schema()
+    val flattenedSchema = flattener.flatten(Map("a" -> 1).asJava, None).schema()
 
     val expected = SchemaBuilder.struct()
       .field("payload_chunk1", Schema.OPTIONAL_STRING_SCHEMA)
@@ -106,7 +106,7 @@ class ChunkedJsonBlobFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
 
     assertThrows[ChunkedJsonBlobFlattener.MisconfiguredJsonBlobMaxChunks](flattener.flatten(
       struct,
-      schema,
+      None,
     ))
   }
 

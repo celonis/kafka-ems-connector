@@ -18,10 +18,11 @@ class FlattenerTest extends AnyFunSuite {
     assert(flattener.isInstanceOf[ChunkedJsonBlobFlattener])
   }
 
-  test("Without a JsonChunk config, a StructFlattener is used") {
+  test("Without a JsonChunk config, a StructFlattener nested in a NormalisingFlattener is used") {
     val config    = FlattenerConfig(false, None)
     val flattener = Flattener.fromConfig(Some(config))
 
-    assert(flattener.isInstanceOf[StructFlattener])
+    assert(flattener.isInstanceOf[NormalisingFlattener])
+    assert(flattener.asInstanceOf[NormalisingFlattener].innerFlattener.isInstanceOf[StructFlattener])
   }
 }

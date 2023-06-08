@@ -13,8 +13,10 @@ import cats.syntax.traverse._
 import scala.collection.immutable.ListMap
 
 /** This component does multiple things:
-  *   1. It infers the connect schema of the connect value 2. It normalises the value, replacing Maps (coming from json)
-  *      to Structs 3. It replaces non-avro field names with avro field names (in maps only for now)
+  *   1. It infers the connect schema of the connect value
+  *   2. It normalises the value, replacing Maps (coming from json)
+  *      to Structs
+  *   3. It replaces non-avro field names with avro field names (in maps only for now)
   *
   * We should split inference from normalisation, even if that will complicate the implementation
   */
