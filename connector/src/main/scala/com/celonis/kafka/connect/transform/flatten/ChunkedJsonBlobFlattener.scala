@@ -20,8 +20,8 @@ private final class ChunkedJsonBlobFlattener(config: JsonBlobChunks) extends Fla
       case str:    String => str.getBytes(StandardCharsets.UTF_8)
       case _ => jacksonMapper.writeValueAsString(value).getBytes(StandardCharsets.UTF_8)
     }
-    val numChunks = jsonBlobBytes.length / emsVarcharLength
-    if (numChunks > maxChunks)
+    val requiredChunks = Math.ceil(jsonBlobBytes.length.toDouble / emsVarcharLength).toInt
+    if (requiredChunks > maxChunks)
       throw MisconfiguredJsonBlobMaxChunks(maxChunks, jsonBlobBytes.length, emsVarcharLength)
     else
       jsonBlobBytes.grouped(emsVarcharLength).zipWithIndex.foldLeft(new Struct(schema)) {
