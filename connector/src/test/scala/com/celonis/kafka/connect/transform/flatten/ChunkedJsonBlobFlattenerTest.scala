@@ -112,21 +112,16 @@ class ChunkedJsonBlobFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
 
   // See https://celonis.atlassian.net/browse/DP-1278
   test("raises an error even when payloadBytes slightly exceeds maxChunks * fallbackVarcharLength") {
+    val config     = JsonBlobChunks(chunks = 5, fallbackVarcharLength = 2)
+    val someString = "x" * 11 // 11 chunks required
+    val flattener  = new ChunkedJsonBlobFlattener(config)
 
-    val aString = "x" * 20
-
-    val config = JsonBlobChunks(
-      chunks                = 1,
-      fallbackVarcharLength = 19,
-    ) // ^ In this way two chunks are needed for the string, and numberOfBytesOfPayload / fallbackVarChar = 1 as a division between integers
-
-    val flattener = new ChunkedJsonBlobFlattener(config)
-    assertThrows[ChunkedJsonBlobFlattener.MisconfiguredJsonBlobMaxChunks](flattener.flatten(aString, None))
+    assertThrows[ChunkedJsonBlobFlattener.MisconfiguredJsonBlobMaxChunks](flattener.flatten(someString, None))
   }
 
   test("does not raise errors when payloadBytes is exactly maxChunks * fallbackVarcharLength") {
-    val someString   = "x" * 10
     val config       = JsonBlobChunks(chunks = 5, fallbackVarcharLength = 2)
+    val someString   = "x" * 10 // Exactly 5 chunks required
     val flattener    = new ChunkedJsonBlobFlattener(config)
     val connectValue = flattener.flatten(someString, None)
     val concatenated = (1 to config.chunks).flatMap(n => Option(connectValue.get(s"payload_chunk$n"))).mkString("")
