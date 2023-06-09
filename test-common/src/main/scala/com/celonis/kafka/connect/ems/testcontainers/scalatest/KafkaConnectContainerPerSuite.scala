@@ -47,7 +47,7 @@ import scala.collection.mutable.ListBuffer
 
 trait KafkaConnectContainerPerSuite extends MockServerContainerPerSuite { this: TestSuite =>
 
-  val confluentPlatformVersion: String = sys.env.getOrElse("CONFLUENT_VERSION", "6.1.0")
+  val confluentPlatformVersion: String = sys.env.getOrElse("CONFLUENT_VERSION", "7.4.0")
 
   lazy val schemaRegistryInstance: Option[SchemaRegistryContainer] = schemaRegistryContainer()
 

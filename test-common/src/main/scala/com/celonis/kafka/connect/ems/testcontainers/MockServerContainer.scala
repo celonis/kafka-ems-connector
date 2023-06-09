@@ -46,8 +46,8 @@ class MockServerContainer(
 }
 
 object MockServerContainer {
-  private val dockerImage         = DockerImageName.parse("jamesdbloom/mockserver")
-  private val defaultTag          = "mockserver-5.5.4"
+  private val dockerImage         = DockerImageName.parse("mockserver/mockserver")
+  private val defaultTag          = "5.15.0"
   private val defaultNetworkAlias = "mockserver"
 
   def apply(

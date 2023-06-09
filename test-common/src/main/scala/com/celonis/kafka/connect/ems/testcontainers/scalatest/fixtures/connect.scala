@@ -18,7 +18,8 @@ package com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures
 
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration
 import com.celonis.kafka.connect.ems.testcontainers.connect.KafkaConnectClient
-import org.testcontainers.containers.ToxiproxyContainer
+import eu.rekawek.toxiproxy.Proxy
+import eu.rekawek.toxiproxy.model.ToxicDirection
 
 object connect {
 
@@ -26,12 +27,14 @@ object connect {
     testCode: => Any,
   )(
     implicit
-    proxy: ToxiproxyContainer.ContainerProxy): Unit = {
-    proxy.setConnectionCut(true)
+    proxy: Proxy): Unit = {
+    proxy.toxics.bandwidth("CUT_CONNECTION_DOWNSTREAM", ToxicDirection.DOWNSTREAM, 0)
+    proxy.toxics.bandwidth("CUT_CONNECTION_UPSTREAM", ToxicDirection.UPSTREAM, 0)
     try {
       val _ = testCode
     } finally {
-      proxy.setConnectionCut(false)
+      proxy.toxics.get("CUT_CONNECTION_DOWNSTREAM").remove()
+      proxy.toxics.get("CUT_CONNECTION_UPSTREAM").remove()
     }
   }
 

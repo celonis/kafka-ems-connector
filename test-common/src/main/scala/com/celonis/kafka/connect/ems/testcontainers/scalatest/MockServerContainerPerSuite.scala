@@ -18,6 +18,7 @@ package com.celonis.kafka.connect.ems.testcontainers.scalatest
 
 import com.celonis.kafka.connect.ems.testcontainers.MockServerContainer
 import com.celonis.kafka.connect.ems.testcontainers.ToxiproxyContainer
+import eu.rekawek.toxiproxy.Proxy
 import org.mockserver.client.MockServerClient
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.TestSuite
@@ -27,7 +28,6 @@ import org.scalatest.time.Span
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.testcontainers.containers.Network
-import org.testcontainers.containers.{ ToxiproxyContainer => JavaToxiproxyContainer }
 
 trait MockServerContainerPerSuite extends BeforeAndAfterAll with Eventually { this: TestSuite =>
 
@@ -43,10 +43,13 @@ trait MockServerContainerPerSuite extends BeforeAndAfterAll with Eventually { th
   lazy val toxiproxyContainer: ToxiproxyContainer =
     ToxiproxyContainer("mockserver.celonis.cloud").withNetwork(network)
 
-  lazy val proxyServerUrl: String = s"https://${toxiproxyContainer.networkAlias}:${proxy.getOriginalProxyPort}"
+  lazy val proxyServerUrl: String = s"https://${toxiproxyContainer.networkAlias}:8666"
 
-  implicit lazy val proxy: JavaToxiproxyContainer.ContainerProxy =
-    toxiproxyContainer.proxy(mockServerContainer.container, mockServerContainer.port)
+  println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+  println(proxyServerUrl)
+
+  implicit lazy val proxy: Proxy =
+    toxiproxyContainer.proxy(mockServerContainer.container, mockServerContainer.port, 8666)
 
   implicit lazy val mockServerClient: MockServerClient = mockServerContainer.hostNetwork.mockServerClient
 

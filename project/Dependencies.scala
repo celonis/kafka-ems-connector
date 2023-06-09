@@ -79,8 +79,8 @@ object Dependencies {
 
     val jerseyCommonVersion = "2.35"
 
-    val testcontainersVersion   = "1.16.3"
-    val mockServerClientVersion = "5.5.4"
+    val testcontainersVersion   = "1.18.3"
+    val mockServerClientVersion = "5.15.0"
     val httpClientVersion       = "4.5.13"
     val json4sVersion           = "4.0.5"
     val jacksonVersion          = "2.14.2"
