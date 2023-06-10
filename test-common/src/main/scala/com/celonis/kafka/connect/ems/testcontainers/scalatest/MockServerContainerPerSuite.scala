@@ -43,19 +43,21 @@ trait MockServerContainerPerSuite extends BeforeAndAfterAll with Eventually { th
   lazy val toxiproxyContainer: ToxiproxyContainer =
     ToxiproxyContainer("mockserver.celonis.cloud").withNetwork(network)
 
-  lazy val proxyServerUrl: String = s"https://${toxiproxyContainer.networkAlias}:8666"
+  lazy val proxyServerUrl: String =
+    s"https://${toxiproxyContainer.networkAlias}:$proxyPort"
 
-  println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-  println(proxyServerUrl)
+  lazy val proxyPort: Int =
+    toxiproxyContainer.container.getExposedPorts.get(1) // First exposed port after control port (should be 8666)
 
   implicit lazy val proxy: Proxy =
-    toxiproxyContainer.proxy(mockServerContainer.container, mockServerContainer.port, 8666)
+    toxiproxyContainer.proxy(mockServerContainer.container, mockServerContainer.port, proxyPort)
 
   implicit lazy val mockServerClient: MockServerClient = mockServerContainer.hostNetwork.mockServerClient
 
   override def beforeAll(): Unit = {
     mockServerContainer.start()
     toxiproxyContainer.start()
+    val _ = proxy
     super.beforeAll()
   }
 

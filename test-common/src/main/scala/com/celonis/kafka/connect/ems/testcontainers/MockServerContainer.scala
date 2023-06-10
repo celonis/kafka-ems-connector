@@ -28,7 +28,7 @@ class MockServerContainer(
   val networkAlias: String = defaultNetworkAlias,
 ) extends SingleContainer[JavaMockServerContainer] {
 
-  val port: Int = 1080
+  val port: Int = JavaMockServerContainer.PORT
 
   override val container: JavaMockServerContainer =
     new JavaMockServerContainer(dockerImage.withTag(dockerTag))
@@ -38,11 +38,8 @@ class MockServerContainer(
 
   class HostNetwork {
     def mockServerClient = new MockServerClient(container.getHost, container.getServerPort)
-
-    def mockServerUrl: String = s"https://$networkAlias:${container.getServerPort}"
   }
 
-  def mockServerUrl = s"https://$networkAlias:$port"
 }
 
 object MockServerContainer {

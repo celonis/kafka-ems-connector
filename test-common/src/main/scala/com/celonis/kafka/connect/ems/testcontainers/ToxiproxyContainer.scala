@@ -35,9 +35,9 @@ class ToxiproxyContainer(
 
   container.withNetworkAliases(networkAlias)
 
-  def proxy(targetContainer: GenericContainer[_], port: Int, mappedPort: Int): Proxy = {
-    val upstream        = targetContainer.getNetworkAliases.get(0) + ":" + port
-    val listen          = "0.0.0.0:" + mappedPort
+  def proxy(targetContainer: GenericContainer[_], fromPort: Int, toPort: Int): Proxy = {
+    val upstream        = targetContainer.getNetworkAliases.get(0) + ":" + fromPort
+    val listen          = "0.0.0.0:" + toPort
     val toxiproxyClient = new ToxiproxyClient(container.getHost, container.getControlPort)
     toxiproxyClient.createProxy(upstream, listen, upstream)
   }
