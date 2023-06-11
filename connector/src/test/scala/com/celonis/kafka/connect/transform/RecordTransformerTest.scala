@@ -26,10 +26,10 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
   test("With Chunking enabled, JSON with empty keys is handled properly") {
     val value = Map(
       "12345456789012345456789" -> "x",
-      "" -> "y",
+      ""                        -> "y",
     ).asJava
 
-    val record = sinkRecord(value)
+    val record        = sinkRecord(value)
     val genericRecord = chunkTransform(record, 2, 20)
 
     genericRecord.get("payload_chunk1") shouldBe "{\"123454567890123454"

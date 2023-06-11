@@ -2,13 +2,15 @@ package com.celonis.kafka.connect.transform
 
 import cats.effect.IO
 import cats.syntax.either._
-import com.celonis.kafka.connect.ems.config.{EmsSinkConfig, ObfuscationConfig}
+import com.celonis.kafka.connect.ems.config.EmsSinkConfig
+import com.celonis.kafka.connect.ems.config.ObfuscationConfig
 import com.celonis.kafka.connect.ems.conversion.DataConverter
 import com.celonis.kafka.connect.ems.errors.FailedObfuscationException
 import com.celonis.kafka.connect.ems.model._
 import com.celonis.kafka.connect.ems.obfuscation.ObfuscationUtils._
 import com.celonis.kafka.connect.ems.storage.PrimaryKeysValidator
-import com.celonis.kafka.connect.transform.fields.{EmbeddedKafkaMetadata, FieldInserter}
+import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadata
+import com.celonis.kafka.connect.transform.fields.FieldInserter
 import com.celonis.kafka.connect.transform.flatten.Flattener
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.avro.generic.GenericRecord
