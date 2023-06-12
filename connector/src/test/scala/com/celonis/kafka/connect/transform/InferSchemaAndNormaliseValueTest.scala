@@ -93,6 +93,11 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
     }
   }
 
+  test("Fails when a map contains an empty key") {
+    val value = Map("" -> "x", "y" -> "x").asJava
+    assertResult(None)(InferSchemaAndNormaliseValue(value))
+  }
+
   test("infers nested object's schema") {
     val rawJson =
       """

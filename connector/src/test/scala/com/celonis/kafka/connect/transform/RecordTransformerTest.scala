@@ -23,6 +23,19 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     genericRecord.get("payload_chunk2") shouldBe "y\":[\"a\",1,true]}"
   }
 
+  test("With Chunking enabled, JSON with empty keys is handled properly") {
+    val value = Map(
+      "12345456789012345456789" -> "x",
+      ""                        -> "y",
+    ).asJava
+
+    val record        = sinkRecord(value)
+    val genericRecord = chunkTransform(record, 2, 20)
+
+    genericRecord.get("payload_chunk1") shouldBe "{\"123454567890123454"
+    genericRecord.get("payload_chunk2") shouldBe "56789\":\"x\",\"\":\"y\"}"
+  }
+
   test("With Chunking disabled, heterogeneous arrays prevent flattening") {
     pendingUntilFixed {
       val value = Map(

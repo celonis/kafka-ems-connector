@@ -60,7 +60,8 @@ object InferSchemaAndNormaliseValue {
       Some(ValueAndSchema(values, SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BYTES_SCHEMA).build()))
     else {
       val inferredValues = values.asScala.toMap.filterNot(_._2 == null).toList.traverse {
-        case (key, value) => InferSchemaAndNormaliseValue(value).map(key.toString -> _)
+        case (key, value) if key.toString.nonEmpty => InferSchemaAndNormaliseValue(value).map(key.toString -> _)
+        case _                                     => None
       }
       inferredValues.map(values => toStruct(ListMap.from(values)))
     }

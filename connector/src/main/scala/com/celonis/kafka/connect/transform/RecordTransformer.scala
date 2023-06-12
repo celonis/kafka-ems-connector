@@ -1,26 +1,20 @@
 package com.celonis.kafka.connect.transform
 
 import cats.effect.IO
+import cats.syntax.either._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.config.ObfuscationConfig
 import com.celonis.kafka.connect.ems.conversion.DataConverter
 import com.celonis.kafka.connect.ems.errors.FailedObfuscationException
+import com.celonis.kafka.connect.ems.model._
+import com.celonis.kafka.connect.ems.obfuscation.ObfuscationUtils._
 import com.celonis.kafka.connect.ems.storage.PrimaryKeysValidator
-import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue.ValueAndSchema
+import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadata
+import com.celonis.kafka.connect.transform.fields.FieldInserter
 import com.celonis.kafka.connect.transform.flatten.Flattener
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.avro.generic.GenericRecord
-import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
-import com.celonis.kafka.connect.ems.obfuscation.ObfuscationUtils._
-import cats.syntax.either._
-import com.celonis.kafka.connect.ems.model.Offset
-import com.celonis.kafka.connect.ems.model.Partition
-import com.celonis.kafka.connect.ems.model.RecordMetadata
-import com.celonis.kafka.connect.ems.model.Topic
-import com.celonis.kafka.connect.ems.model.TopicPartition
-import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadata
-import com.celonis.kafka.connect.transform.fields.FieldInserter
 
 /** The main business transformation.
   *
@@ -34,7 +28,7 @@ final class RecordTransformer(
   inserter:     FieldInserter,
 ) extends StrictLogging {
   def transform(sinkRecord: SinkRecord): IO[GenericRecord] = {
-    val recordValue = maybeFlattenValue(sinkRecord)
+    val recordValue = flattener.flatten(sinkRecord.value(), Option(sinkRecord.valueSchema()))
 
     for {
       transformedValue <- IO(
@@ -54,16 +48,6 @@ final class RecordTransformer(
       )
       _ <- IO.fromEither(pksValidator.validate(value, metadata))
     } yield value
-  }
-
-  private def maybeFlattenValue(record: SinkRecord): Any = {
-    val value = record.value()
-    val valueAndSchema = Option(record.valueSchema()) match {
-      case Some(valueSchema) => ValueAndSchema(value, valueSchema)
-      case None              => InferSchemaAndNormaliseValue(value).getOrElse(ValueAndSchema(value, Schema.BYTES_SCHEMA))
-    }
-
-    flattener.flatten(valueAndSchema.normalisedValue, valueAndSchema.schema)
   }
 }
 
