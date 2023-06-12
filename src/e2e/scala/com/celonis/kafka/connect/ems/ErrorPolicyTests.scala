@@ -7,13 +7,15 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration.TOPICS_KEY
 import com.celonis.kafka.connect.ems.testcontainers.scalatest.KafkaConnectContainerPerSuite
-import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.connect.{withConnectionCut, withConnector}
+import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.connect.withConnectionCut
+import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.connect.withConnector
 import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.mockserver.withMockResponse
 import org.mockserver.verify.VerificationTimes
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import org.testcontainers.containers.output.OutputFrame.OutputType
-import org.testcontainers.containers.output.{OutputFrame, WaitingConsumer}
+import org.testcontainers.containers.output.OutputFrame
+import org.testcontainers.containers.output.WaitingConsumer
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.DurationInt

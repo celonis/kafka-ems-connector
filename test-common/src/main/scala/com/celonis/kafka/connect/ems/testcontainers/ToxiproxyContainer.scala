@@ -17,6 +17,8 @@
 package com.celonis.kafka.connect.ems.testcontainers
 
 import com.celonis.kafka.connect.ems.testcontainers.ToxiproxyContainer.defaultTag
+import eu.rekawek.toxiproxy.Proxy
+import eu.rekawek.toxiproxy.ToxiproxyClient
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.{ ToxiproxyContainer => JavaToxiproxyContainer }
 import org.testcontainers.utility.DockerImageName
@@ -30,15 +32,20 @@ class ToxiproxyContainer(
 
   override val container: JavaToxiproxyContainer =
     new JavaToxiproxyContainer(dockerImage.withTag(dockerTag))
+
   container.withNetworkAliases(networkAlias)
 
-  def proxy(targetContainer: GenericContainer[_], port: Int): JavaToxiproxyContainer.ContainerProxy =
-    container.getProxy(targetContainer, port)
+  def proxy(targetContainer: GenericContainer[_], fromPort: Int, toPort: Int): Proxy = {
+    val upstream        = targetContainer.getNetworkAliases.get(0) + ":" + fromPort
+    val listen          = "0.0.0.0:" + toPort
+    val toxiproxyClient = new ToxiproxyClient(container.getHost, container.getControlPort)
+    toxiproxyClient.createProxy(upstream, listen, upstream)
+  }
 }
 
 object ToxiproxyContainer {
-  private val dockerImage = DockerImageName.parse("shopify/toxiproxy")
-  private val defaultTag  = "2.1.0"
+  private val dockerImage = DockerImageName.parse("ghcr.io/shopify/toxiproxy")
+  private val defaultTag  = "2.5.0"
 
   def apply(
     networkAlias: String,
