@@ -16,6 +16,7 @@
 
 package com.celonis.kafka.connect.ems
 import com.github.tomakehurst.wiremock.http.multipart.PartParser
+import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericRecord
 import org.apache.commons.fileupload.FileUpload
 import org.apache.commons.fileupload.disk.DiskFileItemFactory
@@ -49,6 +50,6 @@ package object parquet {
 
   def parquetReader(file: File): ParquetReader[GenericRecord] = {
     val parquetLocalInputFile = new ParquetLocalInputFile(file)
-    AvroParquetReader.builder[GenericRecord](parquetLocalInputFile).build
+    AvroParquetReader.builder[GenericRecord](parquetLocalInputFile).withDataModel(GenericData.get()).build
   }
 }

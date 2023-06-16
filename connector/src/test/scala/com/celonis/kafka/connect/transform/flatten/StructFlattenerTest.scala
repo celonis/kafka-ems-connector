@@ -17,6 +17,7 @@
 package com.celonis.kafka.connect.transform.flatten
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.apache.kafka.connect.data.Decimal
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
@@ -29,10 +30,12 @@ import scala.jdk.CollectionConverters._
 class StructFlattenerTest extends AnyFunSuite {
 
   test("do nothing on a primitive") {
+
     val primitives = Map[Any, Schema](
-      123   -> SchemaBuilder.int16().build(),
-      "abc" -> SchemaBuilder.string().build(),
-      456L  -> SchemaBuilder.int64().build(),
+      123         -> SchemaBuilder.int16().build(),
+      "abc"       -> SchemaBuilder.string().build(),
+      456L        -> SchemaBuilder.int64().build(),
+      aBigDecimal -> decimalConnectSchema.build(),
     )
 
     primitives.foreach {
@@ -46,9 +49,11 @@ class StructFlattenerTest extends AnyFunSuite {
 
     val nestedSchema = SchemaBuilder.struct().name("AStruct")
       .field("a_bool", SchemaBuilder.bool().build())
+      .field("a_decimal", decimalConnectSchema.build())
       .build()
     val nested = new Struct(nestedSchema)
     nested.put("a_bool", true)
+    nested.put("a_decimal", aBigDecimal)
 
     val schema = SchemaBuilder.struct()
       .field("a_string", SchemaBuilder.string().schema())
@@ -279,6 +284,9 @@ class StructFlattenerTest extends AnyFunSuite {
 
     assertResult(expected)(flatten(nestedMap, schema))
   }
+
+  lazy val aBigDecimal:          java.math.BigDecimal = new java.math.BigDecimal(java.math.BigInteger.valueOf(123), 5)
+  lazy val decimalConnectSchema: SchemaBuilder        = Decimal.builder(5).parameter("connect.decimal.precision", "24")
 
   private def flatten(value: Any, schema: Schema, discardCollections: Boolean = false): Any =
     StructFlattener.flatten(value, new SchemaFlattener(discardCollections).flatten(schema))

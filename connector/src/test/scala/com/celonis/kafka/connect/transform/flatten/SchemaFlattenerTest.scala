@@ -25,7 +25,7 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
   test("flattens a schema making all primitives optional") {
 
     primitiveFixtures.foreach {
-      case (_, primitiveSchema) =>
+      primitiveSchema =>
         val schema = SchemaBuilder.struct()
           .field("a_primitive", primitiveSchema)
           .field(
@@ -122,16 +122,20 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
     assertResult(expected)(flatten(schema))
   }
 
-  lazy val primitiveFixtures = List(
-    1                    -> SchemaBuilder.int8(),
-    2                    -> SchemaBuilder.int16(),
-    3                    -> SchemaBuilder.int32(),
-    4                    -> SchemaBuilder.int64(),
-    5.0                  -> SchemaBuilder.float32(),
-    6.0                  -> SchemaBuilder.float64(),
-    false                -> SchemaBuilder.bool(),
-    "hello"              -> SchemaBuilder.string(),
-    Array(0x1, 0x0, 0x1) -> SchemaBuilder.bytes(),
+  lazy val primitiveFixtures = List[SchemaBuilder](
+    SchemaBuilder.int8(),
+    SchemaBuilder.int16(),
+    SchemaBuilder.int32(),
+    SchemaBuilder.int64(),
+    SchemaBuilder.float32(),
+    SchemaBuilder.float64(),
+    SchemaBuilder.bool(),
+    SchemaBuilder.string(),
+    SchemaBuilder.bytes(),
+    org.apache.kafka.connect.data.Date.builder(),
+    org.apache.kafka.connect.data.Time.builder(),
+    org.apache.kafka.connect.data.Timestamp.builder(),
+    org.apache.kafka.connect.data.Decimal.builder(24),
   )
 
   lazy val collectionFixtures = List(

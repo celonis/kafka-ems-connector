@@ -18,6 +18,7 @@ package com.celonis.kafka.connect.ems.storage
 
 import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericData.Record
+import org.apache.avro.LogicalTypes
 import org.apache.avro.Schema
 import org.apache.avro.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
@@ -42,6 +43,18 @@ trait SampleData {
     .name("int_field").`type`(SchemaBuilder.builder().intType()).noDefault()
     .name("long_field").`type`(SchemaBuilder.builder().longType()).noDefault()
     .name("boolean_field").`type`(SchemaBuilder.builder().booleanType()).noDefault()
+    .endRecord()
+
+  val decimalAvroSchema = SchemaBuilder.builder().bytesType()
+  LogicalTypes.decimal(24, 5).addToSchema(decimalAvroSchema)
+
+  val dateAvroSchema = SchemaBuilder.builder().intType()
+  LogicalTypes.date().addToSchema(dateAvroSchema)
+
+  val schemaWithLogicalTypes: Schema = SchemaBuilder.record("record")
+    .fields()
+    .name("date").`type`(dateAvroSchema).noDefault()
+    .name("decimal").`type`(decimalAvroSchema).noDefault()
     .endRecord()
 
   def buildSimpleStruct(): GenericData.Record = {
