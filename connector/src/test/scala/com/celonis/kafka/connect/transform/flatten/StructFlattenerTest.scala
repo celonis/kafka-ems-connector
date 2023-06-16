@@ -68,6 +68,7 @@ class StructFlattenerTest extends AnyFunSuite {
       .struct()
       .field("a_string", SchemaBuilder.string().optional().schema())
       .field("x_a_bool", SchemaBuilder.bool().optional().schema())
+      .field("x_a_decimal", decimalConnectSchema.optional().schema())
       .build()
 
     val result = flatten(struct, schema).asInstanceOf[Struct]
@@ -75,6 +76,7 @@ class StructFlattenerTest extends AnyFunSuite {
     assertResult(flatSchema)(result.schema())
     assertResult("hello")(result.get("a_string"))
     assertResult(true)(result.get("x_a_bool"))
+    assertResult(aBigDecimal)(result.get("x_a_decimal"))
 
     assertThrows[DataException](result.get("x"))
   }

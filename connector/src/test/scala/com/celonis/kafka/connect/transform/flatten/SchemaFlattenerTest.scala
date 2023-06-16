@@ -27,11 +27,12 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
     primitiveFixtures.foreach {
       primitiveSchema =>
         val schema = SchemaBuilder.struct()
-          .field("a_primitive", primitiveSchema)
+          .field("a_primitive", primitiveSchema.build())
           .field(
             "nested",
-            SchemaBuilder.struct().field("deeper",
-                                         SchemaBuilder.struct().field("a_bool", Schema.BOOLEAN_SCHEMA).schema(),
+            SchemaBuilder.struct().field(
+              "deeper",
+              SchemaBuilder.struct().field("a_bool", Schema.BOOLEAN_SCHEMA).build(),
             ).build(),
           )
           .build()
@@ -42,7 +43,7 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
           .field("nested_deeper_a_bool", SchemaBuilder.bool().optional().build())
           .build()
 
-        withClue(s"expected schema fields ${expected.fields()} for primitive $primitiveSchema") {
+        withClue(s"expected schema fields ${expected.fields()} for primitive ${primitiveSchema.build()}") {
           assertResult(expected)(flatten(schema))
         }
     }
