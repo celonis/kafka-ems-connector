@@ -4,6 +4,7 @@
 package com.celonis.kafka.connect.ems
 
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
+import com.celonis.kafka.connect.ems.parquet.ParquetLocalInputFile
 import com.celonis.kafka.connect.ems.parquet.extractParquetFromRequest
 import com.celonis.kafka.connect.ems.parquet.parquetReader
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration
@@ -16,10 +17,14 @@ import org.apache.avro.LogicalTypes
 import org.apache.avro.SchemaBuilder
 import org.apache.avro.generic.GenericData
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.parquet.hadoop.ParquetFileReader
 import org.mockserver.verify.VerificationTimes
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
@@ -95,21 +100,42 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with M
         .withConfig(FLATTENER_ENABLE_KEY, true)
 
       withConnector(emsConnector) {
-        val randomInt = scala.util.Random.nextInt()
-
         val decimalSchema = SchemaBuilder.builder().bytesType()
         LogicalTypes.decimal(9, 5).addToSchema(decimalSchema)
 
-        // TODO add more logical types
+        val dateSchema = SchemaBuilder.builder().intType()
+        LogicalTypes.date().addToSchema(dateSchema)
+
+        val timeMillisSchema = SchemaBuilder.builder().intType()
+        LogicalTypes.timeMillis().addToSchema(timeMillisSchema)
+
+        val timestampMillisSchema = SchemaBuilder.builder().longType()
+        LogicalTypes.timestampMillis().addToSchema(timestampMillisSchema)
+
+        val decimalField         = "decimal"
+        val dateField            = "date"
+        val timeMillisField      = "timeMillis"
+        val timestampMillisField = "timestampMillis"
+
         val valueSchema = SchemaBuilder.record("record").fields()
-          .name("decimal").`type`(decimalSchema).noDefault()
+          .name(decimalField).`type`(decimalSchema).noDefault()
+          .name(dateField).`type`(dateSchema).noDefault()
+          .name(timeMillisField).`type`(timeMillisSchema).noDefault()
+          .name(timestampMillisField).`type`(timestampMillisSchema).noDefault()
           .endRecord()
 
         AvroData.addLogicalTypeConversion(GenericData.get())
 
-        val bigDecimal  = new java.math.BigDecimal(java.math.BigInteger.valueOf(123456789), 5)
+        val bigDecimal = new java.math.BigDecimal(java.math.BigInteger.valueOf(123456789), 5)
+        val date       = LocalDate.now()
+        val time       = LocalTime.ofNanoOfDay(1_000_000 * 123) // we just want millis precision
+        val timestamp  = Instant.ofEpochMilli(1686990713123L)   // we just want millis precision
+
         val writeRecord = new GenericData.Record(valueSchema)
-        writeRecord.put("decimal", bigDecimal)
+        writeRecord.put(decimalField, bigDecimal)
+        writeRecord.put(dateField, date)
+        writeRecord.put(timeMillisField, time)
+        writeRecord.put(timestampMillisField, timestamp)
 
         withStringAvroProducer(_.send(new ProducerRecord(sourceTopic, writeRecord)))
 
@@ -121,10 +147,28 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with M
 
         val httpRequests = mockServerClient.retrieveRecordedRequests(emsRequestForTable(emsTable))
         val parquetFile  = extractParquetFromRequest(httpRequests.head)
-        val reader       = parquetReader(parquetFile)
-        val record       = reader.read()
+        val fileReader   = ParquetFileReader.open(new ParquetLocalInputFile(parquetFile))
+        val schema       = fileReader.getFooter.getFileMetaData.getSchema
+        fileReader.close()
 
-        record.get("decimal") should be(bigDecimal)
+        val reader = parquetReader(parquetFile)
+        val record = reader.read()
+
+        val decimalType = schema.getType(0)
+        decimalType.toString shouldBe "optional binary decimal (DECIMAL(9,5))"
+        record.get(decimalField) should be(bigDecimal)
+
+        val dateType = schema.getType(1)
+        dateType.toString shouldBe "optional int32 date (DATE)"
+        record.get(dateField) should be(date)
+
+        val timeType = schema.getType(2)
+        timeType.toString shouldBe "optional int32 timeMillis (TIME(MILLIS,true))"
+        record.get(timeMillisField) should be(time)
+
+        val timestampType = schema.getType(3)
+        timestampType.toString shouldBe "optional int64 timestampMillis (TIMESTAMP(MILLIS,true))"
+        record.get(timestampMillisField) should be(timestamp)
       }
     }
   }
