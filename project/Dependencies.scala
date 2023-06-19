@@ -208,7 +208,7 @@ object Dependencies {
   val httpClient               = "org.apache.httpcomponents" % "httpclient"             % Versions.httpClientVersion
   val json4s                   = "org.json4s"               %% "json4s-native"          % Versions.json4sVersion
   val kafkaClients             = "org.apache.kafka"          % "kafka-clients"          % Versions.kafkaVersion
-  val connectApi                 = "org.apache.kafka"          % "connect-api"            % Versions.kafkaVersion
+  val connectApi               = "org.apache.kafka"          % "connect-api"            % Versions.kafkaVersion
 
   lazy val nettyCodecHttp:    ModuleID = "io.netty" % "netty-codec-http"    % nettyVersion
   lazy val nettyCodecSocks:   ModuleID = "io.netty" % "netty-codec-socks"   % nettyVersion
