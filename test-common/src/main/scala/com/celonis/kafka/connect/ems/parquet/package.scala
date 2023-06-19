@@ -50,6 +50,9 @@ package object parquet {
 
   def parquetReader(file: File): ParquetReader[GenericRecord] = {
     val parquetLocalInputFile = new ParquetLocalInputFile(file)
-    AvroParquetReader.builder[GenericRecord](parquetLocalInputFile).withDataModel(GenericData.get()).build
+    AvroParquetReader
+      .builder[GenericRecord](parquetLocalInputFile)
+      .withDataModel(GenericData.get()) // This activates logical type conversions
+      .build
   }
 }

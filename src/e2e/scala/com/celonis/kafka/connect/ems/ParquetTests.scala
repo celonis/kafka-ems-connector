@@ -25,6 +25,9 @@ import org.scalatest.matchers.should.Matchers
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.temporal.ChronoField
+import java.time.temporal.TemporalField
+import java.util
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
@@ -100,6 +103,8 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with M
         .withConfig(FLATTENER_ENABLE_KEY, true)
 
       withConnector(emsConnector) {
+
+        // AVRO types
         val decimalSchema = SchemaBuilder.builder().bytesType()
         LogicalTypes.decimal(9, 5).addToSchema(decimalSchema)
 
@@ -109,33 +114,58 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with M
         val timeMillisSchema = SchemaBuilder.builder().intType()
         LogicalTypes.timeMillis().addToSchema(timeMillisSchema)
 
+        val timeMicrosSchema = SchemaBuilder.builder().longType()
+        LogicalTypes.timeMicros().addToSchema(timeMicrosSchema)
+
         val timestampMillisSchema = SchemaBuilder.builder().longType()
         LogicalTypes.timestampMillis().addToSchema(timestampMillisSchema)
 
+        val timestampMicrosSchema = SchemaBuilder.builder().longType()
+        LogicalTypes.timestampMicros().addToSchema(timestampMicrosSchema)
+
+        val uuidSchema = SchemaBuilder.builder().stringType()
+        LogicalTypes.uuid().addToSchema(uuidSchema)
+
+        // Field names
         val decimalField         = "decimal"
         val dateField            = "date"
         val timeMillisField      = "timeMillis"
         val timestampMillisField = "timestampMillis"
+        val timeMicrosField      = "timeMicros"
+        val timestampMicrosField = "timestampMicros"
+        val uuidField            = "uuid"
 
+        // AVRO schema
         val valueSchema = SchemaBuilder.record("record").fields()
           .name(decimalField).`type`(decimalSchema).noDefault()
           .name(dateField).`type`(dateSchema).noDefault()
           .name(timeMillisField).`type`(timeMillisSchema).noDefault()
           .name(timestampMillisField).`type`(timestampMillisSchema).noDefault()
+          .name(timeMicrosField).`type`(timeMicrosSchema).noDefault()
+          .name(timestampMicrosField).`type`(timestampMicrosSchema).noDefault()
+          .name(uuidField).`type`(uuidSchema).noDefault()
           .endRecord()
 
+        // Activate logical type conversions to be able to use higher-level types below
         AvroData.addLogicalTypeConversion(GenericData.get())
 
-        val bigDecimal = new java.math.BigDecimal(java.math.BigInteger.valueOf(123456789), 5)
-        val date       = LocalDate.now()
-        val time       = LocalTime.ofNanoOfDay(1_000_000 * 123) // we just want millis precision
-        val timestamp  = Instant.ofEpochMilli(1686990713123L)   // we just want millis precision
+        // Build AVRO record
+        val bigDecimal      = new java.math.BigDecimal(java.math.BigInteger.valueOf(123456789), 5)
+        val date            = LocalDate.now()
+        val timeMillis      = LocalTime.ofNanoOfDay(1_000_000 * 123)               // we just want millis precision
+        val timestampMillis = Instant.ofEpochMilli(1686990713123L)                 // we just want millis precision
+        val timeMicros      = LocalTime.ofNanoOfDay(1_000_000 * 123 + 1000)        // Micros precision
+        val timestampMicros = Instant.ofEpochMilli(1686990713123L).plusNanos(1000) // Micros precision
+        val uuid            = util.UUID.randomUUID()
 
         val writeRecord = new GenericData.Record(valueSchema)
         writeRecord.put(decimalField, bigDecimal)
         writeRecord.put(dateField, date)
-        writeRecord.put(timeMillisField, time)
-        writeRecord.put(timestampMillisField, timestamp)
+        writeRecord.put(timeMillisField, timeMillis)
+        writeRecord.put(timestampMillisField, timestampMillis)
+        writeRecord.put(timeMicrosField, timeMicros)
+        writeRecord.put(timestampMicrosField, timestampMicros)
+        writeRecord.put(uuidField, uuid)
 
         withStringAvroProducer(_.send(new ProducerRecord(sourceTopic, writeRecord)))
 
@@ -156,19 +186,34 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with M
 
         val decimalType = schema.getType(0)
         decimalType.toString shouldBe "optional binary decimal (DECIMAL(9,5))"
-        record.get(decimalField) should be(bigDecimal)
+        record.get(decimalField) shouldBe bigDecimal
 
         val dateType = schema.getType(1)
         dateType.toString shouldBe "optional int32 date (DATE)"
-        record.get(dateField) should be(date)
+        record.get(dateField) shouldBe date
 
-        val timeType = schema.getType(2)
-        timeType.toString shouldBe "optional int32 timeMillis (TIME(MILLIS,true))"
-        record.get(timeMillisField) should be(time)
+        val timeMillisType = schema.getType(2)
+        timeMillisType.toString shouldBe "optional int32 timeMillis (TIME(MILLIS,true))"
+        record.get(timeMillisField) shouldBe timeMillis
 
-        val timestampType = schema.getType(3)
-        timestampType.toString shouldBe "optional int64 timestampMillis (TIMESTAMP(MILLIS,true))"
-        record.get(timestampMillisField) should be(timestamp)
+        val timestampMillisType = schema.getType(3)
+        timestampMillisType.toString shouldBe "optional int64 timestampMillis (TIMESTAMP(MILLIS,true))"
+        record.get(timestampMillisField) shouldBe timestampMillis
+
+        // ConnectData <-> Avro conversion does not support the following logical types, and only the underlying type is used
+        val timeMicrosType = schema.getType(4)
+        timeMicrosType.toString shouldBe "optional int64 timeMicros"
+        record.get(timeMicrosField) shouldBe timeMicros.get(ChronoField.MICRO_OF_SECOND)
+
+        val timestampMicrosType = schema.getType(5)
+        timestampMicrosType.toString shouldBe "optional int64 timestampMicros"
+        record.get(timestampMicrosField) shouldBe timestampMicros.get(
+          ChronoField.MICRO_OF_SECOND,
+        ) + timestampMicros.getEpochSecond * 1_000_000
+
+        val uuidType = schema.getType(6)
+        uuidType.toString shouldBe "optional binary uuid (STRING)"
+        record.get(uuidField).toString shouldBe uuid.toString
       }
     }
   }
