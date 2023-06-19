@@ -16,18 +16,19 @@
 
 package com.celonis.kafka.connect.transform.flatten
 
+import com.celonis.kafka.connect.ems.storage.SampleData
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 
 import scala.collection.mutable
 
-class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
+class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite with SampleData {
   test("flattens a schema making all primitives optional") {
-
-    primitiveFixtures.foreach {
-      primitiveSchema =>
+    assert(primitiveValuesAndSchemas.nonEmpty)
+    primitiveValuesAndSchemas.foreach {
+      primitiveValueAndSchema =>
         val schema = SchemaBuilder.struct()
-          .field("a_primitive", primitiveSchema.build())
+          .field("a_primitive", primitiveValueAndSchema.connectSchema)
           .field(
             "nested",
             SchemaBuilder.struct().field(
@@ -39,11 +40,13 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
 
         val expected: Schema = SchemaBuilder
           .struct()
-          .field("a_primitive", primitiveSchema.optional().build())
+          .field("a_primitive", primitiveValueAndSchema.connectSchemaBuilder.optional().build())
           .field("nested_deeper_a_bool", SchemaBuilder.bool().optional().build())
           .build()
 
-        withClue(s"expected schema fields ${expected.fields()} for primitive ${primitiveSchema.build()}") {
+        withClue(
+          s"expected schema fields ${expected.fields()} for primitive ${primitiveValueAndSchema.connectSchema}",
+        ) {
           assertResult(expected)(flatten(schema))
         }
     }
@@ -122,22 +125,6 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
 
     assertResult(expected)(flatten(schema))
   }
-
-  lazy val primitiveFixtures = List[SchemaBuilder](
-    SchemaBuilder.int8(),
-    SchemaBuilder.int16(),
-    SchemaBuilder.int32(),
-    SchemaBuilder.int64(),
-    SchemaBuilder.float32(),
-    SchemaBuilder.float64(),
-    SchemaBuilder.bool(),
-    SchemaBuilder.string(),
-    SchemaBuilder.bytes(),
-    org.apache.kafka.connect.data.Date.builder(),
-    org.apache.kafka.connect.data.Time.builder(),
-    org.apache.kafka.connect.data.Timestamp.builder(),
-    org.apache.kafka.connect.data.Decimal.builder(24),
-  )
 
   lazy val collectionFixtures = List(
     mutable.HashMap("hello" -> true) -> SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BOOLEAN_SCHEMA).build(),
