@@ -71,7 +71,9 @@ class StructFlattenerTest extends AnyFunSuite with SampleData {
     assertResult("hello")(result.get("a_string"))
 
     primitiveValuesAndSchemas.foreach { valueAndSchemas =>
-      assertResult(valueAndSchemas.avroValue)(result.get("x_" + valueAndSchemas.name))
+      withClue(valueAndSchemas) {
+        assertResult(valueAndSchemas.connectValue)(result.get("x_" + valueAndSchemas.name))
+      }
     }
     assertThrows[DataException](result.get("x"))
   }

@@ -4,10 +4,11 @@ import org.apache.avro.Schema
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 import org.apache.kafka.connect.data.{ SchemaBuilder => ConnectSchemaBuilder }
 
-case class ValueAndSchemas(
+final case class ValueAndSchemas(
   name:                 String,
   avroValue:            Any,
   connectValue:         Any,
+  parquetValue:         Any,
   avroSchema:           Schema,
   connectSchemaBuilder: ConnectSchemaBuilder,
   parquetSchema:        String,
