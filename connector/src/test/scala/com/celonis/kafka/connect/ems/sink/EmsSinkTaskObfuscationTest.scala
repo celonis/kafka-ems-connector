@@ -29,6 +29,7 @@ import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
 import com.celonis.kafka.connect.ems.storage.WorkingDirectory
+import com.celonis.kafka.connect.transform.PreConversionConfig
 import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadataFieldInserter
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
@@ -69,6 +70,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
         OrderFieldConfig(Some(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName)),
+        PreConversionConfig(convertDecimalsToFloat = false),
         None,
         embedKafkaMetadata    = false,
         useInMemoryFileSystem = false,

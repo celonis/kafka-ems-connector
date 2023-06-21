@@ -25,6 +25,7 @@ import com.celonis.kafka.connect.ems.errors.FailedObfuscationException
 import com.celonis.kafka.connect.ems.model._
 import com.celonis.kafka.connect.ems.obfuscation.ObfuscationUtils._
 import com.celonis.kafka.connect.ems.storage.PrimaryKeysValidator
+import com.celonis.kafka.connect.transform.conversion.ConnectConversion
 import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadata
 import com.celonis.kafka.connect.transform.fields.FieldInserter
 import com.celonis.kafka.connect.transform.flatten.Flattener
@@ -37,19 +38,21 @@ import org.apache.kafka.connect.sink.SinkRecord
   * This class integrates all the components used to transform a connect sink record into an AVRO generic record
   */
 final class RecordTransformer(
-  sinkName:     String,
-  flattener:    Flattener,
-  pksValidator: PrimaryKeysValidator,
-  obfuscation:  Option[ObfuscationConfig],
-  inserter:     FieldInserter,
+  sinkName:      String,
+  preConversion: ConnectConversion,
+  flattener:     Flattener,
+  pksValidator:  PrimaryKeysValidator,
+  obfuscation:   Option[ObfuscationConfig],
+  inserter:      FieldInserter,
 ) extends StrictLogging {
   def transform(sinkRecord: SinkRecord): IO[GenericRecord] = {
-    val recordValue = flattener.flatten(sinkRecord.value(), Option(sinkRecord.valueSchema()))
+    val (convertedValue, convertedSchema) = preConversion.convert(sinkRecord.value(), Option(sinkRecord.valueSchema()))
+    val flattenedValue                    = flattener.flatten(convertedValue, convertedSchema)
 
     for {
       transformedValue <- IO(
         inserter.insertFields(
-          recordValue,
+          flattenedValue,
           EmbeddedKafkaMetadata(sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset(), sinkRecord.timestamp()),
         ),
       )
@@ -69,13 +72,15 @@ final class RecordTransformer(
 
 object RecordTransformer {
   def fromConfig(
-    sinkName:        String,
-    flattenerConfig: Option[FlattenerConfig],
-    primaryKeys:     List[String],
-    obfuscation:     Option[ObfuscationConfig],
-    inserter:        FieldInserter): RecordTransformer =
+    sinkName:            String,
+    preConversionConfig: PreConversionConfig,
+    flattenerConfig:     Option[FlattenerConfig],
+    primaryKeys:         List[String],
+    obfuscation:         Option[ObfuscationConfig],
+    inserter:            FieldInserter): RecordTransformer =
     new RecordTransformer(
       sinkName,
+      ConnectConversion.fromConfig(preConversionConfig),
       Flattener.fromConfig(flattenerConfig),
       new PrimaryKeysValidator(primaryKeys),
       obfuscation,
@@ -85,6 +90,7 @@ object RecordTransformer {
   def fromConfig(config: EmsSinkConfig): RecordTransformer =
     fromConfig(
       config.sinkName,
+      config.preConversionConfig,
       config.flattenerConfig,
       config.primaryKeys,
       config.obfuscation,

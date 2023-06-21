@@ -167,6 +167,11 @@ object EmsSinkConfigConstants {
     "Encodes the record into a JSON blob broken down into N VARCHAR fields (e.g. `payload_chunk1`, `payload_chunk2`, `...`, `payload_chunkN`)."
   val FLATTENER_JSONBLOB_CHUNKS_DEFAULT = null
 
+  val DECIMAL_CONVERSION_KEY = s"${CONNECTOR_PREFIX}.convert.decimals.to.double"
+  val DECIMAL_CONVERSION_KEY_DOC =
+    s"Convert decimal values into doubles. Valid only for formats with schema (AVRO, Protobuf, JsonSchema)"
+  val DECIMAL_CONVERSION_KEY_DEFAULT = false
+
   val EMBED_KAFKA_EMBEDDED_METADATA_KEY = s"${CONNECTOR_PREFIX}.embed.kafka.metadata"
   val EMBED_KAFKA_EMBEDDED_METADATA_DOC =
     "Embed Kafka metadata such as partition, offset and timestamp as additional record fields."

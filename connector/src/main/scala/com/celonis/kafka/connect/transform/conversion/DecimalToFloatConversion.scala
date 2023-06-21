@@ -1,16 +1,13 @@
 package com.celonis.kafka.connect.transform.conversion
-import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue
-import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue.ValueAndSchema
 import org.apache.kafka.connect.data.Decimal
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 
-/**
-  * Convert Bytes with Logical Type Decimal to Doubles
+/** Convert Bytes with Logical Type Decimal to Doubles
   */
 object DecimalToFloatConversion extends ConnectConversion {
-  override def convertSchema(originalSchema: Schema): Schema = originalSchema.name() match {
-    case Decimal.LOGICAL_NAME =>
+  override def convertSchema(originalSchema: Schema): Schema = (originalSchema.`type`(), originalSchema.name()) match {
+    case (Schema.Type.BYTES, Decimal.LOGICAL_NAME) =>
       val newSchema = SchemaBuilder.float64()
       if (originalSchema.isOptional) newSchema.optional()
       newSchema.build()

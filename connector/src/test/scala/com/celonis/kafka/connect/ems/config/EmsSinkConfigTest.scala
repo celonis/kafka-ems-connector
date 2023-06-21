@@ -36,6 +36,7 @@ import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
 import com.celonis.kafka.connect.ems.storage.FileSystemOperations
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
+import com.celonis.kafka.connect.transform.PreConversionConfig
 import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadataFieldInserter
 import org.apache.kafka.connect.errors.ConnectException
 import org.scalatest.funsuite.AnyFunSuite
@@ -75,6 +76,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
         OrderFieldConfig(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName.some),
+        PreConversionConfig(convertDecimalsToFloat = false),
         None,
         embedKafkaMetadata    = true,
         useInMemoryFileSystem = false,
@@ -262,6 +264,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
         OrderFieldConfig(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName.some),
+        PreConversionConfig(convertDecimalsToFloat = false),
         None,
         embedKafkaMetadata    = false,
         useInMemoryFileSystem = false,
@@ -325,6 +328,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
         UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
         OrderFieldConfig(orderFieldName.some),
+        PreConversionConfig(convertDecimalsToFloat = false),
         None,
         embedKafkaMetadata    = true,
         useInMemoryFileSystem = false,
@@ -384,6 +388,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
       UnproxiedHttpClientConfig(defaultPoolingConfig),
       ExplodeConfig.None,
       OrderFieldConfig(orderFieldName.some),
+      PreConversionConfig(convertDecimalsToFloat = false),
       None,
       embedKafkaMetadata    = true,
       useInMemoryFileSystem = true,

@@ -23,6 +23,7 @@ import com.celonis.kafka.connect.ems.model.CommitPolicy
 import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
 import com.celonis.kafka.connect.ems.storage.FileSystemOperations
 import com.celonis.kafka.connect.transform.FlattenerConfig
+import com.celonis.kafka.connect.transform.PreConversionConfig
 import org.apache.commons.validator.routines.UrlValidator
 
 import java.io.File
@@ -46,6 +47,7 @@ case class EmsSinkConfig(
   http:                   HttpClientConfig,
   explode:                ExplodeConfig,
   orderField:             OrderFieldConfig,
+  preConversionConfig:    PreConversionConfig,
   flattenerConfig:        Option[FlattenerConfig],
   embedKafkaMetadata:     Boolean,
   useInMemoryFileSystem:  Boolean,
@@ -130,6 +132,7 @@ object EmsSinkConfig {
       explodeConfig          = ExplodeConfig.extractExplode(props)
       proxyConfig           <- HttpClientConfig.extractHttpClient(props)
       orderConfig            = OrderFieldConfig.from(props, primaryKeys)
+      preConversionConfig    = PreConversionConfig.extract(props)
       flattenerConfig       <- FlattenerConfig.extract(props, fallbackVarCharLength)
       includeEmbeddedMetadata = PropertiesHelper.getBoolean(props, EMBED_KAFKA_EMBEDDED_METADATA_KEY).getOrElse(
         EMBED_KAFKA_EMBEDDED_METADATA_DEFAULT,
@@ -151,6 +154,7 @@ object EmsSinkConfig {
       proxyConfig,
       explodeConfig,
       orderConfig,
+      preConversionConfig,
       flattenerConfig,
       includeEmbeddedMetadata,
       useInMemoryFs,
