@@ -84,9 +84,29 @@ trait SampleData {
   private val aUUID       = UUID.randomUUID()
   private val aBigDecimal = new java.math.BigDecimal(java.math.BigInteger.valueOf(123456789), 5)
 
+  private val aDecimalValueAndSchema = ValueAndSchemas(
+    name                 = "a_decimal",
+    avroValue            = aBigDecimal,
+    connectValue         = aBigDecimal,
+    parquetValue         = aBigDecimal,
+    avroSchema           = SchemaBuilder.builder().bytesType().withLogicalType(LogicalTypes.decimal(9, 5)),
+    connectSchemaBuilder = org.apache.kafka.connect.data.Decimal.builder(5),
+    parquetSchema        = "binary a_decimal (DECIMAL(9,5))",
+  )
+
+  private val aDecimalConvertedToDouble = ValueAndSchemas(
+    name                 = "a_decimal",
+    avroValue            = aBigDecimal,
+    connectValue         = aBigDecimal,
+    parquetValue         = aBigDecimal.doubleValue(),
+    avroSchema           = SchemaBuilder.builder().bytesType().withLogicalType(LogicalTypes.decimal(9, 5)),
+    connectSchemaBuilder = org.apache.kafka.connect.data.Decimal.builder(5),
+    parquetSchema        = "double a_decimal",
+  )
+
   /** Collect some expectations for values and schemas between AVRO, Connect and Parquet formats
     */
-  val primitiveValuesAndSchemas: List[ValueAndSchemas] = List(
+  val primitiveValuesAndSchemasWithoutDecimal: List[ValueAndSchemas] = List(
     ValueAndSchemas(
       name                 = "an_int8",
       avroValue            = Byte.MaxValue,
@@ -215,15 +235,6 @@ trait SampleData {
       parquetSchema        = "int64 a_timestampMicros",
     ),
     ValueAndSchemas(
-      name                 = "a_decimal",
-      avroValue            = aBigDecimal,
-      connectValue         = aBigDecimal,
-      parquetValue         = aBigDecimal,
-      avroSchema           = SchemaBuilder.builder().bytesType().withLogicalType(LogicalTypes.decimal(9, 5)),
-      connectSchemaBuilder = org.apache.kafka.connect.data.Decimal.builder(5),
-      parquetSchema        = "binary a_decimal (DECIMAL(9,5))",
-    ),
-    ValueAndSchemas(
       name                 = "a_uuid",
       avroValue            = aUUID,
       connectValue         = aUUID.toString,
@@ -233,6 +244,10 @@ trait SampleData {
       parquetSchema        = "binary a_uuid (STRING)",
     ),
   )
+
+  val primitiveValuesAndSchemas = primitiveValuesAndSchemasWithoutDecimal ++ List(aDecimalValueAndSchema)
+  val primitiveValuesAndSchemasWithDecimalConvertedToDouble =
+    primitiveValuesAndSchemasWithoutDecimal ++ List(aDecimalConvertedToDouble)
 
   implicit class AvroSchemaOps(schema: Schema) {
     def withLogicalType(logicalType: LogicalType): Schema = logicalType.addToSchema(schema)

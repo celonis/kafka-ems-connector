@@ -8,6 +8,7 @@ import com.celonis.kafka.connect.ems.parquet.ParquetLocalInputFile
 import com.celonis.kafka.connect.ems.parquet.extractParquetFromRequest
 import com.celonis.kafka.connect.ems.parquet.parquetReader
 import com.celonis.kafka.connect.ems.storage.SampleData
+import com.celonis.kafka.connect.ems.storage.ValueAndSchemas
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration.TOPICS_KEY
 import com.celonis.kafka.connect.ems.testcontainers.scalatest.KafkaConnectContainerPerSuite
@@ -80,26 +81,58 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with S
   }
 
   test("works AVRO logical types in the input avro topic") {
+
+    val emsConnectorConfig = new EmsConnectorConfiguration("ems")
+      .withConfig(ENDPOINT_KEY, proxyServerUrl)
+      .withConfig(AUTHORIZATION_KEY, "AppKey key")
+      .withConfig(COMMIT_RECORDS_KEY, 1)
+      .withConfig(COMMIT_SIZE_KEY, 1000000L)
+      .withConfig(COMMIT_INTERVAL_KEY, 3600000)
+      .withConfig(TMP_DIRECTORY_KEY, "/tmp/")
+      .withConfig(FLATTENER_ENABLE_KEY, true)
+
+    // We expect parquet types to be optional when flattening
+    val expectedValues =
+      primitiveValuesAndSchemas.map(value => value.copy(parquetSchema = "optional " + value.parquetSchema))
+
+    testParquetValuesAndSchemas(emsConnectorConfig, expectedValues)
+  }
+
+  test("perform Decimal to Double conversion when flag is enabled") {
+    // We expect parquet types to be required when not flattening
+    val expectedValues = primitiveValuesAndSchemasWithDecimalConvertedToDouble.map(value =>
+      value.copy(parquetSchema = "required " + value.parquetSchema),
+    )
+
+    val emsConnectorConfig = new EmsConnectorConfiguration("ems")
+      .withConfig(ENDPOINT_KEY, proxyServerUrl)
+      .withConfig(AUTHORIZATION_KEY, "AppKey key")
+      .withConfig(COMMIT_RECORDS_KEY, 1)
+      .withConfig(COMMIT_SIZE_KEY, 1000000L)
+      .withConfig(COMMIT_INTERVAL_KEY, 3600000)
+      .withConfig(TMP_DIRECTORY_KEY, "/tmp/")
+      .withConfig(DECIMAL_CONVERSION_KEY, true) // Activate decimal conversion
+
+    testParquetValuesAndSchemas(emsConnectorConfig, expectedValues)
+  }
+
+  /** For each ValueAndSchemas expectation, test that for the input AVRO schema/value, the output parquet schema/value
+    * is what is expected
+    */
+  private def testParquetValuesAndSchemas(
+    connectorConfig: EmsConnectorConfiguration,
+    expectations:    List[ValueAndSchemas]): Unit = {
     val sourceTopic = randomTopicName()
     val emsTable    = randomEmsTable()
-
     withMockResponse(emsRequestForTable(emsTable), mockEmsResponse) {
-
-      val emsConnector = new EmsConnectorConfiguration("ems")
-        .withConfig(TOPICS_KEY, sourceTopic)
-        .withConfig(ENDPOINT_KEY, proxyServerUrl)
-        .withConfig(AUTHORIZATION_KEY, "AppKey key")
+      connectorConfig
         .withConfig(TARGET_TABLE_KEY, emsTable)
-        .withConfig(COMMIT_RECORDS_KEY, 1)
-        .withConfig(COMMIT_SIZE_KEY, 1000000L)
-        .withConfig(COMMIT_INTERVAL_KEY, 3600000)
-        .withConfig(TMP_DIRECTORY_KEY, "/tmp/")
-        .withConfig(FLATTENER_ENABLE_KEY, true)
+        .withConfig(TOPICS_KEY, sourceTopic)
 
-      withConnector(emsConnector) {
+      withConnector(connectorConfig) {
 
         // AVRO schema
-        val valueSchema = primitiveValuesAndSchemas.foldLeft(SchemaBuilder.record("record").fields()) {
+        val valueSchema = expectations.foldLeft(SchemaBuilder.record("record").fields()) {
           case (builder, valueAndSchema) =>
             builder.name(valueAndSchema.name).`type`(valueAndSchema.avroSchema).noDefault()
         }.endRecord()
@@ -109,7 +142,7 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with S
 
         // AVRO value
         val writeRecord = new GenericData.Record(valueSchema)
-        primitiveValuesAndSchemas.foreach { valueAndSchema =>
+        expectations.foreach { valueAndSchema =>
           writeRecord.put(valueAndSchema.name, valueAndSchema.avroValue)
         }
 
@@ -117,7 +150,7 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with S
 
         eventually(timeout(60 seconds), interval(1 seconds)) {
           mockServerClient.verify(emsRequestForTable(emsTable), VerificationTimes.once())
-          val status = kafkaConnectClient.getConnectorStatus(emsConnector.name)
+          val status = kafkaConnectClient.getConnectorStatus(connectorConfig.name)
           status.tasks.head.state should be("RUNNING")
         }
 
@@ -130,10 +163,11 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with S
         val reader = parquetReader(parquetFile)
         val record = reader.read()
 
-        primitiveValuesAndSchemas.zipWithIndex.foreach { case (valueAndSchema, index) =>
+        expectations.zipWithIndex.foreach { case (valueAndSchema, index) =>
           withClue(valueAndSchema) {
             val parquetType = schema.getType(index)
-            parquetType.toString shouldBe valueAndSchema.optionalParquetSchema
+
+            parquetType.toString shouldBe valueAndSchema.parquetSchema
             record.get(valueAndSchema.name) shouldBe valueAndSchema.parquetValue
           }
 
@@ -141,5 +175,4 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with S
       }
     }
   }
-
 }
