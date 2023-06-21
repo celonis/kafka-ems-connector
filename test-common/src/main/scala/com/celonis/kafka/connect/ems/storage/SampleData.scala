@@ -203,7 +203,7 @@ trait SampleData {
       parquetValue         = 123_001L,
       avroSchema           = SchemaBuilder.builder().longType().withLogicalType(LogicalTypes.timeMicros()),
       connectSchemaBuilder = org.apache.kafka.connect.data.SchemaBuilder.int64(),
-      parquetSchema        = "int64 timeMicros",
+      parquetSchema        = "int64 a_timeMicros",
     ),
     ValueAndSchemas(
       name                 = "a_timestampMicros",
