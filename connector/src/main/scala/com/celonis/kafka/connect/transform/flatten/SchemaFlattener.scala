@@ -41,7 +41,13 @@ private final class SchemaFlattener(discardCollections: Boolean) {
     // TODO: top level array and maps should be returned as they are
     case Schema.Type.ARRAY | Schema.Type.MAP => List(Field(path, Schema.OPTIONAL_STRING_SCHEMA))
 
-    case primitive => List(Field(path, new SchemaBuilder(primitive).optional().build()))
+    case primitive =>
+      val newSchema =
+        new SchemaBuilder(primitive).optional()
+      if (schema.parameters() != null) newSchema.parameters(schema.parameters())
+      if (schema.name() != null) newSchema.name(schema.name())
+      if (schema.version() != null) newSchema.version(schema.version())
+      List(Field(path, newSchema.build()))
   }
 }
 

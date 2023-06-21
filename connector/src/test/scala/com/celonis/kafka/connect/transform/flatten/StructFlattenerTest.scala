@@ -16,61 +16,65 @@
 
 package com.celonis.kafka.connect.transform.flatten
 
+import com.celonis.kafka.connect.ems.storage.SampleData
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.apache.kafka.connect.data.Decimal
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.DataException
+import org.joda.time.LocalDate
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
-class StructFlattenerTest extends AnyFunSuite {
+class StructFlattenerTest extends AnyFunSuite with SampleData {
 
   test("do nothing on a primitive") {
-    val primitives = Map[Any, Schema](
-      123   -> SchemaBuilder.int16().build(),
-      "abc" -> SchemaBuilder.string().build(),
-      456L  -> SchemaBuilder.int64().build(),
-    )
 
-    primitives.foreach {
-      case (primitive, schema) =>
-        val result = flatten(primitive, schema)
-        assertResult(result)(primitive)
+    primitiveValuesAndSchemas.foreach {
+      primitiveValueAndSchema =>
+        val result = flatten(primitiveValueAndSchema.avroValue, primitiveValueAndSchema.connectSchema)
+        assertResult(result)(primitiveValueAndSchema.avroValue)
     }
   }
 
-  test("flattens a nested field") {
+  test("flattens nested fields") {
 
-    val nestedSchema = SchemaBuilder.struct().name("AStruct")
-      .field("a_bool", SchemaBuilder.bool().build())
-      .build()
-    val nested = new Struct(nestedSchema)
-    nested.put("a_bool", true)
+    val structOfPrimitivesSchema = primitiveValuesAndSchemas.foldLeft(SchemaBuilder.struct()) {
+      case (builder, valueAndSchemas) => builder.field(valueAndSchemas.name, valueAndSchemas.connectSchema)
+    }.build()
+
+    val structOfPrimitives = new Struct(structOfPrimitivesSchema)
+    primitiveValuesAndSchemas.foreach { valueAndSchemas =>
+      structOfPrimitives.put(valueAndSchemas.name, valueAndSchemas.connectValue)
+    }
 
     val schema = SchemaBuilder.struct()
       .field("a_string", SchemaBuilder.string().schema())
-      .field("x", nestedSchema)
+      .field("x", structOfPrimitivesSchema)
       .build()
 
     val struct = new Struct(schema)
     struct.put("a_string", "hello")
-    struct.put("x", nested)
+    struct.put("x", structOfPrimitives)
 
-    val flatSchema = SchemaBuilder
-      .struct()
-      .field("a_string", SchemaBuilder.string().optional().schema())
-      .field("x_a_bool", SchemaBuilder.bool().optional().schema())
-      .build()
+    val expectedFlatSchema = SchemaBuilder.struct().field("a_string", SchemaBuilder.string().optional().build())
+    primitiveValuesAndSchemas.foreach { valueAndSchemas =>
+      expectedFlatSchema.field("x_" + valueAndSchemas.name, valueAndSchemas.optionalConnectSchema)
+    }
 
     val result = flatten(struct, schema).asInstanceOf[Struct]
 
-    assertResult(flatSchema)(result.schema())
+    assertResult(expectedFlatSchema.build())(result.schema())
     assertResult("hello")(result.get("a_string"))
-    assertResult(true)(result.get("x_a_bool"))
 
+    primitiveValuesAndSchemas.foreach { valueAndSchemas =>
+      withClue(valueAndSchemas) {
+        assertResult(valueAndSchemas.connectValue)(result.get("x_" + valueAndSchemas.name))
+      }
+    }
     assertThrows[DataException](result.get("x"))
   }
 
@@ -279,6 +283,11 @@ class StructFlattenerTest extends AnyFunSuite {
 
     assertResult(expected)(flatten(nestedMap, schema))
   }
+
+  lazy val aDecimal:             java.math.BigDecimal = new java.math.BigDecimal(java.math.BigInteger.valueOf(123), 5)
+  lazy val decimalConnectSchema: SchemaBuilder        = Decimal.builder(5).parameter("connect.decimal.precision", "24")
+
+  lazy val aDate = LocalDate.now()
 
   private def flatten(value: Any, schema: Schema, discardCollections: Boolean = false): Any =
     StructFlattener.flatten(value, new SchemaFlattener(discardCollections).flatten(schema))

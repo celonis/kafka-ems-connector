@@ -16,33 +16,37 @@
 
 package com.celonis.kafka.connect.transform.flatten
 
+import com.celonis.kafka.connect.ems.storage.SampleData
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 
 import scala.collection.mutable
 
-class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
+class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite with SampleData {
   test("flattens a schema making all primitives optional") {
-
-    primitiveFixtures.foreach {
-      case (_, primitiveSchema) =>
+    assert(primitiveValuesAndSchemas.nonEmpty)
+    primitiveValuesAndSchemas.foreach {
+      primitiveValueAndSchema =>
         val schema = SchemaBuilder.struct()
-          .field("a_primitive", primitiveSchema)
+          .field("a_primitive", primitiveValueAndSchema.connectSchema)
           .field(
             "nested",
-            SchemaBuilder.struct().field("deeper",
-                                         SchemaBuilder.struct().field("a_bool", Schema.BOOLEAN_SCHEMA).schema(),
+            SchemaBuilder.struct().field(
+              "deeper",
+              SchemaBuilder.struct().field("a_bool", Schema.BOOLEAN_SCHEMA).build(),
             ).build(),
           )
           .build()
 
         val expected: Schema = SchemaBuilder
           .struct()
-          .field("a_primitive", primitiveSchema.optional().build())
+          .field("a_primitive", primitiveValueAndSchema.connectSchemaBuilder.optional().build())
           .field("nested_deeper_a_bool", SchemaBuilder.bool().optional().build())
           .build()
 
-        withClue(s"expected schema fields ${expected.fields()} for primitive $primitiveSchema") {
+        withClue(
+          s"expected schema fields ${expected.fields()} for primitive ${primitiveValueAndSchema.connectSchema}",
+        ) {
           assertResult(expected)(flatten(schema))
         }
     }
@@ -121,18 +125,6 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite {
 
     assertResult(expected)(flatten(schema))
   }
-
-  lazy val primitiveFixtures = List(
-    1                    -> SchemaBuilder.int8(),
-    2                    -> SchemaBuilder.int16(),
-    3                    -> SchemaBuilder.int32(),
-    4                    -> SchemaBuilder.int64(),
-    5.0                  -> SchemaBuilder.float32(),
-    6.0                  -> SchemaBuilder.float64(),
-    false                -> SchemaBuilder.bool(),
-    "hello"              -> SchemaBuilder.string(),
-    Array(0x1, 0x0, 0x1) -> SchemaBuilder.bytes(),
-  )
 
   lazy val collectionFixtures = List(
     mutable.HashMap("hello" -> true) -> SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BOOLEAN_SCHEMA).build(),
