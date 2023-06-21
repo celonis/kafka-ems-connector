@@ -197,7 +197,7 @@ trait SampleData {
       parquetSchema        = "int64 a_timestampMillis (TIMESTAMP(MILLIS,true))",
     ),
     ValueAndSchemas(
-      name                 = "timeMicros",
+      name                 = "a_timeMicros",
       avroValue            = LocalTime.ofNanoOfDay(123_001_000),
       connectValue         = 123_001L,
       parquetValue         = 123_001L,
