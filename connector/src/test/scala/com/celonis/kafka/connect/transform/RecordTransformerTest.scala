@@ -22,6 +22,7 @@ import com.celonis.kafka.connect.transform.fields.FieldInserter
 import org.apache.avro.generic.GenericData.Record
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.Decimal
+import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
@@ -78,13 +79,13 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     struct.put("an_optional_decimal", aBigDecimal)
     struct.put("another_optional_decimal", null)
 
-    val record        = sinkRecord(struct)
+    val record        = sinkRecord(struct, schema)
     val genericRecord = decimalConversionWithNoFlattening(record)
 
     genericRecord.get("nested").asInstanceOf[Record].get("nested_decimal") shouldBe aBigDecimal.doubleValue()
     genericRecord.get("nested").asInstanceOf[Record].get("nested_float32") shouldBe 1.45f
-    genericRecord.get("a_decimal") shouldBe aBigDecimal
-    genericRecord.get("an_optional_decimal") shouldBe aBigDecimal
+    genericRecord.get("a_decimal") shouldBe aBigDecimal.doubleValue()
+    genericRecord.get("an_optional_decimal") shouldBe aBigDecimal.doubleValue()
     genericRecord.get("another_optional_decimal") shouldBe null
   }
 
@@ -132,5 +133,6 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     transformer.transform(record).unsafeRunSync()
   }
 
-  private def sinkRecord(value: Any): SinkRecord = new SinkRecord("topic", 0, null, "aKey", null, value, 0)
+  private def sinkRecord(value: Any, schema: Schema = null): SinkRecord =
+    new SinkRecord("topic", 0, null, "aKey", schema, value, 0)
 }
