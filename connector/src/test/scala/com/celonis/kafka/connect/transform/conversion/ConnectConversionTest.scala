@@ -27,13 +27,15 @@ class ConnectConversionTest extends AnyFunSuite with Matchers {
     val conversion = ConnectConversion.fromConfig(PreConversionConfig(convertDecimalsToFloat = true))
     conversion shouldBe a[RecursiveConversion]
     conversion.convertSchema(Decimal.schema(5)) shouldBe Schema.FLOAT64_SCHEMA
-    conversion.convert(java.math.BigDecimal.ONE, Some(Decimal.schema(5))) shouldBe 1d
+    conversion.convert(java.math.BigDecimal.ONE, Some(Decimal.schema(5))) shouldBe (1d, Some(Schema.FLOAT64_SCHEMA))
   }
 
   test("Build noop conversion if convertDecimalsToFloat") {
     val conversion = ConnectConversion.fromConfig(PreConversionConfig(convertDecimalsToFloat = false))
     conversion shouldBe ConnectConversion.noOpConversion
     conversion.convertSchema(Decimal.schema(5)) shouldBe Decimal.schema(5)
-    conversion.convert(java.math.BigDecimal.ONE, Some(Decimal.schema(5))) shouldBe java.math.BigDecimal.ONE
+    conversion.convert(java.math.BigDecimal.ONE, Some(Decimal.schema(5))) shouldBe (java.math.BigDecimal.ONE, Some(
+      Decimal.schema(5),
+    ))
   }
 }
