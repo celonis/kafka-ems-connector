@@ -619,7 +619,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val uploader = mock[Uploader[IO]]
       val builder = new WriterBuilderImpl(dir,
                                           sink,
-                                          DefaultCommitPolicy(10000, 10000, 2),
+                                          new DefaultCommitPolicy(10000, 10000, 2),
                                           ParquetConfig(10, ParquetFileCleanupDelete),
                                           ExplodeConfig(None),
                                           fsOps,

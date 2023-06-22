@@ -20,6 +20,7 @@ import cats.effect.Ref
 import cats.effect.kernel.Async
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
+import com.celonis.kafka.connect.ems.model.CommitPolicy
 import com.celonis.kafka.connect.ems.model.Record
 import com.celonis.kafka.connect.ems.model.RecordMetadata
 import com.celonis.kafka.connect.ems.model.TopicPartition
@@ -40,7 +41,7 @@ import java.nio.file.Path
   * This class is not thread safe as it is not designed to be shared between concurrent sinks, since file handles cannot
   * be safely shared without considerable overhead.
   */
-class WriterManager[F[_]](
+final class WriterManager[F[_]](
   sinkName:      String,
   uploader:      Uploader[F],
   workingDir:    Path,
@@ -202,12 +203,13 @@ object WriterManager extends LazyLogging {
       sinkName,
       uploader,
       config.workingDir,
-      new WriterBuilderImpl(config.workingDir,
-                            sinkName,
-                            config.commitPolicy,
-                            config.parquet,
-                            config.explode,
-                            fileSystem,
+      new WriterBuilderImpl(
+        config.workingDir,
+        sinkName,
+        CommitPolicy.fromConfig(config.commitPolicy),
+        config.parquet,
+        config.explode,
+        fileSystem,
       ),
       writers,
       config.parquet.cleanup,

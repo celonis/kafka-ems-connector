@@ -26,7 +26,6 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
 import com.celonis.kafka.connect.ems.config._
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
-import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
 import com.celonis.kafka.connect.ems.storage.WorkingDirectory
 import com.celonis.kafka.connect.transform.PreConversionConfig
@@ -49,7 +48,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
 
   test("failed obfuscation raises an exception") {
     withDir { dir =>
-      val policy = DefaultCommitPolicy(1000000L, 10.seconds.toMillis, 1000)
+      val policy = CommitPolicyConfig(1000000L, 10.seconds.toMillis, 1000)
       val task   = new EmsSinkTask()
       val sinkConfig = EmsSinkConfig(
         "sink1",

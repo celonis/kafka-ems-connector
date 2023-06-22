@@ -16,6 +16,7 @@
 
 package com.celonis.kafka.connect.ems.model
 
+import com.celonis.kafka.connect.ems.config.CommitPolicyConfig
 import org.slf4j.Logger
 
 /** The [[CommitPolicy]] is responsible for determining when a file should be flushed (closed on disk, and moved to be
@@ -32,6 +33,11 @@ trait CommitPolicy {
     * Once a commit has taken place, a new file will be opened for the next record.
     */
   def shouldFlush(context: CommitContext): Boolean
+}
+
+object CommitPolicy {
+  def fromConfig(config: CommitPolicyConfig): CommitPolicy =
+    new DefaultCommitPolicy(fileSize = config.fileSize, interval = config.interval, records = config.records)
 }
 
 /** @param count
@@ -53,7 +59,7 @@ case class CommitContext(
   * @param interval
   *   in millis
   */
-case class DefaultCommitPolicy(fileSize: Long, interval: Long, records: Long) extends CommitPolicy {
+final class DefaultCommitPolicy(fileSize: Long, interval: Long, records: Long) extends CommitPolicy {
   val logger: Logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
   override def shouldFlush(context: CommitContext): Boolean = {

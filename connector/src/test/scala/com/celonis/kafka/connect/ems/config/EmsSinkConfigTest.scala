@@ -16,9 +16,7 @@
 
 package com.celonis.kafka.connect.ems.config
 
-import cats.data.NonEmptyList
 import cats.implicits.catsSyntaxOptionId
-import cats.syntax.either._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
   CLOSE_EVERY_CONNECTION_DEFAULT_VALUE => CLOSE_CONN_DEFAULT,
@@ -32,13 +30,10 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
-import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
 import com.celonis.kafka.connect.ems.storage.FileSystemOperations
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
-import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
 import com.celonis.kafka.connect.transform.PreConversionConfig
 import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadataFieldInserter
-import org.apache.kafka.connect.errors.ConnectException
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -54,94 +49,80 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
   private val defaultPoolingConfig: PoolingConfig =
     PoolingConfig(MAX_IDLE_DEFAULT, KEEPALIVE_DEFAULT, CLOSE_CONN_DEFAULT)
 
-  test(s"returns the configuration") {
-    val policy = DefaultCommitPolicy(1000000L, 10.seconds.toMillis, 1000)
-    val dir    = new File(UUID.randomUUID().toString)
-    dir.mkdir() shouldBe true
-    try {
-      val expected = EmsSinkConfig(
-        "sink1",
-        new URL("https://teamA.realmB.celonis.cloud/continuous-batch-processing/api/v1/abc-pool/items"),
-        "tableA",
-        Some("id222"),
-        AuthorizationHeader("AppKey 123"),
-        Retry,
-        policy,
-        RetryConfig(10, 1000),
-        dir.toPath,
-        ParquetConfig.Default,
-        List("a", "b"),
-        Some(512),
-        None,
-        UnproxiedHttpClientConfig(defaultPoolingConfig),
-        ExplodeConfig.None,
-        OrderFieldConfig(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName.some),
-        PreConversionConfig(convertDecimalsToFloat = false),
-        None,
-        embedKafkaMetadata    = true,
-        useInMemoryFileSystem = false,
-      )
+  private val anEmsSinkConfig = EmsSinkConfig(
+    sinkName               = "sink1",
+    url                    = new URL("https://teamA.realmB.celonis.cloud/continuous-batch-processing/api/v1/abc-pool/items"),
+    target                 = "tableA",
+    connectionId           = Some("id222"),
+    authorization          = AuthorizationHeader("AppKey 123"),
+    errorPolicy            = Retry,
+    commitPolicy           = CommitPolicyConfig(1000000L, 10.seconds.toMillis, 1000),
+    retries                = RetryConfig(10, 1000),
+    workingDir             = new File(UUID.randomUUID().toString).toPath,
+    parquet                = ParquetConfig.Default,
+    primaryKeys            = List("a", "b"),
+    fallbackVarCharLengths = Some(512),
+    obfuscation            = None,
+    http                   = UnproxiedHttpClientConfig(defaultPoolingConfig),
+    explode                = ExplodeConfig.None,
+    orderField             = OrderFieldConfig(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName.some),
+    preConversionConfig    = PreConversionConfig(convertDecimalsToFloat = false),
+    flattenerConfig        = None,
+    embedKafkaMetadata     = true,
+    useInMemoryFileSystem  = false,
+  )
 
-      val inputMap: Map[String, _] = Map(
-        ENDPOINT_KEY                -> expected.url.toString,
-        TARGET_TABLE_KEY            -> expected.target,
-        AUTHORIZATION_KEY           -> expected.authorization.header,
-        ERROR_POLICY_KEY            -> expected.errorPolicy.entryName,
-        COMMIT_SIZE_KEY             -> policy.fileSize,
-        COMMIT_INTERVAL_KEY         -> policy.interval,
-        COMMIT_RECORDS_KEY          -> policy.records,
-        ERROR_RETRY_INTERVAL        -> expected.retries.interval,
-        NBR_OF_RETRIES_KEY          -> expected.retries.retries,
-        TMP_DIRECTORY_KEY           -> dir.toString,
-        PRIMARY_KEYS_KEY            -> expected.primaryKeys.mkString(","),
-        CONNECTION_ID_KEY           -> expected.connectionId.get,
-        FALLBACK_VARCHAR_LENGTH_KEY -> expected.fallbackVarCharLengths.orNull,
-      )
-      EmsSinkConfig.from(
-        expected.sinkName,
-        inputMap,
-      ) shouldBe Right(expected)
-
-      val connectInputMap = {
-        EmsSinkConfigDef.config.parse(inputMap.view.mapValues(_.toString).toMap.asJava).asScala.toMap
-      }: @scala.annotation.nowarn("msg=Unused import")
-
-      EmsSinkConfig.from(
-        expected.sinkName,
-        connectInputMap,
-      ) shouldBe Right(expected)
-    } finally {
-      dir.delete()
-      ()
-    }
+  test(s"parse the configuration from properties") {
+    parseProperties(propertiesFromConfig(anEmsSinkConfig)) shouldBe Right(anEmsSinkConfig)
   }
 
-  test(s"returns an error if $AUTHORIZATION_KEY is missing") {
-    testMissingConfig(AUTHORIZATION_KEY, AUTHORIZATION_DOC)
+  test(s"parse the configuration from properties without defaults") {
+    parseProperties(propertiesWithoutDefaults(propertiesFromConfig(anEmsSinkConfig))) shouldBe Right(anEmsSinkConfig)
+  }
+
+  test(s"parse PreConversionConfig") {
+    val expectedWithDefault =
+      anEmsSinkConfig.copy(preConversionConfig = PreConversionConfig(convertDecimalsToFloat = false))
+    val properties = propertiesFromConfig(expectedWithDefault).removed(DECIMAL_CONVERSION_KEY)
+    parseProperties(properties) shouldBe Right(expectedWithDefault)
+
+    val expectedWithConversion =
+      anEmsSinkConfig.copy(preConversionConfig = PreConversionConfig(convertDecimalsToFloat = true))
+    val propertiesWithConversion = propertiesFromConfig(expectedWithConversion)
+    parseProperties(propertiesWithConversion) shouldBe Right(expectedWithConversion)
+
+    val expectedWithoutConversion =
+      anEmsSinkConfig.copy(preConversionConfig = PreConversionConfig(convertDecimalsToFloat = false))
+    val propertiesWithoutConversion = propertiesFromConfig(expectedWithoutConversion)
+    parseProperties(propertiesWithoutConversion) shouldBe Right(expectedWithoutConversion)
+  }
+
+  test(s"returns an error if AUTHORIZATION_KEY is missing") {
+    testMissingRequiredConfig(AUTHORIZATION_KEY)
   }
 
   test(s"returns an error if $TMP_DIRECTORY_KEY is missing") {
-    testMissingConfig(TMP_DIRECTORY_KEY, TMP_DIRECTORY_DOC)
+    testMissingRequiredConfig(TMP_DIRECTORY_KEY)
   }
 
   test(s"returns an error if $ENDPOINT_KEY is missing") {
-    testMissingConfig(ENDPOINT_KEY, ENDPOINT_DOC)
+    testMissingRequiredConfig(ENDPOINT_KEY)
   }
 
   test(s"returns an error if $TARGET_TABLE_KEY is missing") {
-    testMissingConfig(TARGET_TABLE_KEY, TARGET_TABLE_DOC)
+    testMissingRequiredConfig(TARGET_TABLE_KEY)
   }
 
   test(s"returns an error if $COMMIT_SIZE_KEY is missing") {
-    testMissingConfig(COMMIT_SIZE_KEY, COMMIT_SIZE_DOC)
+    testMissingRequiredConfig(COMMIT_SIZE_KEY)
   }
 
   test(s"returns an error if $COMMIT_RECORDS_KEY is missing") {
-    testMissingConfig(COMMIT_RECORDS_KEY, COMMIT_RECORDS_DOC)
+    testMissingRequiredConfig(COMMIT_RECORDS_KEY)
   }
 
   test(s"returns an error if $COMMIT_INTERVAL_KEY is missing") {
-    testMissingConfig(COMMIT_INTERVAL_KEY, COMMIT_INTERVAL_DOC)
+    testMissingRequiredConfig(COMMIT_INTERVAL_KEY)
   }
 
   test(s"returns THROW if $ERROR_POLICY_KEY is missing") {
@@ -201,229 +182,96 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
   test(
     s"returns an default * obfuscation when $OBFUSCATION_TYPE_KEY is missing and $OBFUSCATED_FIELDS_KEY is present",
   ) {
-    withMissingConfig(OBFUSCATION_TYPE_KEY) {
-      case Right(value) =>
-        value.obfuscation.isDefined shouldBe true
-        value.obfuscation.get.obfuscation shouldBe FixObfuscation(5, '*')
+    val props = propertiesFromConfig(anEmsSinkConfig).updated(OBFUSCATED_FIELDS_KEY, "a,b,c")
+
+    withMissingConfig(props, OBFUSCATION_TYPE_KEY) {
+      case Right(config) =>
+        config.obfuscation.isDefined shouldBe true
+        config.obfuscation.get.obfuscation shouldBe FixObfuscation(5, '*')
         ()
       case Left(_) => fail("should not fail")
     }
   }
 
   test("handles AppKey with quotation") {
-    val input = Map(
-      "connector.class"                         -> "com.celonis.kafka.connect.ems.sink.EmsSinkConnector",
-      "connect.ems.authorization.key"           -> "\"AppKey 123\"",
-      "connect.ems.retry.interval"              -> "60000",
-      "tasks.max"                               -> "1",
-      "topics"                                  -> "payments",
-      "connect.ems.endpoint"                    -> "https://api.bamboo.cloud/continuous-batch-processing/api/v1/poolis/items",
-      "connect.ems.connection.id"               -> "connectionId",
-      "connect.ems.max.retries"                 -> "20",
-      "connect.ems.parquet.write.flush.records" -> "5",
-      "connect.ems.error.policy"                -> "RETRY",
-      "value.converter.schema.registry.url"     -> "http://localhost:8081",
-      "connect.ems.commit.records"              -> "5",
-      "connect.ems.target.table"                -> "payments",
-      "connect.ems.commit.size.bytes"           -> "1000000",
-      "connect.ems.commit.interval.ms"          -> "30000",
-      "connect.ems.debug.keep.parquet.files"    -> "false",
-      "connect.ems.tmp.dir"                     -> "/tmp/ems",
-      "name"                                    -> "kafka2ems",
-      "value.converter"                         -> "io.confluent.connect.avro.AvroConverter",
-      "key.converter"                           -> "org.apache.kafka.connect.storage.StringConverter",
-    )
-    EmsSinkConfig.from("tst", EmsSinkConfigDef.config.parse(input.asJava).asScala.toMap) match {
-      case Left(value) => throw new ConnectException(value)
-      case Right(value) =>
-        value.authorization.header shouldBe "AppKey 123"
-    }
+    val expected = anEmsSinkConfig.copy(authorization = AuthorizationHeader("AppKey 123"))
+    val input    = propertiesFromConfig(expected).updated("connect.ems.authorization.key", "\"AppKey 123\"")
+
+    parseProperties(input) shouldBe Right(expected)
   }
 
-  private def withMissingConfig(key: String)(fn: PartialFunction[Either[String, EmsSinkConfig], Unit]): Unit = {
-    val policy = DefaultCommitPolicy(1000000L, 10.seconds.toMillis, 1000)
-    val dir    = new File(UUID.randomUUID().toString)
-    dir.mkdir() shouldBe true
-    try {
-      val sinkConfig = EmsSinkConfig(
-        "sink1",
-        new URL("https://teamA.realmB.celonis.cloud/continuous-batch-processing/api/v1/abc-pool/items"),
-        "tableA",
-        Some("id11111"),
-        AuthorizationHeader("AppKey 123"),
-        Retry,
-        policy,
-        RetryConfig(10, 1000),
-        dir.toPath,
-        ParquetConfig.Default,
-        List("a", "b"),
-        Some(512),
-        Some(ObfuscationConfig(FixObfuscation(5, '*'),
-                               NonEmptyList.of(ObfuscatedField(NonEmptyList.fromListUnsafe(List("a", "b")))),
-        )),
-        UnproxiedHttpClientConfig(defaultPoolingConfig),
-        ExplodeConfig.None,
-        OrderFieldConfig(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName.some),
-        PreConversionConfig(convertDecimalsToFloat = false),
-        None,
-        embedKafkaMetadata    = false,
-        useInMemoryFileSystem = false,
-      )
+  private def withMissingConfig(key: String)(fn: PartialFunction[Either[String, EmsSinkConfig], Unit]): Unit =
+    withMissingConfig(propertiesFromConfig(anEmsSinkConfig), key)(fn)
 
-      val inputMap = Map[String, Any](
-        ENDPOINT_KEY                -> sinkConfig.url.toString,
-        TARGET_TABLE_KEY            -> sinkConfig.target,
-        AUTHORIZATION_KEY           -> sinkConfig.authorization.header,
-        ERROR_POLICY_KEY            -> sinkConfig.errorPolicy.entryName,
-        COMMIT_SIZE_KEY             -> policy.fileSize,
-        COMMIT_INTERVAL_KEY         -> policy.interval,
-        COMMIT_RECORDS_KEY          -> policy.records,
-        ERROR_RETRY_INTERVAL        -> sinkConfig.retries.interval,
-        NBR_OF_RETRIES_KEY          -> sinkConfig.retries.retries,
-        TMP_DIRECTORY_KEY           -> dir.toString,
-        DEBUG_KEEP_TMP_FILES_KEY    -> sinkConfig.parquet.cleanup.isInstanceOf[ParquetFileCleanupRename],
-        PARQUET_FLUSH_KEY           -> sinkConfig.parquet.rowGroupSize,
-        PRIMARY_KEYS_KEY            -> sinkConfig.primaryKeys.mkString(","),
-        CONNECTION_ID_KEY           -> sinkConfig.connectionId.get,
-        FALLBACK_VARCHAR_LENGTH_KEY -> sinkConfig.fallbackVarCharLengths.map(_.toString).orNull,
-        OBFUSCATION_TYPE_KEY        -> "fix",
-        OBFUSCATED_FIELDS_KEY       -> "a.b",
-      ) - key
-
-      (Try {
-        EmsSinkConfigDef.config.parse(inputMap.view.mapValues(_.toString).toMap.asJava).asScala.toMap
-      }: @scala.annotation.nowarn("msg=Unused import")).toEither.leftMap(_.getMessage)
-        .foreach { connectInputMap =>
-          fn(EmsSinkConfig.from(
-            sinkConfig.sinkName,
-            connectInputMap,
-          ))
-        }
-    } finally {
-      dir.delete()
-      ()
-    }
-  }
+  private def withMissingConfig(
+    props: Map[String, _],
+    key:   String,
+  )(fn: PartialFunction[Either[String, EmsSinkConfig], Unit]): Unit =
+    fn(parseProperties(props.removed(key)))
 
   test(s"uses the order field name specified") {
-    val policy = DefaultCommitPolicy(1000000L, 10.seconds.toMillis, 1000)
-    val dir    = new File(UUID.randomUUID().toString)
-    dir.mkdir() shouldBe true
-    val orderFieldName = "justfortest"
-    try {
-      val expected = EmsSinkConfig(
-        "sink1",
-        new URL("https://teamA.realmB.celonis.cloud/continuous-batch-processing/api/v1/abc-pool/items"),
-        "tableA",
-        Some("id222"),
-        AuthorizationHeader("AppKey 123"),
-        Retry,
-        policy,
-        RetryConfig(10, 1000),
-        dir.toPath,
-        ParquetConfig.Default,
-        List("a", "b"),
-        Some(512),
-        None,
-        UnproxiedHttpClientConfig(defaultPoolingConfig),
-        ExplodeConfig.None,
-        OrderFieldConfig(orderFieldName.some),
-        PreConversionConfig(convertDecimalsToFloat = false),
-        None,
-        embedKafkaMetadata    = true,
-        useInMemoryFileSystem = false,
-      )
+    val expected   = anEmsSinkConfig.copy(orderField = OrderFieldConfig(Some("justfortest")))
+    val properties = propertiesFromConfig(expected)
 
-      val inputMap: Map[String, _] = Map(
-        ENDPOINT_KEY                -> expected.url.toString,
-        TARGET_TABLE_KEY            -> expected.target,
-        AUTHORIZATION_KEY           -> expected.authorization.header,
-        ERROR_POLICY_KEY            -> expected.errorPolicy.entryName,
-        COMMIT_SIZE_KEY             -> policy.fileSize,
-        COMMIT_INTERVAL_KEY         -> policy.interval,
-        COMMIT_RECORDS_KEY          -> policy.records,
-        ERROR_RETRY_INTERVAL        -> expected.retries.interval,
-        NBR_OF_RETRIES_KEY          -> expected.retries.retries,
-        TMP_DIRECTORY_KEY           -> dir.toString,
-        PRIMARY_KEYS_KEY            -> expected.primaryKeys.mkString(","),
-        CONNECTION_ID_KEY           -> expected.connectionId.get,
-        FALLBACK_VARCHAR_LENGTH_KEY -> expected.fallbackVarCharLengths.orNull,
-        ORDER_FIELD_NAME_KEY        -> orderFieldName,
-      )
-      EmsSinkConfig.from(
-        expected.sinkName,
-        inputMap,
-      ) shouldBe Right(expected)
+    parseProperties(properties) shouldBe Right(expected)
+  }
 
-      val connectInputMap = {
-        EmsSinkConfigDef.config.parse(inputMap.view.mapValues(_.toString).toMap.asJava).asScala.toMap
-      }: @scala.annotation.nowarn("msg=Unused import")
+  test(s"hardcodes the working directory and forces Parquet file deletion if in memory file system is enabled") {
+    val expected =
+      anEmsSinkConfig.copy(workingDir = FileSystemOperations.InMemoryPseudoDir, useInMemoryFileSystem = true)
 
-      EmsSinkConfig.from(
-        expected.sinkName,
-        connectInputMap,
-      ) shouldBe Right(expected)
-    } finally {
-      dir.delete()
-      ()
+    val properties = propertiesFromConfig(expected)
+      .updated(TMP_DIRECTORY_KEY, "/some/where/else") // these will be overriden
+      .updated(DEBUG_KEEP_TMP_FILES_KEY, "true")
+
+    parseProperties(properties) shouldBe Right(expected)
+  }
+
+  private def parseProperties(properties: Map[String, _]): Either[String, EmsSinkConfig] = {
+    val parsedProps = Try(EmsSinkConfigDef.config.parse(
+      properties.view.mapValues(_.toString).toMap.asJava,
+    ).asScala.toMap).toEither.left.map(_.getMessage)
+
+    parsedProps.flatMap { parsedProps =>
+      EmsSinkConfig.from(properties("name").toString, parsedProps)
     }
   }
-  test(s"hardcodes the working directory and forces Parquet file deletion if in memory file system is enabled") {
-    val policy         = DefaultCommitPolicy(1000000L, 10.seconds.toMillis, 1000)
-    val orderFieldName = "justfortest"
-    val expected = EmsSinkConfig(
-      "sink1",
-      new URL("https://teamA.realmB.celonis.cloud/continuous-batch-processing/api/v1/abc-pool/items"),
-      "tableA",
-      Some("id222"),
-      AuthorizationHeader("AppKey 123"),
-      Retry,
-      policy,
-      RetryConfig(10, 1000),
-      FileSystemOperations.InMemoryPseudoDir,
-      ParquetConfig.Default,
-      List("a", "b"),
-      Some(512),
-      None,
-      UnproxiedHttpClientConfig(defaultPoolingConfig),
-      ExplodeConfig.None,
-      OrderFieldConfig(orderFieldName.some),
-      PreConversionConfig(convertDecimalsToFloat = false),
-      None,
-      embedKafkaMetadata    = true,
-      useInMemoryFileSystem = true,
-    )
 
-    val inputMap: Map[String, _] = Map(
-      ENDPOINT_KEY         -> expected.url.toString,
-      TARGET_TABLE_KEY     -> expected.target,
-      AUTHORIZATION_KEY    -> expected.authorization.header,
-      ERROR_POLICY_KEY     -> expected.errorPolicy.entryName,
-      COMMIT_SIZE_KEY      -> policy.fileSize,
-      COMMIT_INTERVAL_KEY  -> policy.interval,
-      COMMIT_RECORDS_KEY   -> policy.records,
-      ERROR_RETRY_INTERVAL -> expected.retries.interval,
-      NBR_OF_RETRIES_KEY   -> expected.retries.retries,
-      // these will be overriden
-      TMP_DIRECTORY_KEY        -> "/some/where/else",
-      DEBUG_KEEP_TMP_FILES_KEY -> "true",
-      //
-      PRIMARY_KEYS_KEY            -> expected.primaryKeys.mkString(","),
-      CONNECTION_ID_KEY           -> expected.connectionId.get,
-      FALLBACK_VARCHAR_LENGTH_KEY -> expected.fallbackVarCharLengths.orNull,
-      ORDER_FIELD_NAME_KEY        -> orderFieldName,
-      USE_IN_MEMORY_FS_KEY        -> "true",
-    )
-    EmsSinkConfig.from(
-      expected.sinkName,
-      inputMap,
-    ) shouldBe Right(expected)
-  }
+  private def propertiesFromConfig(config: EmsSinkConfig): Map[String, _] = Map(
+    "name"                      -> config.sinkName,
+    ENDPOINT_KEY                -> config.url.toString,
+    TARGET_TABLE_KEY            -> config.target,
+    AUTHORIZATION_KEY           -> config.authorization.header,
+    ERROR_POLICY_KEY            -> config.errorPolicy.entryName,
+    COMMIT_SIZE_KEY             -> config.commitPolicy.fileSize,
+    COMMIT_INTERVAL_KEY         -> config.commitPolicy.interval,
+    COMMIT_RECORDS_KEY          -> config.commitPolicy.records,
+    ERROR_RETRY_INTERVAL        -> config.retries.interval,
+    NBR_OF_RETRIES_KEY          -> config.retries.retries,
+    TMP_DIRECTORY_KEY           -> config.workingDir.toString,
+    PRIMARY_KEYS_KEY            -> config.primaryKeys.mkString(","),
+    CONNECTION_ID_KEY           -> config.connectionId.get,
+    ORDER_FIELD_NAME_KEY        -> config.orderField.name.orNull,
+    FALLBACK_VARCHAR_LENGTH_KEY -> config.fallbackVarCharLengths.orNull,
+    DECIMAL_CONVERSION_KEY      -> config.preConversionConfig.convertDecimalsToFloat,
+    FLATTENER_ENABLE_KEY        -> config.flattenerConfig.isDefined,
+    FLATTENER_DISCARD_COLLECTIONS_KEY -> config.flattenerConfig.map(_.discardCollections).getOrElse(
+      FLATTENER_DISCARD_COLLECTIONS_DEFAULT,
+    ),
+    USE_IN_MEMORY_FS_KEY -> config.useInMemoryFileSystem,
+  )
 
-  private def testMissingConfig(key: String, docs: String): Unit =
+  private def propertiesWithoutDefaults(properties: Map[String, _]): Map[String, _] =
+    properties.keys.foldLeft(properties) { case (properties, key) =>
+      EmsSinkConfigDef.config.configKeys().asScala.get(key) match {
+        case Some(configKey) if configKey.defaultValue == properties(key) => properties.removed(key)
+        case _                                                            => properties
+      }
+    }
+  private def testMissingRequiredConfig(key: String): Unit =
     withMissingConfig(key) {
       case e =>
-        e shouldBe Left(s"Invalid [$key]. $docs")
+        e shouldBe Left(s"Missing required configuration \"$key\" which has no default value.")
         ()
     }
 }
