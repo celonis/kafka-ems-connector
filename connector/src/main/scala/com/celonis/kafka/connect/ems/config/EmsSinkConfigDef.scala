@@ -18,7 +18,8 @@ package com.celonis.kafka.connect.ems.config
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
+import org.apache.kafka.common.config.ConfigDef.Importance
+import org.apache.kafka.common.config.ConfigDef.Type
 
 object EmsSinkConfigDef {
   val config: ConfigDef = new EmsSinkConfigDef()
