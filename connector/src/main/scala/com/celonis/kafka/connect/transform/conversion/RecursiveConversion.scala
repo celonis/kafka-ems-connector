@@ -6,6 +6,8 @@ import org.apache.kafka.connect.data.Struct
 
 import scala.jdk.CollectionConverters._
 
+/** Traverse containers data objects (structs, maps and lists) and apply the inner conversion to the leaves
+  */
 final class RecursiveConversion(innerConversion: ConnectConversion) extends ConnectConversion {
 
   override def convertSchema(originalSchema: Schema): Schema =
