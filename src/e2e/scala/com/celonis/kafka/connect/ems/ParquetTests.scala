@@ -15,9 +15,12 @@ import com.celonis.kafka.connect.ems.testcontainers.scalatest.KafkaConnectContai
 import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.connect.withConnector
 import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.mockserver.withMockResponse
 import io.confluent.kafka.serializers.AvroData
+import org.apache.avro.Schema
 import org.apache.avro.SchemaBuilder
 import org.apache.avro.generic.GenericData
+import org.apache.avro.util.Utf8
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.connect.data
 import org.apache.parquet.hadoop.ParquetFileReader
 import org.mockserver.verify.VerificationTimes
 import org.scalatest.funsuite.AnyFunSuite
@@ -27,6 +30,45 @@ import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
 class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with SampleData with Matchers {
+  test("generate parquet file with obfuscated fields") {
+    val emsConnector = new EmsConnectorConfiguration("ems")
+      .withConfig(ENDPOINT_KEY, proxyServerUrl)
+      .withConfig(AUTHORIZATION_KEY, "AppKey key")
+      .withConfig(COMMIT_RECORDS_KEY, 1)
+      .withConfig(COMMIT_SIZE_KEY, 1000000L)
+      .withConfig(COMMIT_INTERVAL_KEY, 3600000)
+      .withConfig(TMP_DIRECTORY_KEY, "/tmp/")
+      .withConfig(SHA512_SALT_KEY, "something")
+      .withConfig(OBFUSCATED_FIELDS_KEY, "field1")
+      .withConfig(OBFUSCATION_TYPE_KEY, "shA512")
+
+    val randomInt = scala.util.Random.nextInt()
+    val expectations = List(
+      ValueAndSchemas(
+        name         = "field1",
+        avroValue    = "myfieldvalue",
+        connectValue = "myfieldvalue",
+        // parquet value is obfuscated
+        parquetValue = new Utf8(
+          "ade2426de954b6cd28ce00c83b931c1943ce87fbc421897156c4be6c07e1b83e6618a842c406ba7c0bf806fee3ae3164c8aac873ff1ac113a6ceb66e0bb12224",
+        ),
+        avroSchema           = Schema.create(Schema.Type.STRING),
+        connectSchemaBuilder = data.SchemaBuilder.string(),
+        parquetSchema        = "required binary field1 (STRING)",
+      ),
+      ValueAndSchemas(
+        name                 = "field2",
+        avroValue            = randomInt,
+        connectValue         = randomInt,
+        parquetValue         = randomInt,
+        avroSchema           = Schema.create(Schema.Type.INT),
+        connectSchemaBuilder = data.SchemaBuilder.int32(),
+        parquetSchema        = "required int32 field2",
+      ),
+    )
+
+    testParquetValuesAndSchemas(emsConnector, expectations)
+  }
 
   test("reads records from generated parquet file") {
     val sourceTopic = randomTopicName()
