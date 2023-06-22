@@ -50,7 +50,7 @@ object ErrorPolicy extends Enum[ErrorPolicy] {
       if (retries == 0) {
         throw new ConnectException(error)
       } else {
-        logger.warn(s"Error policy set to RETRY. Remaining attempts [$retries]")
+        logger.warn(s"Error policy set to RETRY. Remaining attempts [$retries]", error)
         throw new RetriableException(error)
       }
   }
