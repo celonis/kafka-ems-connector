@@ -19,24 +19,23 @@ package com.celonis.kafka.connect.ems.config
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
-import com.celonis.kafka.connect.ems.model.CommitPolicy
-import com.celonis.kafka.connect.ems.model.DefaultCommitPolicy
 import com.celonis.kafka.connect.ems.storage.FileSystemOperations
 import com.celonis.kafka.connect.transform.FlattenerConfig
+import com.celonis.kafka.connect.transform.PreConversionConfig
 import org.apache.commons.validator.routines.UrlValidator
 
 import java.io.File
 import java.net.URL
 import java.nio.file.Path
 
-case class EmsSinkConfig(
+final case class EmsSinkConfig(
   sinkName:               String,
   url:                    URL,
   target:                 String,
   connectionId:           Option[String],
   authorization:          AuthorizationHeader,
   errorPolicy:            ErrorPolicy,
-  commitPolicy:           CommitPolicy,
+  commitPolicy:           CommitPolicyConfig,
   retries:                RetryConfig,
   workingDir:             Path,
   parquet:                ParquetConfig,
@@ -46,6 +45,7 @@ case class EmsSinkConfig(
   http:                   HttpClientConfig,
   explode:                ExplodeConfig,
   orderField:             OrderFieldConfig,
+  preConversionConfig:    PreConversionConfig,
   flattenerConfig:        Option[FlattenerConfig],
   embedKafkaMetadata:     Boolean,
   useInMemoryFileSystem:  Boolean,
@@ -70,23 +70,6 @@ object EmsSinkConfig {
 
   def extractTargetTable(props: Map[String, _]): Either[String, String] =
     nonEmptyStringOr(props, TARGET_TABLE_KEY, TARGET_TABLE_DOC)
-
-  def extractCommitPolicy(props: Map[String, _]): Either[String, CommitPolicy] =
-    for {
-      size <- longOr(props, COMMIT_SIZE_KEY, COMMIT_SIZE_DOC).flatMap { l =>
-        if (l < 1000000L) error(COMMIT_SIZE_KEY, "Flush size needs to be at least 1000000 (1 MB).")
-        else l.asRight[String]
-      }
-      records <- longOr(props, COMMIT_RECORDS_KEY, COMMIT_RECORDS_DOC).flatMap { l =>
-        if (l <= 0) error(COMMIT_RECORDS_KEY, "Uploading the data to EMS requires a record count greater than 0.")
-        else l.asRight[String]
-      }
-      interval <- longOr(props, COMMIT_INTERVAL_KEY, COMMIT_INTERVAL_DOC).flatMap { l =>
-        if (l <= 1000)
-          error(COMMIT_INTERVAL_KEY, "The stop gap interval for uploading the data cannot be smaller than 1000 (1s).")
-        else l.asRight[String]
-      }
-    } yield DefaultCommitPolicy(size, interval, records)
 
   def extractWorkingDirectory(props: Map[String, _]): Either[String, Path] =
     nonEmptyStringOr(props, TMP_DIRECTORY_KEY, TMP_DIRECTORY_DOC)
@@ -118,7 +101,7 @@ object EmsSinkConfig {
       table                 <- extractTargetTable(props)
       authorization         <- AuthorizationHeader.extract(props)
       error                 <- ErrorPolicy.extract(props)
-      commitPolicy          <- extractCommitPolicy(props)
+      commitPolicy          <- CommitPolicyConfig.extract(props)
       retry                 <- RetryConfig.extractRetry(props)
       useInMemoryFs          = PropertiesHelper.getBoolean(props, USE_IN_MEMORY_FS_KEY).getOrElse(USE_IN_MEMORY_FS_DEFAULT)
       tempDir               <- if (useInMemoryFs) Right(FileSystemOperations.InMemoryPseudoDir) else extractWorkingDirectory(props)
@@ -130,6 +113,7 @@ object EmsSinkConfig {
       explodeConfig          = ExplodeConfig.extractExplode(props)
       proxyConfig           <- HttpClientConfig.extractHttpClient(props)
       orderConfig            = OrderFieldConfig.from(props, primaryKeys)
+      preConversionConfig    = PreConversionConfig.extract(props)
       flattenerConfig       <- FlattenerConfig.extract(props, fallbackVarCharLength)
       includeEmbeddedMetadata = PropertiesHelper.getBoolean(props, EMBED_KAFKA_EMBEDDED_METADATA_KEY).getOrElse(
         EMBED_KAFKA_EMBEDDED_METADATA_DEFAULT,
@@ -151,6 +135,7 @@ object EmsSinkConfig {
       proxyConfig,
       explodeConfig,
       orderConfig,
+      preConversionConfig,
       flattenerConfig,
       includeEmbeddedMetadata,
       useInMemoryFs,

@@ -19,7 +19,12 @@ package com.celonis.kafka.connect.transform
 import cats.effect.unsafe.implicits._
 import com.celonis.kafka.connect.transform.FlattenerConfig.JsonBlobChunks
 import com.celonis.kafka.connect.transform.fields.FieldInserter
+import org.apache.avro.generic.GenericData.Record
 import org.apache.avro.generic.GenericRecord
+import org.apache.kafka.connect.data.Decimal
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -52,6 +57,38 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     genericRecord.get("payload_chunk2") shouldBe "56789\":\"x\",\"\":\"y\"}"
   }
 
+  test("With decimal conversion enabled, big decimals are converted into doubles") {
+    val aBigDecimal = java.math.BigDecimal.valueOf(0.12345)
+    val nestedSchema = SchemaBuilder.struct()
+      .field("nested_decimal", Decimal.schema(5))
+      .field("nested_float32", SchemaBuilder.float32().schema()).build()
+
+    val schema = SchemaBuilder.struct()
+      .field("nested", nestedSchema)
+      .field("a_decimal", Decimal.schema(5))
+      .field("an_optional_decimal", Decimal.builder(5).optional().schema())
+      .field("another_optional_decimal", Decimal.builder(5).optional().schema())
+
+    val nestedStruct = new Struct(nestedSchema)
+    nestedStruct.put("nested_decimal", aBigDecimal)
+    nestedStruct.put("nested_float32", 1.45f)
+
+    val struct = new Struct(schema)
+    struct.put("nested", nestedStruct)
+    struct.put("a_decimal", aBigDecimal)
+    struct.put("an_optional_decimal", aBigDecimal)
+    struct.put("another_optional_decimal", null)
+
+    val record        = sinkRecord(struct, schema)
+    val genericRecord = decimalConversionWithNoFlattening(record)
+
+    genericRecord.get("nested").asInstanceOf[Record].get("nested_decimal") shouldBe aBigDecimal.doubleValue()
+    genericRecord.get("nested").asInstanceOf[Record].get("nested_float32") shouldBe 1.45f
+    genericRecord.get("a_decimal") shouldBe aBigDecimal.doubleValue()
+    genericRecord.get("an_optional_decimal") shouldBe aBigDecimal.doubleValue()
+    genericRecord.get("another_optional_decimal") shouldBe null
+  }
+
   test("With Chunking disabled, heterogeneous arrays prevent flattening") {
     pendingUntilFixed {
       val value = Map(
@@ -78,15 +115,24 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
 
   private def chunkTransform(record: SinkRecord, maxChunks: Int, chunkSize: Int): GenericRecord = {
     val flattenerConfig = Some(FlattenerConfig(discardCollections = false, Some(JsonBlobChunks(maxChunks, chunkSize))))
-    val transformer     = RecordTransformer.fromConfig("mySink", flattenerConfig, Nil, None, FieldInserter.noop)
+    val transformer =
+      RecordTransformer.fromConfig("mySink", PreConversionConfig(false), flattenerConfig, Nil, None, FieldInserter.noop)
     transformer.transform(record).unsafeRunSync()
   }
 
   private def flattenTransform(record: SinkRecord, discardCollections: Boolean = false): GenericRecord = {
     val flattenerConfig = Some(FlattenerConfig(discardCollections = discardCollections, None))
-    val transformer     = RecordTransformer.fromConfig("mySink", flattenerConfig, Nil, None, FieldInserter.noop)
+    val transformer =
+      RecordTransformer.fromConfig("mySink", PreConversionConfig(false), flattenerConfig, Nil, None, FieldInserter.noop)
     transformer.transform(record).unsafeRunSync()
   }
 
-  private def sinkRecord(value: Any): SinkRecord = new SinkRecord("topic", 0, null, "aKey", null, value, 0)
+  private def decimalConversionWithNoFlattening(record: SinkRecord): GenericRecord = {
+    val transformer =
+      RecordTransformer.fromConfig("mySink", PreConversionConfig(true), None, Nil, None, FieldInserter.noop)
+    transformer.transform(record).unsafeRunSync()
+  }
+
+  private def sinkRecord(value: Any, schema: Schema = null): SinkRecord =
+    new SinkRecord("topic", 0, null, "aKey", schema, value, 0)
 }

@@ -15,91 +15,7 @@
  */
 
 package com.celonis.kafka.connect.ems.config
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.AUTHORIZATION_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLOSE_EVERY_CONNECTION_DEFAULT_VALUE
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLOSE_EVERY_CONNECTION_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CLOSE_EVERY_CONNECTION_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_INTERVAL_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_ID_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_ID_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_ID_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_POOL_KEEPALIVE_MILLIS_DEFAULT_VALUE
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_POOL_KEEPALIVE_MILLIS_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_POOL_KEEPALIVE_MILLIS_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.CONNECTION_POOL_MAX_IDLE_CONNECTIONS_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DEBUG_KEEP_TMP_FILES_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EMBED_KAFKA_EMBEDDED_METADATA_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EMBED_KAFKA_EMBEDDED_METADATA_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EMBED_KAFKA_EMBEDDED_METADATA_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ENDPOINT_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_RETRY_INTERVAL_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EXPLODE_MODE_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.EXPLODE_MODE_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_DISCARD_COLLECTIONS_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_DISCARD_COLLECTIONS_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_DISCARD_COLLECTIONS_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_ENABLE_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_ENABLE_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_ENABLE_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FLATTENER_JSONBLOB_CHUNKS_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETIRES_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIES_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.OBFUSCATED_FIELDS_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.OBFUSCATED_FIELDS_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.OBFUSCATION_TYPE_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.OBFUSCATION_TYPE_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ORDER_FIELD_NAME_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ORDER_FIELD_NAME_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PRIMARY_KEYS_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHBASIC_PASSWORD_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHBASIC_PASSWORD_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHBASIC_USERNAME_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHBASIC_USERNAME_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHENTICATION_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_AUTHENTICATION_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_HOST_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_HOST_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_PORT_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_PORT_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_TYPE_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PROXY_TYPE_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.SHA512_RANDOM_SALT_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.SHA512_RANDOM_SALT_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.SHA512_SALT_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.SHA512_SALT_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TARGET_TABLE_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TMP_DIRECTORY_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.USE_IN_MEMORY_FS_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.USE_IN_MEMORY_FS_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.USE_IN_MEMORY_FS_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
@@ -436,6 +352,13 @@ object EmsSinkConfigDef {
       3,
       ConfigDef.Width.MEDIUM,
       CLOSE_EVERY_CONNECTION_DOC,
+    )
+    .define(
+      DECIMAL_CONVERSION_KEY,
+      Type.BOOLEAN,
+      DECIMAL_CONVERSION_KEY_DEFAULT,
+      Importance.MEDIUM,
+      DECIMAL_CONVERSION_KEY_DOC,
     )
     .define(
       FLATTENER_ENABLE_KEY,

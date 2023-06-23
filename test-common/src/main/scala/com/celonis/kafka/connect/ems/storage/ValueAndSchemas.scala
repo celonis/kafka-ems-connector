@@ -31,5 +31,4 @@ final case class ValueAndSchemas(
 ) {
   lazy val connectSchema:         ConnectSchema = connectSchemaBuilder.schema()
   lazy val optionalConnectSchema: ConnectSchema = connectSchemaBuilder.optional().schema()
-  lazy val optionalParquetSchema: String        = "optional " + parquetSchema
 }

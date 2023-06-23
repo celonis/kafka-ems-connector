@@ -32,8 +32,8 @@ object FlattenerConfig {
 
   def extract(props: Map[String, _], fallbackVarcharLength: Option[Int]): Either[String, Option[FlattenerConfig]] = {
     import PropertiesHelper._
-    (getBoolean(props, FLATTENER_ENABLE_KEY).getOrElse(false),
-     getBoolean(props, FLATTENER_DISCARD_COLLECTIONS_KEY).getOrElse(false),
+    (getBoolean(props, FLATTENER_ENABLE_KEY).getOrElse(FLATTENER_ENABLE_DEFAULT),
+     getBoolean(props, FLATTENER_DISCARD_COLLECTIONS_KEY).getOrElse(FLATTENER_DISCARD_COLLECTIONS_DEFAULT),
      getInt(props, FLATTENER_JSONBLOB_CHUNKS_KEY),
      fallbackVarcharLength,
     ) match {

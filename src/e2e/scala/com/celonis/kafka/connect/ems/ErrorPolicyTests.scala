@@ -104,7 +104,7 @@ class ErrorPolicyTests extends AnyFunSuite with KafkaConnectContainerPerSuite wi
         val consumer = new WaitingConsumer
         kafkaConnectContainer.followOutput(consumer, OutputType.STDOUT)
         consumer.waitUntil(
-          (frame: OutputFrame) => frame.getUtf8String.contains("Error policy set to RETRY."),
+          (frame: OutputFrame) => frame.getUtf8String.contains("Error policy is set to RETRY."),
           30,
           TimeUnit.SECONDS,
         )

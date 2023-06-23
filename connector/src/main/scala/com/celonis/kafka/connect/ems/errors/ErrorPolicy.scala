@@ -37,12 +37,14 @@ object ErrorPolicy extends Enum[ErrorPolicy] {
 
   case object Continue extends ErrorPolicy with StrictLogging {
     override def handle(error: Throwable, retries: Int): Unit =
-      logger.warn(s"Error policy is set to continue.", error)
+      logger.warn(s"Error policy is set to CONTINUE.", error)
   }
 
-  case object Throw extends ErrorPolicy {
-    override def handle(error: Throwable, retries: Int): Unit =
+  case object Throw extends ErrorPolicy with StrictLogging {
+    override def handle(error: Throwable, retries: Int): Unit = {
+      logger.warn(s"Error policy is set to THROW.", error)
       throw new ConnectException(error)
+    }
   }
 
   case object Retry extends ErrorPolicy with StrictLogging {
@@ -50,7 +52,7 @@ object ErrorPolicy extends Enum[ErrorPolicy] {
       if (retries == 0) {
         throw new ConnectException(error)
       } else {
-        logger.warn(s"Error policy set to RETRY. Remaining attempts [$retries]")
+        logger.warn(s"Error policy is set to RETRY. Remaining attempts [$retries]", error)
         throw new RetriableException(error)
       }
   }
