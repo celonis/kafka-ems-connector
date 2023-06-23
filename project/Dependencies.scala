@@ -23,7 +23,7 @@ object Dependencies {
     "confluent" at "https://packages.confluent.io/maven/",
     "typesafe" at "https://repo.typesafe.com/typesafe/releases/",
     "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
-    "conjars" at "https://conjars.org/repo",
+    "conjars" at "https://conjars.wensel.net/repo/",
     "jitpack" at "https://jitpack.io",
   )
 
