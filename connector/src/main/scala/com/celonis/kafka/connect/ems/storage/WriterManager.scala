@@ -82,14 +82,14 @@ final class WriterManager[F[_]](
         file = writer.state.file
         _ <- A.delay(
           logger.info(
-            s"Uploading file:$file size:${Files.size(file)} for topic-partition:${TopicPartition.show.show(state.topicPartition)} and offset:${state.offset.show}",
+            s"Uploading file:$file size:${Files.size(file)} for topic-partition:${TopicPartition.show.show(state.topicPartition)} and offset:${state.lastOffset.show}",
           ),
         )
-        uploadRequest = UploadRequest(file, state.topicPartition.topic, state.topicPartition.partition, state.offset)
+        uploadRequest = UploadRequest(file, state.topicPartition.topic, state.topicPartition.partition, state.lastOffset)
         _            <- A.delay(println(s"Request:${UploadRequest.show.show(uploadRequest)}"))
         response     <- uploader.upload(uploadRequest)
         _            <- A.delay(logger.info(s"Received ${response.asJson.noSpaces} for uploading file:$file"))
-        _            <- A.delay(fileCleanup.clean(file, state.offset))
+        _            <- A.delay(fileCleanup.clean(file, state.lastOffset))
         newWriter    <- A.delay(buildFn)
         _            <- A.delay(logger.debug("Creating a new writer for [{}]", writer.state.show))
         _            <- setWriter(writer.state.topicPartition, newWriter)
@@ -97,7 +97,7 @@ final class WriterManager[F[_]](
         newWriter,
         TopicPartitionOffset(writer.state.topicPartition.topic,
                              writer.state.topicPartition.partition,
-                             writer.state.offset,
+                             writer.state.lastOffset,
         ),
       ).some
     }

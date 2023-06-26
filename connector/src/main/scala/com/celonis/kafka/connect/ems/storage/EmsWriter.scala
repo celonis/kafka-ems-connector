@@ -35,20 +35,20 @@ class EmsWriter(
 
   override def write(record: Record): Unit = {
     logger.debug("[{}] EmsWriter.write: Internal state: {}", sinkName, internalState.show)
-    if (record.metadata.offset > internalState.offset) {
+    if (record.metadata.offset > internalState.lastOffset) {
       formatWriter.write(record.value)
 
       internalState = internalState.copy(
         fileSize    = formatWriter.size,
         records     = internalState.records + 1,
-        offset      = record.metadata.offset,
+        lastOffset      = record.metadata.offset,
         lastWriteTs = System.currentTimeMillis(),
       )
     } else {
       logger.info(
         "[{}] EmsWriter.write: ignoring record. Offset is already processed. current={} received={}",
         sinkName,
-        internalState.offset.show,
+        internalState.lastOffset.show,
         record.metadata.offset.show,
       )
     }

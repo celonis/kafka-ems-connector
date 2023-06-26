@@ -307,7 +307,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
         uploader.upload(UploadRequest(file2,
                                       writer2.state.topicPartition.topic,
                                       writer2.state.topicPartition.partition,
-                                      writer2.state.offset,
+                                      writer2.state.lastOffset,
         )),
       ).thenReturn(IO.pure(EmsUploadResponse("1", file2.getFileName.toString, "b1", "NEW", "c1".some, None, None)))
       manager.write(record2).unsafeRunSync()
@@ -316,7 +316,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
         .upload(UploadRequest(file2,
                               writer2.state.topicPartition.topic,
                               writer2.state.topicPartition.partition,
-                              writer2.state.offset,
+                              writer2.state.lastOffset,
         ))
       verify(builder, times(1)).writerFrom(writer2)
       verify(writer2, times(1)).close()
@@ -376,7 +376,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
         uploader.upload(UploadRequest(file2,
                                       writer2.state.topicPartition.topic,
                                       writer2.state.topicPartition.partition,
-                                      writer2.state.offset,
+                                      writer2.state.lastOffset,
         )),
       ).thenReturn(IO.pure(EmsUploadResponse("1", file2.getFileName.toString, "b1", "NEW", "c1".some, None, None)))
       manager.write(record2).unsafeRunSync()
@@ -386,7 +386,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       verify(uploader, times(1)).upload(UploadRequest(file2,
                                                       writer2.state.topicPartition.topic,
                                                       writer2.state.topicPartition.partition,
-                                                      writer2.state.offset,
+                                                      writer2.state.lastOffset,
       ))
       verify(builder, times(1)).writerFrom(writer2)
       verify(writer2, times(1)).close()
@@ -445,7 +445,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
         uploader.upload(UploadRequest(file2,
                                       writer2.state.topicPartition.topic,
                                       writer2.state.topicPartition.partition,
-                                      writer2.state.offset,
+                                      writer2.state.lastOffset,
         )),
       ).thenReturn(IO(EmsUploadResponse("1", file2.getFileName.toString, "b", "NEW", "c1".some, None, None)))
       manager.write(record2).unsafeRunSync()
@@ -453,7 +453,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       verify(uploader, times(1)).upload(UploadRequest(file2,
                                                       writer2.state.topicPartition.topic,
                                                       writer2.state.topicPartition.partition,
-                                                      writer2.state.offset,
+                                                      writer2.state.lastOffset,
       ))
       verify(builder, times(1)).writerFrom(record2)
       verify(writer2, times(0)).write(record2)
@@ -555,7 +555,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
         uploader.upload(UploadRequest(file2,
                                       writer2.state.topicPartition.topic,
                                       writer2.state.topicPartition.partition,
-                                      writer2.state.offset,
+                                      writer2.state.lastOffset,
         )),
       ).thenReturn(IO.raiseError(exception))
       val ex = the[RuntimeException] thrownBy manager.write(record2).unsafeRunSync()
@@ -566,7 +566,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
         uploader.upload(UploadRequest(file2,
                                       writer2.state.topicPartition.topic,
                                       writer2.state.topicPartition.partition,
-                                      writer2.state.offset,
+                                      writer2.state.lastOffset,
         )),
       ).thenReturn(IO(EmsUploadResponse("1", file2.getFileName.toString, "b", "NEW", "c1".some, None, None)))
       val writer2Next = mock[Writer]
@@ -576,7 +576,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       verify(uploader, times(1)).upload(UploadRequest(file2,
                                                       writer2.state.topicPartition.topic,
                                                       writer2.state.topicPartition.partition,
-                                                      writer2.state.offset,
+                                                      writer2.state.lastOffset,
       ))
       verify(builder, times(1)).writerFrom(writer2)
       verify(writer2Next, times(0)).write(record2)
