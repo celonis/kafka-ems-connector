@@ -23,7 +23,7 @@ import com.celonis.kafka.connect.ems.storage.formats.FormatWriter
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.avro.Schema
 
-class EmsWriter(
+final class EmsWriter(
   sinkName:     String,
   commitPolicy: CommitPolicy,
   formatWriter: FormatWriter,
@@ -41,7 +41,8 @@ class EmsWriter(
       internalState = internalState.copy(
         fileSize    = formatWriter.size,
         records     = internalState.records + 1,
-        lastOffset      = record.metadata.offset,
+        lastOffset  = record.metadata.offset,
+        startOffset = internalState.startOffset.orElse(Some(record.metadata.offset)),
         lastWriteTs = System.currentTimeMillis(),
       )
     } else {

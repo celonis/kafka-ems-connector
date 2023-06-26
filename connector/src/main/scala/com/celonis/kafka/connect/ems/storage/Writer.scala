@@ -35,8 +35,9 @@ trait Writer extends AutoCloseable {
   def state: WriterState
 }
 
-case class WriterState(
+final case class WriterState(
   topicPartition:  TopicPartition,
+  startOffset:     Option[Offset],
   lastOffset:      Offset,
   committedOffset: Option[Offset],
   fileSize:        Long,

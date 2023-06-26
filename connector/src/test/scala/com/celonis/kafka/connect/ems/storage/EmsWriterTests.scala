@@ -42,7 +42,8 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
       formatWriter,
       WriterState(
         TopicPartition(new Topic("A"), new Partition(0)),
-        new Offset(-1),
+        None,
+        Offset(-1),
         None,
         startingRecords,
         startingRecords,
@@ -53,9 +54,9 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     )
 
     val struct  = buildSimpleStruct()
-    val record1 = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(10)))
+    val record1 = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), Offset(10)))
 
-    val record2 = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(11)))
+    val record2 = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), Offset(11)))
 
     val firstSize = startingSize + 1002L
     when(formatWriter.size).thenReturn(firstSize)
@@ -63,6 +64,8 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     var currentState = emsWriter.state
     currentState.records shouldBe startingRecords + 1
     currentState.fileSize shouldBe firstSize
+    currentState.startOffset shouldBe Some(Offset(10))
+    currentState.lastOffset shouldBe Offset(10)
 
     val secondSize = firstSize + 1002L
     when(formatWriter.size).thenReturn(secondSize)
@@ -70,6 +73,8 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     currentState = emsWriter.state
     currentState.records shouldBe startingRecords + 1 + 1
     currentState.fileSize shouldBe secondSize
+    currentState.startOffset shouldBe Some(Offset(10))
+    currentState.lastOffset shouldBe Offset(11)
   }
 
   test("failing to write a record does not change the state") {
@@ -78,7 +83,8 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
 
     val expected = WriterState(
       TopicPartition(new Topic("A"), new Partition(0)),
-      new Offset(-1),
+      None,
+      Offset(-1),
       None,
       10,
       1,
@@ -90,7 +96,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
       new EmsWriter("sinkA", new DefaultCommitPolicy(10000, 1000.minutes.toMillis, 10000), formatWriter, expected)
 
     val struct = buildSimpleStruct()
-    val record = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(10)))
+    val record = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), Offset(10)))
 
     val ex = new RuntimeException("throwing")
     when(formatWriter.write(any[GenericRecord])).thenThrow(ex)
@@ -110,7 +116,8 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
       formatWriter,
       WriterState(
         TopicPartition(new Topic("A"), new Partition(0)),
-        new Offset(9),
+        None,
+        Offset(9),
         None,
         startingRecords,
         startingRecords,
@@ -121,7 +128,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     )
 
     val struct  = buildSimpleStruct()
-    val record1 = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(10)))
+    val record1 = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), Offset(10)))
 
     val firstSize = startingSize + 1002L
     when(formatWriter.size).thenReturn(firstSize)
@@ -137,7 +144,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     currentState.records shouldBe startingRecords + 1
     currentState.fileSize shouldBe firstSize
 
-    val record2 = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(9)))
+    val record2 = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), Offset(9)))
 
     emsWriter.write(record2)
     currentState = emsWriter.state
@@ -155,7 +162,8 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
       formatWriter,
       WriterState(
         TopicPartition(new Topic("A"), new Partition(0)),
-        new Offset(-1),
+        None,
+        Offset(-1),
         None,
         startingRecords,
         startingRecords,
@@ -180,7 +188,8 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
       formatWriter,
       WriterState(
         TopicPartition(new Topic("A"), new Partition(0)),
-        new Offset(-1),
+        None,
+        Offset(-1),
         None,
         startingRecords,
         startingRecords,
@@ -203,7 +212,8 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
       formatWriter,
       WriterState(
         TopicPartition(new Topic("A"), new Partition(0)),
-        new Offset(-1),
+        None,
+        Offset(-1),
         None,
         startingRecords,
         startingRecords,
@@ -226,7 +236,8 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
       formatWriter,
       WriterState(
         TopicPartition(new Topic("A"), new Partition(0)),
-        new Offset(-1),
+        None,
+        Offset(-1),
         None,
         startingRecords,
         startingRecords,
@@ -237,7 +248,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     )
 
     val struct  = buildSimpleStruct()
-    val record1 = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), new Offset(10)))
+    val record1 = Record(struct, RecordMetadata(TopicPartition(new Topic("a"), new Partition(0)), Offset(10)))
 
     emsWriter.write(record1)
 
@@ -254,7 +265,8 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
       formatWriter,
       WriterState(
         TopicPartition(new Topic("A"), new Partition(0)),
-        new Offset(-1),
+        None,
+        Offset(-1),
         None,
         startingRecords,
         startingRecords,

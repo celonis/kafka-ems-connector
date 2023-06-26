@@ -29,7 +29,7 @@ class Partition(val value: Int) extends AnyVal
 object Partition {
   implicit val show: Show[Partition] = Show.show(_.value.toString)
 }
-class Offset(val value: Long) extends AnyVal {
+case class Offset(value: Long) extends AnyVal {
   def >(other: Offset): Boolean = value > other.value
 }
 
