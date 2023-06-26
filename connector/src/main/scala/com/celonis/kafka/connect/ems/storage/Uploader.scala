@@ -16,16 +16,20 @@
 
 package com.celonis.kafka.connect.ems.storage
 import cats.Show
-import cats.implicits.toShow
-import com.celonis.kafka.connect.ems.model.Offset
-import com.celonis.kafka.connect.ems.model.Partition
-import com.celonis.kafka.connect.ems.model.Topic
 
 import java.nio.file.Path
-case class UploadRequest(file: Path, topic: Topic, partition: Partition, offset: Offset)
+
+final case class UploadRequest(localFile: Path, requestFilename: String)
+
 object UploadRequest {
   implicit val show: Show[UploadRequest] =
-    Show.show(r => s"file=${r.file} topic=${r.topic.show} partition==${r.partition.show} offset=${r.offset.show}")
+    Show.show(r => s"localFile=${r.localFile} requestFilename=${r.requestFilename}")
+
+  def fromWriterState(state: WriterState): UploadRequest =
+    UploadRequest(
+      state.file,
+      s"${state.topicPartition.topic.value}_${state.topicPartition.partition.value}_${state.lastOffset.value}.parquet",
+    )
 }
 trait Uploader[F[_]] {
   def upload(request: UploadRequest): F[EmsUploadResponse]

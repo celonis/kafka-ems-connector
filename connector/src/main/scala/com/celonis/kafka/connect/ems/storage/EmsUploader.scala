@@ -60,14 +60,13 @@ class EmsUploader[F[_]](
     with StrictLogging {
 
   override def upload(uploadRequest: UploadRequest): F[EmsUploadResponse] = {
-    val fileName =
-      s"${uploadRequest.topic.value}_${uploadRequest.partition.value}_${uploadRequest.offset.value}.parquet"
 
     def uploadWithClient(client: Client[F]): F[EmsUploadResponse] = {
       val attributes = Vector(
-        Part.fileData[F](EmsUploader.FileName,
-                         fileName,
-                         Files[F].readAll(Path.fromNioPath(uploadRequest.file), ChunkSize, Flags.Read),
+        Part.fileData[F](
+          EmsUploader.FileName,
+          uploadRequest.requestFilename,
+          Files[F].readAll(Path.fromNioPath(uploadRequest.localFile), ChunkSize, Flags.Read),
         ),
       )
       val pks                                  = primaryKeys.map(nel => nel.mkString_(","))
@@ -106,19 +105,19 @@ class EmsUploader[F[_]](
       case Status.InternalServerError =>
         response.as[EmsServerErrorResponse]
           .redeemWith(
-            t => unmarshalError(t, request.file, response),
+            t => unmarshalError(t, request.localFile, response),
             { msg =>
               val error = UploadFailedException(response.status, msg.message, null)
-              genericError(error, request.file, error.msg, response)
+              genericError(error, request.localFile, error.msg, response)
             },
           )
       case Status.BadRequest =>
         response.as[EmsBadRequestResponse]
           .redeemWith(
-            t => unmarshalError(t, request.file, response),
+            t => unmarshalError(t, request.localFile, response),
             { msg =>
               val error = UploadFailedException(response.status, msg.errors.flatMap(_.error).mkString(","), null)
-              genericError(error, request.file, error.msg, response)
+              genericError(error, request.localFile, error.msg, response)
             },
           )
 
@@ -126,10 +125,10 @@ class EmsUploader[F[_]](
         // try to parse as server error response. We don't know all the response types
         response.as[EmsServerErrorResponse]
           .redeemWith(
-            t => unmarshalError(t, request.file, response),
+            t => unmarshalError(t, request.localFile, response),
             { msg =>
               val error = UploadFailedException(response.status, msg.message, null)
-              genericError(error, request.file, error.msg, response)
+              genericError(error, request.localFile, error.msg, response)
             },
           )
     }
