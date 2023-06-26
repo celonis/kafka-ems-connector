@@ -21,7 +21,7 @@ import com.celonis.kafka.connect.ems.errors.InvalidInputException
 import com.celonis.kafka.connect.ems.model.RecordMetadata
 import org.apache.avro.generic.GenericRecord
 
-class PrimaryKeysValidator(pks: List[String]) {
+class PrimaryKeysValidator(pks: List[String], allowNullsAsPks: Boolean) {
   def validate(record: GenericRecord, metadata: RecordMetadata): Either[InvalidInputException, Unit] =
     if (pks.isEmpty) ().asRight
     else {
@@ -37,7 +37,7 @@ class PrimaryKeysValidator(pks: List[String]) {
               ",",
             )} for record ${metadata.show}",
         ).asLeft
-      else {
+      else if (!allowNullsAsPks) {
         // PK values cannot be null
         val nullablePKs = pks.filter(pk => Option(record.get(pk)).isEmpty)
         if (nullablePKs.isEmpty)
@@ -46,6 +46,6 @@ class PrimaryKeysValidator(pks: List[String]) {
           InvalidInputException(
             s"Incoming record cannot has null for the following primary key(-s):${nullablePKs.mkString(",")} for record ${metadata.show}",
           ).asLeft
-      }
+      } else ().asRight
     }
 }

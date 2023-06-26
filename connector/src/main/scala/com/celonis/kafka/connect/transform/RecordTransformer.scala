@@ -77,12 +77,13 @@ object RecordTransformer {
     flattenerConfig:     Option[FlattenerConfig],
     primaryKeys:         List[String],
     obfuscation:         Option[ObfuscationConfig],
+    allowNullsAsPks:     Boolean,
     inserter:            FieldInserter): RecordTransformer =
     new RecordTransformer(
       sinkName,
       ConnectConversion.fromConfig(preConversionConfig),
       Flattener.fromConfig(flattenerConfig),
-      new PrimaryKeysValidator(primaryKeys),
+      new PrimaryKeysValidator(primaryKeys, allowNullsAsPks),
       obfuscation,
       inserter,
     )
@@ -94,6 +95,7 @@ object RecordTransformer {
       config.flattenerConfig,
       config.primaryKeys,
       config.obfuscation,
+      config.allowNullsAsPks,
       FieldInserter.embeddedKafkaMetadata(config.embedKafkaMetadata, config.orderField.name),
     )
 }

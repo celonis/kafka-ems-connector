@@ -172,6 +172,11 @@ object EmsSinkConfigConstants {
     s"Convert decimal values into doubles. Valid only for formats with schema (AVRO, Protobuf, JsonSchema)"
   val DECIMAL_CONVERSION_KEY_DEFAULT = false
 
+  val NULL_PK_KEY = s"${CONNECTOR_PREFIX}.allow.null.pk"
+  val NULL_PK_KEY_DOC =
+    s"Allow parsing messages with null values in the columns listed as primary keys. If disabled connector will fail after receiving such a message. NOTE: enabling that will cause data inconsistency issue on the EMS side."
+  val NULL_PK_KEY_DEFAULT = false
+
   val EMBED_KAFKA_EMBEDDED_METADATA_KEY = s"${CONNECTOR_PREFIX}.embed.kafka.metadata"
   val EMBED_KAFKA_EMBEDDED_METADATA_DOC =
     "Embed Kafka metadata such as partition, offset and timestamp as additional record fields."

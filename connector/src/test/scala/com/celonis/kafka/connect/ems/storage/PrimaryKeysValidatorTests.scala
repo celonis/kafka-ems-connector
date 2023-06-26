@@ -39,7 +39,7 @@ class PrimaryKeysValidatorTests extends AnyFunSuite with Matchers with MockitoSu
       List(new Schema.Field("a", SchemaBuilder.builder.stringType())).asJava,
     ))
 
-    val validator = new PrimaryKeysValidator(Nil)
+    val validator = new PrimaryKeysValidator(Nil, false)
     val metadata  = RecordMetadata(TopicPartition(new Topic("a"), new Partition(1)), new Offset(100))
     validator.validate(record, metadata) shouldBe Right(())
   }
@@ -60,7 +60,7 @@ class PrimaryKeysValidatorTests extends AnyFunSuite with Matchers with MockitoSu
       ),
     )
 
-    val validator = new PrimaryKeysValidator(List("d"))
+    val validator = new PrimaryKeysValidator(List("d"), false)
     val metadata  = RecordMetadata(TopicPartition(new Topic("a"), new Partition(1)), new Offset(100))
     validator.validate(record, metadata) shouldBe Left(
       InvalidInputException(s"Incoming record is missing these primary key(-s):d for record ${metadata.show}"),
@@ -86,11 +86,11 @@ class PrimaryKeysValidatorTests extends AnyFunSuite with Matchers with MockitoSu
     when(record.get("b")).thenReturn(true)
     when(record.get("c")).thenReturn(1)
     val metadata = RecordMetadata(TopicPartition(new Topic("a"), new Partition(1)), new Offset(100))
-    new PrimaryKeysValidator(List("c", "d")).validate(record, metadata) shouldBe Left(
+    new PrimaryKeysValidator(List("c", "d"), false).validate(record, metadata) shouldBe Left(
       InvalidInputException(s"Incoming record is missing these primary key(-s):d for record ${metadata.show}"),
     )
 
-    new PrimaryKeysValidator(List("c", "A")).validate(record, metadata) shouldBe Left(
+    new PrimaryKeysValidator(List("c", "A"), false).validate(record, metadata) shouldBe Left(
       InvalidInputException(s"Incoming record is missing these primary key(-s):A for record ${metadata.show}"),
     )
   }
@@ -115,10 +115,10 @@ class PrimaryKeysValidatorTests extends AnyFunSuite with Matchers with MockitoSu
     when(record.get("c")).thenReturn(1)
 
     val metadata = RecordMetadata(TopicPartition(new Topic("a"), new Partition(1)), new Offset(100))
-    new PrimaryKeysValidator(List("c", "a", "b")).validate(record, metadata) shouldBe Right(())
+    new PrimaryKeysValidator(List("c", "a", "b"), false).validate(record, metadata) shouldBe Right(())
   }
 
-  test("return an error when at least one of the PK is null") {
+  test("return an error when at least one of the PK is null - allow null disabled") {
     val record = mock[GenericRecord]
     when(record.getSchema).thenReturn(
       Schema.createRecord(
@@ -138,10 +138,33 @@ class PrimaryKeysValidatorTests extends AnyFunSuite with Matchers with MockitoSu
     when(record.get("c")).thenReturn(null)
 
     val metadata = RecordMetadata(TopicPartition(new Topic("a"), new Partition(1)), new Offset(100))
-    new PrimaryKeysValidator(List("c", "b")).validate(record, metadata) shouldBe Left(
+    new PrimaryKeysValidator(List("c", "b"), false).validate(record, metadata) shouldBe Left(
       InvalidInputException(
         s"Incoming record cannot has null for the following primary key(-s):c,b for record ${metadata.show}",
       ),
     )
+  }
+
+  test("accept a message with primary key being null - allow null disabled") {
+    val record = mock[GenericRecord]
+    when(record.getSchema).thenReturn(
+      Schema.createRecord(
+        "r",
+        "",
+        "ns",
+        false,
+        List(
+          new Schema.Field("a", SchemaBuilder.builder.stringType()),
+          new Schema.Field("b", SchemaBuilder.builder.booleanType()),
+          new Schema.Field("c", SchemaBuilder.builder.intType()),
+        ).asJava,
+      ),
+    )
+    when(record.get("a")).thenReturn("a")
+    when(record.get("b")).thenReturn(null)
+    when(record.get("c")).thenReturn(null)
+
+    val metadata = RecordMetadata(TopicPartition(new Topic("a"), new Partition(1)), new Offset(100))
+    new PrimaryKeysValidator(List("c", "b"), true).validate(record, metadata) shouldBe Right(())
   }
 }

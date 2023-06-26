@@ -116,20 +116,34 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
   private def chunkTransform(record: SinkRecord, maxChunks: Int, chunkSize: Int): GenericRecord = {
     val flattenerConfig = Some(FlattenerConfig(discardCollections = false, Some(JsonBlobChunks(maxChunks, chunkSize))))
     val transformer =
-      RecordTransformer.fromConfig("mySink", PreConversionConfig(false), flattenerConfig, Nil, None, FieldInserter.noop)
+      RecordTransformer.fromConfig("mySink",
+                                   PreConversionConfig(false),
+                                   flattenerConfig,
+                                   Nil,
+                                   None,
+                                   false,
+                                   FieldInserter.noop,
+      )
     transformer.transform(record).unsafeRunSync()
   }
 
   private def flattenTransform(record: SinkRecord, discardCollections: Boolean = false): GenericRecord = {
     val flattenerConfig = Some(FlattenerConfig(discardCollections = discardCollections, None))
     val transformer =
-      RecordTransformer.fromConfig("mySink", PreConversionConfig(false), flattenerConfig, Nil, None, FieldInserter.noop)
+      RecordTransformer.fromConfig("mySink",
+                                   PreConversionConfig(false),
+                                   flattenerConfig,
+                                   Nil,
+                                   None,
+                                   false,
+                                   FieldInserter.noop,
+      )
     transformer.transform(record).unsafeRunSync()
   }
 
   private def decimalConversionWithNoFlattening(record: SinkRecord): GenericRecord = {
     val transformer =
-      RecordTransformer.fromConfig("mySink", PreConversionConfig(true), None, Nil, None, FieldInserter.noop)
+      RecordTransformer.fromConfig("mySink", PreConversionConfig(true), None, Nil, None, false, FieldInserter.noop)
     transformer.transform(record).unsafeRunSync()
   }
 
