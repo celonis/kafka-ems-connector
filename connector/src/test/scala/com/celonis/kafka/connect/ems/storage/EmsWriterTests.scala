@@ -64,7 +64,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     var currentState = emsWriter.state
     currentState.records shouldBe startingRecords + 1
     currentState.fileSize shouldBe firstSize
-    currentState.startOffset shouldBe Some(Offset(10))
+    currentState.firstOffset shouldBe Some(Offset(10))
     currentState.lastOffset shouldBe Offset(10)
 
     val secondSize = firstSize + 1002L
@@ -73,7 +73,7 @@ class EmsWriterTests extends AnyFunSuite with Matchers with MockitoSugar with Sa
     currentState = emsWriter.state
     currentState.records shouldBe startingRecords + 1 + 1
     currentState.fileSize shouldBe secondSize
-    currentState.startOffset shouldBe Some(Offset(10))
+    currentState.firstOffset shouldBe Some(Offset(10))
     currentState.lastOffset shouldBe Offset(11)
   }
 

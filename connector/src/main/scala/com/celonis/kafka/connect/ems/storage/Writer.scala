@@ -37,7 +37,7 @@ trait Writer extends AutoCloseable {
 
 final case class WriterState(
   topicPartition:  TopicPartition,
-  startOffset:     Option[Offset],
+  firstOffset:     Option[Offset],
   lastOffset:      Offset,
   committedOffset: Option[Offset],
   fileSize:        Long,
@@ -49,8 +49,16 @@ final case class WriterState(
 
 object WriterState {
   implicit val show: Show[WriterState] = Show.show { state =>
-    s"${state.topicPartition.topic.show}-${state.topicPartition.partition.show}:${state.lastOffset.show} ${state.committedOffset.map(
-        _.value.toString,
-      ).getOrElse("-")} records=${state.records} fileSize=${state.fileSize} lastWrite=${state.lastWriteTs}"
+    String.format(
+      "%s-%s:%s-%s %s records=%d fileSize=%d lastWrite=%d",
+      state.topicPartition.topic.show,
+      state.topicPartition.partition.show,
+      state.firstOffset.map(_.show).getOrElse("NA"),
+      state.lastOffset.show,
+      state.committedOffset.map(_.value.toString).getOrElse("NA"),
+      state.records,
+      state.fileSize,
+      state.lastWriteTs,
+    )
   }
 }

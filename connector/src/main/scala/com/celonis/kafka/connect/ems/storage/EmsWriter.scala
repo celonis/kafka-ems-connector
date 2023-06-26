@@ -42,7 +42,7 @@ final class EmsWriter(
         fileSize    = formatWriter.size,
         records     = internalState.records + 1,
         lastOffset  = record.metadata.offset,
-        startOffset = internalState.startOffset.orElse(Some(record.metadata.offset)),
+        firstOffset = internalState.firstOffset.orElse(Some(record.metadata.offset)),
         lastWriteTs = System.currentTimeMillis(),
       )
     } else {

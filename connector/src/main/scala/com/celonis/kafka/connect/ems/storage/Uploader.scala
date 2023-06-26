@@ -28,7 +28,14 @@ object UploadRequest {
   def fromWriterState(state: WriterState): UploadRequest =
     UploadRequest(
       state.file,
-      s"${state.topicPartition.topic.value}_${state.topicPartition.partition.value}_${state.lastOffset.value}.parquet",
+      List(
+        "topic-" + state.topicPartition.topic.value,
+        "partition-" + state.topicPartition.partition.value,
+        "firstOffset-" + state.firstOffset.map(_.value.toString).getOrElse("NA"),
+        "lastOffset-" + state.lastOffset.value,
+        "bytes-" + state.fileSize,
+        "rows-" + state.records,
+      ).mkString("_") + ".parquet",
     )
 }
 trait Uploader[F[_]] {

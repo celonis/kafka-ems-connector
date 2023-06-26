@@ -60,7 +60,7 @@ class WriterBuilderImpl(
     val topicPartition = currentState.topicPartition
     val output         = fileSystem.createOutput(tempDir, sinkName, topicPartition)
     val newState = currentState.copy(
-      startOffset     = None,
+      firstOffset     = None,
       committedOffset = Some(currentState.lastOffset),
       fileSize        = 0.toLong,
       records         = 0.toLong,
