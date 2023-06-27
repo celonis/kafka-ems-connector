@@ -43,7 +43,7 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
       val output         = fsOps.createOutput(dir, sinkName, topicPartition)
       output.size shouldBe 0L
       val formatWriter =
-        ParquetFormatWriter.from(output, simpleSchemaV1, ParquetConfig.Default, new NoOpExploder().explode)
+        ParquetFormatWriter.from(output, simpleSchemaV1, ParquetConfig.default, new NoOpExploder().explode)
       formatWriter.rolloverFileOnSchemaChange() shouldBe true
       formatWriter.close()
     }
@@ -56,7 +56,7 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
       val output         = fsOps.createOutput(dir, sinkName, topicPartition)
       output.size shouldBe 0L
       val formatWriter =
-        ParquetFormatWriter.from(output, simpleSchemaV1, ParquetConfig.Default, new NoOpExploder().explode)
+        ParquetFormatWriter.from(output, simpleSchemaV1, ParquetConfig.default, new NoOpExploder().explode)
       formatWriter.size shouldBe 4L // 4 BYTES from MAGIC PAR1
     }
   }
@@ -70,7 +70,7 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
       Files.size(output.outputFile()) shouldBe 0
 
       val formatWriter =
-        ParquetFormatWriter.from(output, simpleSchemaV1, ParquetConfig.Default, new NoOpExploder().explode)
+        ParquetFormatWriter.from(output, simpleSchemaV1, ParquetConfig.default, new NoOpExploder().explode)
       val struct = buildSimpleStruct()
       formatWriter.write(struct)
       formatWriter.close()
@@ -103,7 +103,7 @@ class ParquetFormatWriterTests extends AnyFunSuite with Matchers with WorkingDir
       val normalisedValue = InferSchemaAndNormaliseValue(schemaAndValue.value()).get.normalisedValue
       val struct          = DataConverter.apply(normalisedValue).getOrElse(fail("Should convert the map"))
       val formatWriter =
-        ParquetFormatWriter.from(output, struct.getSchema, ParquetConfig.Default, new NoOpExploder().explode)
+        ParquetFormatWriter.from(output, struct.getSchema, ParquetConfig.default, new NoOpExploder().explode)
       formatWriter.write(struct)
       formatWriter.close()
       formatWriter.size > 4 shouldBe true

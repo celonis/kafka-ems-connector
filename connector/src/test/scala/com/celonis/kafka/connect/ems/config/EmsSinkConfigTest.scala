@@ -59,7 +59,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     commitPolicy           = CommitPolicyConfig(1000000L, 10.seconds.toMillis, 1000),
     retries                = RetryConfig(10, 1000),
     workingDir             = new File(UUID.randomUUID().toString).toPath,
-    parquet                = ParquetConfig.Default,
+    parquet                = ParquetConfig.default,
     primaryKeys            = List("a", "b"),
     fallbackVarCharLengths = Some(512),
     obfuscation            = None,
@@ -135,11 +135,11 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     }
   }
 
-  test(s"returns default if $PARQUET_FLUSH_KEY is missing") {
-    withMissingConfig(PARQUET_FLUSH_KEY) {
+  test(s"returns default if $PARQUET_ROW_GROUP_SIZE_BYTES_KEY is missing") {
+    withMissingConfig(PARQUET_ROW_GROUP_SIZE_BYTES_KEY) {
       case Left(_) => fail("should not fail")
       case Right(value) =>
-        value.parquet.rowGroupSize shouldBe PARQUET_FLUSH_DEFAULT
+        value.parquet.rowGroupSize shouldBe PARQUET_ROW_GROUP_SIZE_BYTES_DEFAULT
         ()
     }
   }
