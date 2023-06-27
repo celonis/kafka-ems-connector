@@ -145,7 +145,7 @@ class PrimaryKeysValidatorTests extends AnyFunSuite with Matchers with MockitoSu
     )
   }
 
-  test("accept a message with primary key being null - allow null disabled") {
+  test("accept a message with primary key being null - allow null enabled") {
     val record = mock[GenericRecord]
     when(record.getSchema).thenReturn(
       Schema.createRecord(
