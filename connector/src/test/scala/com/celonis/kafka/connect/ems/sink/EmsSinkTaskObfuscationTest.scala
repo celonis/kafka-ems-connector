@@ -73,6 +73,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         None,
         embedKafkaMetadata    = false,
         useInMemoryFileSystem = false,
+        allowNullsAsPks       = false,
       )
       val config = Map(
         ENDPOINT_KEY                -> sinkConfig.url.toString,

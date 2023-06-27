@@ -70,6 +70,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     flattenerConfig        = None,
     embedKafkaMetadata     = true,
     useInMemoryFileSystem  = false,
+    allowNullsAsPks        = false,
   )
 
   test(s"parse the configuration from properties") {

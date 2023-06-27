@@ -24,5 +24,7 @@ final case class PreConversionConfig(convertDecimalsToFloat: Boolean)
 
 object PreConversionConfig {
   def extract(props: Map[String, _]): PreConversionConfig =
-    PreConversionConfig(getBoolean(props, DECIMAL_CONVERSION_KEY).getOrElse(DECIMAL_CONVERSION_KEY_DEFAULT))
+    PreConversionConfig(
+      getBoolean(props, DECIMAL_CONVERSION_KEY).getOrElse(DECIMAL_CONVERSION_KEY_DEFAULT),
+    )
 }

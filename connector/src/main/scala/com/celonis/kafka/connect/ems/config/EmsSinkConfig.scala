@@ -49,6 +49,7 @@ final case class EmsSinkConfig(
   flattenerConfig:        Option[FlattenerConfig],
   embedKafkaMetadata:     Boolean,
   useInMemoryFileSystem:  Boolean,
+  allowNullsAsPks:        Boolean,
 )
 
 object EmsSinkConfig {
@@ -104,6 +105,7 @@ object EmsSinkConfig {
       commitPolicy          <- CommitPolicyConfig.extract(props)
       retry                 <- RetryConfig.extractRetry(props)
       useInMemoryFs          = PropertiesHelper.getBoolean(props, USE_IN_MEMORY_FS_KEY).getOrElse(USE_IN_MEMORY_FS_DEFAULT)
+      allowNullsAsPks        = PropertiesHelper.getBoolean(props, NULL_PK_KEY).getOrElse(NULL_PK_KEY_DEFAULT)
       tempDir               <- if (useInMemoryFs) Right(FileSystemOperations.InMemoryPseudoDir) else extractWorkingDirectory(props)
       parquetConfig         <- ParquetConfig.extract(props, useInMemoryFs)
       primaryKeys           <- extractPrimaryKeys(props)
@@ -139,5 +141,6 @@ object EmsSinkConfig {
       flattenerConfig,
       includeEmbeddedMetadata,
       useInMemoryFs,
+      allowNullsAsPks,
     )
 }

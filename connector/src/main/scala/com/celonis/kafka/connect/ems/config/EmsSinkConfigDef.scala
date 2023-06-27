@@ -361,6 +361,13 @@ object EmsSinkConfigDef {
       DECIMAL_CONVERSION_KEY_DOC,
     )
     .define(
+      NULL_PK_KEY,
+      Type.BOOLEAN,
+      NULL_PK_KEY_DEFAULT,
+      Importance.MEDIUM,
+      NULL_PK_KEY_DOC,
+    )
+    .define(
       FLATTENER_ENABLE_KEY,
       Type.BOOLEAN,
       FLATTENER_ENABLE_DEFAULT,
