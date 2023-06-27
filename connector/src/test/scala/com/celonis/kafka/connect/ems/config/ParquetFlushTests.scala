@@ -16,27 +16,27 @@
 
 package com.celonis.kafka.connect.ems.config
 
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_DEFAULT
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_FLUSH_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_ROW_GROUP_SIZE_BYTES_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.PARQUET_ROW_GROUP_SIZE_BYTES_KEY
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 class ParquetFlushTests extends AnyFunSuite with Matchers {
   test(s"return defaults if retry keys are missing") {
-    ParquetConfig.extractParquetFlushRecords(Map.empty) shouldBe Right(PARQUET_FLUSH_DEFAULT)
+    ParquetConfig.extractParquetRowGroupSize(Map.empty) shouldBe Right(PARQUET_ROW_GROUP_SIZE_BYTES_DEFAULT)
   }
 
   test(s"return the given value") {
     val expected = 11111
-    ParquetConfig.extractParquetFlushRecords(Map(PARQUET_FLUSH_KEY -> expected)) shouldBe Right(expected)
-    ParquetConfig.extractParquetFlushRecords(Map(PARQUET_FLUSH_KEY -> expected)) shouldBe Right(expected)
+    ParquetConfig.extractParquetRowGroupSize(Map(PARQUET_ROW_GROUP_SIZE_BYTES_KEY -> expected)) shouldBe Right(expected)
+    ParquetConfig.extractParquetRowGroupSize(Map(PARQUET_ROW_GROUP_SIZE_BYTES_KEY -> expected)) shouldBe Right(expected)
   }
 
   test(s"return an error if the value is smaller than 1") {
     val message =
-      s"Invalid [$PARQUET_FLUSH_KEY]. The number of records to flush the parquet file needs to be greater or equal to 1."
-    ParquetConfig.extractParquetFlushRecords(Map(PARQUET_FLUSH_KEY -> 0)) shouldBe Left(message)
+      s"Invalid [$PARQUET_ROW_GROUP_SIZE_BYTES_KEY]. The parquet row group size must be at least 1."
+    ParquetConfig.extractParquetRowGroupSize(Map(PARQUET_ROW_GROUP_SIZE_BYTES_KEY -> 0)) shouldBe Left(message)
 
-    ParquetConfig.extractParquetFlushRecords(Map(PARQUET_FLUSH_KEY -> -2)) shouldBe Left(message)
+    ParquetConfig.extractParquetRowGroupSize(Map(PARQUET_ROW_GROUP_SIZE_BYTES_KEY -> -2)) shouldBe Left(message)
   }
 }

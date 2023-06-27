@@ -156,15 +156,15 @@ object EmsSinkConfigDef {
       ERROR_RETRY_INTERVAL,
     )
     .define(
-      PARQUET_FLUSH_KEY,
+      PARQUET_ROW_GROUP_SIZE_BYTES_KEY,
       Type.INT,
-      PARQUET_FLUSH_DEFAULT,
+      PARQUET_ROW_GROUP_SIZE_BYTES_DEFAULT,
       Importance.MEDIUM,
-      PARQUET_FLUSH_DOC,
+      PARQUET_ROW_GROUP_SIZE_BYTES_DOC,
       "Parquet",
       1,
       ConfigDef.Width.LONG,
-      PARQUET_FLUSH_KEY,
+      PARQUET_ROW_GROUP_SIZE_BYTES_KEY,
     )
     .define(
       DEBUG_KEEP_TMP_FILES_KEY,

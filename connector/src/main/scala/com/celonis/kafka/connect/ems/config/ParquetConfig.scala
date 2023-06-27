@@ -25,10 +25,11 @@ import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
 case class ParquetConfig(rowGroupSize: Int, cleanup: ParquetFileCleanup)
 
 object ParquetConfig {
-  val Default: ParquetConfig = ParquetConfig(1000, ParquetFileCleanupDelete)
+  val default: ParquetConfig =
+    ParquetConfig(EmsSinkConfigConstants.PARQUET_ROW_GROUP_SIZE_BYTES_DEFAULT, ParquetFileCleanupDelete)
 
   def extract(props: Map[String, _], useInMemFs: Boolean): Either[String, ParquetConfig] =
-    ParquetConfig.extractParquetFlushRecords(props).map { rowGroupSize =>
+    ParquetConfig.extractParquetRowGroupSize(props).map { rowGroupSize =>
       val keepParquetFiles = booleanOr(props, DEBUG_KEEP_TMP_FILES_KEY, DEBUG_KEEP_TMP_FILES_DOC)
         .getOrElse(DEBUG_KEEP_TMP_FILES_DEFAULT)
       ParquetConfig(
@@ -37,12 +38,12 @@ object ParquetConfig {
       )
     }
 
-  def extractParquetFlushRecords(props: Map[String, _]): Either[String, Int] =
-    PropertiesHelper.getInt(props, PARQUET_FLUSH_KEY) match {
+  def extractParquetRowGroupSize(props: Map[String, _]): Either[String, Int] =
+    PropertiesHelper.getInt(props, PARQUET_ROW_GROUP_SIZE_BYTES_KEY) match {
       case Some(value) =>
         if (value < 1)
-          error(PARQUET_FLUSH_KEY, "The number of records to flush the parquet file needs to be greater or equal to 1.")
+          error(PARQUET_ROW_GROUP_SIZE_BYTES_KEY, "The parquet row group size must be at least 1.")
         else value.asRight[String]
-      case None => PARQUET_FLUSH_DEFAULT.asRight
+      case None => PARQUET_ROW_GROUP_SIZE_BYTES_DEFAULT.asRight
     }
 }
