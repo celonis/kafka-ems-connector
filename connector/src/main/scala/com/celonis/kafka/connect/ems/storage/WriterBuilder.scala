@@ -60,7 +60,8 @@ class WriterBuilderImpl(
     val topicPartition = currentState.topicPartition
     val output         = fileSystem.createOutput(tempDir, sinkName, topicPartition)
     val newState = currentState.copy(
-      committedOffset = Some(currentState.offset),
+      firstOffset     = None,
+      committedOffset = Some(currentState.lastOffset),
       fileSize        = 0.toLong,
       records         = 0.toLong,
       lastWriteTs     = System.currentTimeMillis(),
@@ -83,6 +84,7 @@ class WriterBuilderImpl(
       ParquetFormatWriter.from(output, explode.explodeSchema(record.value.getSchema), parquet, explode.toExplodeFn)
     val state = WriterState(
       record.metadata.topicPartition,
+      None,
       // creates the state from the record. the data hasn't been yet written
       // The connector uses this to filter out records which were processed
       new Offset(record.metadata.offset.value - 1),

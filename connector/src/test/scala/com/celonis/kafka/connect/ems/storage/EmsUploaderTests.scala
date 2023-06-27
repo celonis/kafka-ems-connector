@@ -23,9 +23,6 @@ import cats.syntax.option._
 import com.celonis.kafka.connect.ems.config.BasicAuthentication
 import com.celonis.kafka.connect.ems.config.UnproxiedHttpClientConfig
 import com.celonis.kafka.connect.ems.errors.UploadFailedException
-import com.celonis.kafka.connect.ems.model.Offset
-import com.celonis.kafka.connect.ems.model.Partition
-import com.celonis.kafka.connect.ems.model.Topic
 import org.http4s.Status.Forbidden
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -102,11 +99,11 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
               None,
             ),
           )
-          response <- uploader.upload(UploadRequest(file, new Topic("a"), new Partition(0), new Offset(100)))
+          response <- uploader.upload(UploadRequest(file, "a_filename.parquet"))
           map      <- mapRef.get
         } yield {
           response shouldBe expectedResponse
-          map("a_0_100.parquet") shouldBe fileContent
+          map("a_filename.parquet") shouldBe fileContent
         }
     }.unsafeRunSync()
   }
@@ -157,7 +154,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
               None,
             ),
           )
-          e <- uploader.upload(UploadRequest(file.toPath, new Topic("a"), new Partition(0), new Offset(100))).attempt
+          e <- uploader.upload(UploadRequest(file.toPath, "a_filename.parquet")).attempt
         } yield {
           e match {
             case Left(value) =>
@@ -221,11 +218,11 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
               None,
             ),
           )
-          response <- uploader.upload(UploadRequest(file.toPath, new Topic("a"), new Partition(0), new Offset(100)))
+          response <- uploader.upload(UploadRequest(file.toPath, "a_filename.parquet"))
           map      <- mapRef.get
         } yield {
           response shouldBe expectedResponse
-          map("a_0_100.parquet") shouldBe fileContent
+          map("a_filename.parquet") shouldBe fileContent
         }
     }.unsafeRunSync()
   }
@@ -280,11 +277,11 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
               None,
             ),
           )
-          response <- uploader.upload(UploadRequest(file.toPath, new Topic("a"), new Partition(0), new Offset(100)))
+          response <- uploader.upload(UploadRequest(file.toPath, "a_filename.parquet"))
           map      <- mapRef.get
         } yield {
           response shouldBe expectedResponse
-          map("a_0_100.parquet") shouldBe fileContent
+          map("a_filename.parquet") shouldBe fileContent
         }
     }.unsafeRunSync()
   }
