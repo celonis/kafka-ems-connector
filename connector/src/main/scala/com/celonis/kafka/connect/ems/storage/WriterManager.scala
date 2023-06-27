@@ -78,21 +78,24 @@ final class WriterManager[F[_]](
     if (state.records == 0) A.pure(None)
     else {
       for {
-        _   <- A.delay(writer.close())
-        file = writer.state.file
+        _       <- A.delay(writer.close())
+        file     = writer.state.file
+        fileSize = Files.size(file)
         _ <- A.delay(
           logger.info(
-            s"Uploading file:$file size:${Files.size(file)} for topic-partition:${TopicPartition.show.show(state.topicPartition)} and offset:${state.lastOffset.show}",
+            s"Uploading file:$file size:$fileSize for topic-partition:${TopicPartition.show.show(state.topicPartition)} and offset:${state.lastOffset.show}",
           ),
         )
-        uploadRequest = UploadRequest.fromWriterState(writer.state)
-        _            <- A.delay(logger.info(s"Request:${UploadRequest.show.show(uploadRequest)}"))
-        response     <- uploader.upload(uploadRequest)
-        _            <- A.delay(logger.info(s"Received ${response.asJson.noSpaces} for uploading file:$file"))
-        _            <- A.delay(fileCleanup.clean(file, state.lastOffset))
-        newWriter    <- A.delay(buildFn)
-        _            <- A.delay(logger.debug("Creating a new writer for [{}]", writer.state.show))
-        _            <- setWriter(writer.state.topicPartition, newWriter)
+        // we have a bug in how we keep track of the file size in the writer, it is updated only when there is a row flush
+        stateWithSizeFixed = writer.state.copy(fileSize = fileSize)
+        uploadRequest      = UploadRequest.fromWriterState(stateWithSizeFixed)
+        _                 <- A.delay(logger.info(s"Request:${UploadRequest.show.show(uploadRequest)}"))
+        response          <- uploader.upload(uploadRequest)
+        _                 <- A.delay(logger.info(s"Received ${response.asJson.noSpaces} for uploading file:$file"))
+        _                 <- A.delay(fileCleanup.clean(file, state.lastOffset))
+        newWriter         <- A.delay(buildFn)
+        _                 <- A.delay(logger.debug("Creating a new writer for [{}]", writer.state.show))
+        _                 <- setWriter(writer.state.topicPartition, newWriter)
       } yield CommitWriterResult(
         newWriter,
         TopicPartitionOffset(writer.state.topicPartition.topic,

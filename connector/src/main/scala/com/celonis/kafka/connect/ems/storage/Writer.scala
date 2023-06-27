@@ -50,7 +50,7 @@ final case class WriterState(
 object WriterState {
   implicit val show: Show[WriterState] = Show.show { state =>
     String.format(
-      "%s-%s:%s-%s %s records=%d fileSize=%d lastWrite=%d",
+      "%s-%s: firstOffset:%s lastOffset:%s committedOffset:%s records=%d fileSize=%d lastWrite=%d",
       state.topicPartition.topic.show,
       state.topicPartition.partition.show,
       state.firstOffset.map(_.show).getOrElse("NA"),
