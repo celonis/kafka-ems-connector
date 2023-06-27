@@ -31,16 +31,19 @@ import scala.language.postfixOps
 
 class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with SampleData with Matchers {
   test("generate parquet file with obfuscated fields") {
-    val emsConnector = new EmsConnectorConfiguration("ems")
-      .withConfig(ENDPOINT_KEY, proxyServerUrl)
-      .withConfig(AUTHORIZATION_KEY, "AppKey key")
-      .withConfig(COMMIT_RECORDS_KEY, 1)
-      .withConfig(COMMIT_SIZE_KEY, 1000000L)
-      .withConfig(COMMIT_INTERVAL_KEY, 3600000)
-      .withConfig(TMP_DIRECTORY_KEY, "/tmp/")
-      .withConfig(SHA512_SALT_KEY, "something")
-      .withConfig(OBFUSCATED_FIELDS_KEY, "field1")
-      .withConfig(OBFUSCATION_TYPE_KEY, "shA512")
+    val emsConnector =
+      new EmsConnectorConfiguration("ems")
+        .withConfig(ENDPOINT_KEY, proxyServerUrl)
+        .withConfig(AUTHORIZATION_KEY, "AppKey key")
+        .withConfig(COMMIT_RECORDS_KEY, 1)
+        .withConfig(COMMIT_SIZE_KEY, 1000000L)
+        .withConfig(COMMIT_INTERVAL_KEY, 3600000)
+        .withConfig(TMP_DIRECTORY_KEY, "/tmp/")
+        .withConfig(SHA512_SALT_KEY, "something")
+        .withConfig(OBFUSCATED_FIELDS_KEY, "field1")
+        .withConfig(OBFUSCATION_TYPE_KEY, "shA512")
+        // This has been renamed and should be ignored and not make the connector registration fail
+        .withConfig("connect.ems.parquet.write.flush.records", 1)
 
     val randomInt = scala.util.Random.nextInt()
     val expectations = List(

@@ -228,6 +228,11 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     parseProperties(properties) shouldBe Right(expected)
   }
 
+  test("config properties not defined in config def are ignored") {
+    val properties = propertiesFromConfig(anEmsSinkConfig).updated("a.non.defined.property.key", "whatever")
+    parseProperties(properties) shouldBe Right(anEmsSinkConfig)
+  }
+
   private def parseProperties(properties: Map[String, _]): Either[String, EmsSinkConfig] = {
     val parsedProps = Try(EmsSinkConfigDef.config.parse(
       properties.view.mapValues(_.toString).toMap.asJava,
