@@ -56,7 +56,7 @@ object EmsSinkConfigConstants {
   val COMMIT_INTERVAL_DOC: String =
     s"The time interval in milliseconds to upload the data to EMS if the other two commit policies are not yet applicable."
 
-  val PARQUET_ROW_GROUP_SIZE_BYTES_KEY:     String = s"$CONNECTOR_PREFIX.parquet.write.flush.records"
+  val PARQUET_ROW_GROUP_SIZE_BYTES_KEY:     String = s"$CONNECTOR_PREFIX.parquet.row.group.size.bytes"
   val PARQUET_ROW_GROUP_SIZE_BYTES_DEFAULT: Int    = 1024 * 1024
   val PARQUET_ROW_GROUP_SIZE_BYTES_DOC: String =
     s"""

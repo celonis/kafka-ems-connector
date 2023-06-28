@@ -84,7 +84,6 @@ connect.ems.authorization.key="AppKey ***"
 connect.ems.error.policy=RETRY
 connect.ems.max.retries=20
 connect.ems.retry.interval=60000
-connect.ems.parquet.write.flush.records=1000
 connect.ems.debug.keep.parquet.files=false
 ```
 The full list of configuration keys can be found in the wiki.
