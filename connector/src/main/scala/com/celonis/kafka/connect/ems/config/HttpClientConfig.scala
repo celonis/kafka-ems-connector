@@ -31,6 +31,7 @@ import java.net.Proxy
 import java.net.Proxy.{ Type => JavaProxyType }
 import java.net.{ Authenticator => JavaAuthenticator }
 import java.util.Base64
+import java.util.concurrent.TimeUnit
 
 case class BasicAuthentication(
   username: String,
@@ -55,7 +56,7 @@ sealed trait HttpClientConfig {
 
   final def createHttpClient(): OkHttpClient = {
     val builder = new OkHttpClient.Builder().connectionPool(getPoolingConfig().toConnectionPool())
-    customiseHttpClient(builder).build()
+    customiseHttpClient(builder).callTimeout(1, TimeUnit.MINUTES).build()
   }
 
   protected def customiseHttpClient(builder: OkHttpClient.Builder): OkHttpClient.Builder = builder
