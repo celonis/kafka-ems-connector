@@ -209,7 +209,9 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     (for {
       _ <- IO(logger.debug(s"[{}] EmsSinkTask.Stop", sinkName))
       _ <- Option(writerManager).fold(IO(()))(_.close)
+      _ <- Option(okHttpClient).fold(IO(()))(c => IO(c.dispatcher().executorService().shutdown()))
       _ <- Option(okHttpClient).fold(IO(()))(c => IO(c.connectionPool().evictAll()))
+      _ <- Option(okHttpClient).fold(IO(()))(c => IO(c.cache().close()))
     } yield ()).attempt.unsafeRunSync() match {
       case Left(value) =>
         logger.warn(s"[$sinkName]There was an error stopping the EmsSinkTask", value)

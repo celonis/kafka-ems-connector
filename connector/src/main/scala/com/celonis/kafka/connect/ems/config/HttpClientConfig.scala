@@ -56,7 +56,7 @@ sealed trait HttpClientConfig {
 
   final def createHttpClient(): OkHttpClient = {
     val builder = new OkHttpClient.Builder().connectionPool(getPoolingConfig().toConnectionPool())
-    customiseHttpClient(builder).callTimeout(1, TimeUnit.MINUTES).build()
+    customiseHttpClient(builder).callTimeout(90, TimeUnit.SECONDS).build()
   }
 
   protected def customiseHttpClient(builder: OkHttpClient.Builder): OkHttpClient.Builder = builder
