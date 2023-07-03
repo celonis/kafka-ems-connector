@@ -97,6 +97,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
               None,
               UnproxiedHttpClientConfig(defaultPoolingConfig),
               None,
+              UnproxiedHttpClientConfig(defaultPoolingConfig).createHttpClient(),
             ),
           )
           response <- uploader.upload(UploadRequest(file, "a_filename.parquet"))
@@ -152,6 +153,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
               None,
               UnproxiedHttpClientConfig(defaultPoolingConfig),
               None,
+              UnproxiedHttpClientConfig(defaultPoolingConfig).createHttpClient(),
             ),
           )
           e <- uploader.upload(UploadRequest(file.toPath, "a_filename.parquet")).attempt
@@ -216,6 +218,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
               None,
               ProxiedHttpClientConfig(defaultPoolingConfig, "localhost", proxyPort, ProxyType.Http, None),
               None,
+              UnproxiedHttpClientConfig(defaultPoolingConfig).createHttpClient(),
             ),
           )
           response <- uploader.upload(UploadRequest(file.toPath, "a_filename.parquet"))
@@ -275,6 +278,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
               None,
               ProxiedHttpClientConfig(defaultPoolingConfig, "localhost", proxyPort, ProxyType.Http, proxyAuth),
               None,
+              UnproxiedHttpClientConfig(defaultPoolingConfig).createHttpClient(),
             ),
           )
           response <- uploader.upload(UploadRequest(file.toPath, "a_filename.parquet"))

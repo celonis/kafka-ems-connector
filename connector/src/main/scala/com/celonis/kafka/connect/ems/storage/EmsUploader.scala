@@ -52,6 +52,7 @@ class EmsUploader[F[_]](
   primaryKeys:           Option[NonEmptyList[String]],
   proxyConfig:           HttpClientConfig,
   maybeOrderFieldName:   Option[String],
+  okHttpClient:          OkHttpClient,
 )(
   implicit
   A: Async[F],
@@ -85,7 +86,7 @@ class EmsUploader[F[_]](
       } yield response
     }
 
-    createHttpClient(proxyConfig.createHttpClient()).use(uploadWithClient)
+    createHttpClient(okHttpClient).use(uploadWithClient)
   }
 
   def createHttpClient(

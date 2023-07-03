@@ -32,30 +32,26 @@ import com.celonis.kafka.connect.ems.storage.WriterManager
 import com.celonis.kafka.connect.ems.utils.Version
 import com.celonis.kafka.connect.transform.RecordTransformer
 import com.typesafe.scalalogging.StrictLogging
+import okhttp3.OkHttpClient
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicInteger
-import scala.concurrent.ExecutionContext
-import scala.concurrent.ExecutionContextExecutor
 import scala.jdk.CollectionConverters._
 
 class EmsSinkTask extends SinkTask with StrictLogging {
 
-  private var blockingExecutionContext: BlockingExecutionContext = _
-  private var writerManager:            WriterManager[IO]        = _
-  private var sinkName:                 String                   = _
+  private var writerManager: WriterManager[IO] = _
+  private var sinkName:      String            = _
 
   private var maxRetries:          Int                 = 0
   private var retriesLeft:         Int                 = maxRetries
   private var errorPolicy:         ErrorPolicy         = ErrorPolicy.Retry
   private var transformer:         RecordTransformer   = _
   private val emsSinkConfigurator: EmsSinkConfigurator = new DefaultEmsSinkConfigurator
+  private var okHttpClient:        OkHttpClient        = _
 
   override def version(): String = Version.implementationVersion
 
@@ -69,11 +65,11 @@ class EmsSinkTask extends SinkTask with StrictLogging {
       com.celonis.kafka.connect.BuildInfo.gitHeadCommit,
     )
     val config: EmsSinkConfig = emsSinkConfigurator.getEmsSinkConfig(props)
+    okHttpClient = config.http.createHttpClient()
 
     maybeSetErrorInterval(config)
 
     val writers = Ref.unsafe[IO, Map[TopicPartition, Writer]](Map.empty)
-    blockingExecutionContext = BlockingExecutionContext("io-http-blocking")
 
     writerManager = {
       val fileSystemOperations =
@@ -97,6 +93,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
           else None,
           config.http,
           config.orderField.name,
+          okHttpClient,
         ),
         writers,
         fileSystemOperations,
@@ -212,14 +209,15 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     (for {
       _ <- IO(logger.debug(s"[{}] EmsSinkTask.Stop", sinkName))
       _ <- Option(writerManager).fold(IO(()))(_.close)
-      _ <- Option(blockingExecutionContext).fold(IO(()))(ec => IO(ec.close()))
+      _ <- Option(okHttpClient).fold(IO(()))(c => IO(c.dispatcher().executorService().shutdown()))
+      _ <- Option(okHttpClient).fold(IO(()))(c => IO(c.connectionPool().evictAll()))
+      _ <- Option(okHttpClient).fold(IO(()))(c => IO(c.cache().close()))
     } yield ()).attempt.unsafeRunSync() match {
       case Left(value) =>
         logger.warn(s"[$sinkName]There was an error stopping the EmsSinkTask", value)
       case Right(_) =>
     }
-    blockingExecutionContext = null
-    writerManager            = null
+    writerManager = null
   }
 
   private def maybeSetErrorInterval(config: EmsSinkConfig): Unit =
@@ -228,21 +226,4 @@ class EmsSinkTask extends SinkTask with StrictLogging {
       case Retry => Option(context).foreach(_.timeout(config.retries.interval))
       case _     =>
     }
-
-  class BlockingExecutionContext private (executor: ExecutorService) extends AutoCloseable {
-    val executionContext: ExecutionContextExecutor = ExecutionContext.fromExecutor(executor)
-    override def close(): Unit                     = executor.shutdown()
-  }
-  private object BlockingExecutionContext {
-    def apply(threadPrefix: String): BlockingExecutionContext = {
-      val threadCount = new AtomicInteger(0)
-      val executor: ExecutorService = Executors.newCachedThreadPool { (r: Runnable) =>
-        val t = new Thread(r)
-        t.setName(s"$threadPrefix-${threadCount.getAndIncrement()}")
-        t.setDaemon(true)
-        t
-      }
-      new BlockingExecutionContext(executor)
-    }
-  }
 }
