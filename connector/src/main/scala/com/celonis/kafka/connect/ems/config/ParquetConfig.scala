@@ -21,15 +21,16 @@ import com.celonis.kafka.connect.ems.config.PropertiesHelper._
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanup
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
+import com.typesafe.scalalogging.StrictLogging
 
 case class ParquetConfig(rowGroupSize: Int, cleanup: ParquetFileCleanup)
 
-object ParquetConfig {
+object ParquetConfig extends StrictLogging {
   val default: ParquetConfig =
     ParquetConfig(EmsSinkConfigConstants.PARQUET_ROW_GROUP_SIZE_BYTES_DEFAULT, ParquetFileCleanupDelete)
 
-  def extract(props: Map[String, _], useInMemFs: Boolean): Either[String, ParquetConfig] =
-    ParquetConfig.extractParquetRowGroupSize(props).map { rowGroupSize =>
+  def extract(props: Map[String, _], useInMemFs: Boolean, commitPolicyFileSize: Long): Either[String, ParquetConfig] =
+    ParquetConfig.extractParquetRowGroupSize(props, commitPolicyFileSize).map { rowGroupSize =>
       val keepParquetFiles = booleanOr(props, DEBUG_KEEP_TMP_FILES_KEY, DEBUG_KEEP_TMP_FILES_DOC)
         .getOrElse(DEBUG_KEEP_TMP_FILES_DEFAULT)
       ParquetConfig(
@@ -38,12 +39,18 @@ object ParquetConfig {
       )
     }
 
-  def extractParquetRowGroupSize(props: Map[String, _]): Either[String, Int] =
+  def extractParquetRowGroupSize(props: Map[String, _], commitPolicyFileSize: Long): Either[String, Int] =
     PropertiesHelper.getInt(props, PARQUET_ROW_GROUP_SIZE_BYTES_KEY) match {
-      case Some(value) =>
+      case Some(value) => {
         if (value < 1)
           error(PARQUET_ROW_GROUP_SIZE_BYTES_KEY, "The parquet row group size must be at least 1.")
-        else value.asRight[String]
+        else if (value > commitPolicyFileSize) {
+          logger.warn(
+            s"Supplied value for $PARQUET_ROW_GROUP_SIZE_BYTES_KEY conflicts with $COMMIT_SIZE_KEY (i.e. $value > $commitPolicyFileSize ). Overriding to $commitPolicyFileSize",
+          )
+          commitPolicyFileSize.toInt.asRight
+        } else value.asRight[String]
+      }
       case None => PARQUET_ROW_GROUP_SIZE_BYTES_DEFAULT.asRight
     }
 }

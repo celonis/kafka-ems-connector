@@ -57,7 +57,7 @@ object EmsSinkConfigConstants {
     s"The time interval in milliseconds to upload the data to EMS if the other two commit policies are not yet applicable."
 
   val PARQUET_ROW_GROUP_SIZE_BYTES_KEY:     String = s"$CONNECTOR_PREFIX.parquet.row.group.size.bytes"
-  val PARQUET_ROW_GROUP_SIZE_BYTES_DEFAULT: Int    = 1024 * 1024
+  val PARQUET_ROW_GROUP_SIZE_BYTES_DEFAULT: Int    = 10 * 1024 // 1024
   val PARQUET_ROW_GROUP_SIZE_BYTES_DOC: String =
     s"""
        |The number of bytes of the row groups in the Parquet file.

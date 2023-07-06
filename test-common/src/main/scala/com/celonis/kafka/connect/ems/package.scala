@@ -37,10 +37,12 @@ package object ems {
       |""".stripMargin,
   )
 
-  def emsRequestForTable(tableName: String, path: String = "/"): HttpRequest = HttpRequest.request()
-    .withMethod("POST")
-    .withPath(path)
-    .withQueryStringParameter("targetName", tableName)
+  def emsRequestForTable(tableName: String, path: String = "/"): HttpRequest =
+    HttpRequest
+      .request()
+      .withMethod("POST")
+      .withPath(path)
+      .withQueryStringParameter("targetName", tableName)
 
   def randomTopicName(): String = "topic-" + UUID.randomUUID()
 

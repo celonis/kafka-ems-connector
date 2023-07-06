@@ -25,7 +25,7 @@ object CommitPolicyConfig {
   def extract(props: Map[String, _]): Either[String, CommitPolicyConfig] =
     for {
       size <- longOr(props, COMMIT_SIZE_KEY, COMMIT_SIZE_DOC).flatMap { l =>
-        if (l < 1000000L) error(COMMIT_SIZE_KEY, "Flush size needs to be at least 1000000 (1 MB).")
+        if (l < 100_000L) error(COMMIT_SIZE_KEY, "Flush size needs to be at least 100000 (100 KB).")
         else l.asRight[String]
       }
       records <- longOr(props, COMMIT_RECORDS_KEY, COMMIT_RECORDS_DOC).flatMap { l =>
