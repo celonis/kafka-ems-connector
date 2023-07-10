@@ -71,7 +71,7 @@ class CommitPolicyConfigTests extends AnyFunSuite with Matchers {
 
   test(s"return an error if $COMMIT_SIZE_KEY is less than 100KB") {
     val expectedMessage =
-      s"Invalid [$COMMIT_SIZE_KEY]. Flush size needs to be at least 100000 (1OO KB)."
+      s"Invalid [$COMMIT_SIZE_KEY]. Flush size needs to be at least 100000 (100 KB)."
 
     CommitPolicyConfig.extract(
       Map(COMMIT_RECORDS_KEY -> 1000, COMMIT_SIZE_KEY -> 1L, COMMIT_INTERVAL_KEY -> 3600000),
