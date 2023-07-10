@@ -41,7 +41,7 @@ class EmsSinkConfiguratorTest extends AnyFunSuite with Matchers {
     emsSinkConfigurator.getSinkName(Collections.emptyMap()) shouldBe "MissingSinkName"
   }
 
-  test(s"throws exception when $COMMIT_SIZE_KEY less than 1MB") {
+  test(s"throws exception when $COMMIT_SIZE_KEY less than 100KB") {
     val props = Map(
       "name"                                     -> "ems",
       EmsSinkConfigConstants.ENDPOINT_KEY        -> "https://celonis.cloud",
@@ -55,7 +55,7 @@ class EmsSinkConfiguratorTest extends AnyFunSuite with Matchers {
     ).asJava
 
     val thrown = the[ConnectException] thrownBy emsSinkConfigurator.getEmsSinkConfig(props)
-    thrown.getMessage should include regex "^.*Flush size needs to be at least 1000000.*$"
+    thrown.getMessage should include regex "^.*Flush size needs to be at least 100000.*$"
   }
 
   test(s"throws exception when $COMMIT_RECORDS_KEY is negative") {
