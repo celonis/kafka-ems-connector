@@ -35,7 +35,10 @@ object PropertiesHelper {
     }
 
   def getInt(props: Map[String, _], key: String): Option[Int] =
-    props.get(key).flatMap(Option(_)).collect { case i: Int => i }
+    props.get(key).flatMap(Option(_)).collect {
+      case i: Int                              => i
+      case s: String if Try(s.toInt).isSuccess => s.toInt
+    }
 
   def getPassword(props: Map[String, _], key: String): Option[String] =
     props.get(key).flatMap(Option(_)).collect {
