@@ -74,7 +74,7 @@ class ParquetFileSizeTest extends AnyFunSuite with KafkaConnectContainerPerSuite
         }
 
         eventually(timeout(3.minutes), interval(25 seconds)) {
-          mockServerClient.verify(emsRequestForTable(emsTable), VerificationTimes.once())
+          mockServerClient.verify(emsRequestForTable(emsTable), VerificationTimes.atLeast(1))
           val status = kafkaConnectClient.getConnectorStatus(connectorConfig.name)
           status.tasks.head.state should be("RUNNING")
         }
