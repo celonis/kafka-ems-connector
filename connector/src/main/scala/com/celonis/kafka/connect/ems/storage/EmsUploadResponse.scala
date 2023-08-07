@@ -23,9 +23,9 @@ import org.http4s.circe.jsonOf
 import org.http4s.EntityDecoder
 
 case class EmsUploadResponse(
-  id:                    String,
+  id:                    Option[String],
   fileName:              String,
-  bucketId:              String,
+  bucketId:              Option[String],
   flushStatus:           String,
   clientId:              Option[String],
   fallbackVarcharLength: Option[Int],

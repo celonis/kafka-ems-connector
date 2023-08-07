@@ -41,7 +41,7 @@ object UploadServer extends IOApp {
       table  <- Stream.eval(IO.fromTry(Try(args(3))))
       responseProvider = new EmsUploadResponseProvider[IO] {
         override def get: IO[EmsUploadResponse] =
-          IO(EmsUploadResponse(UUID.randomUUID().toString, "fn", "b1", "new", "c1".some, None, None))
+          IO(EmsUploadResponse(UUID.randomUUID().toString.some, "fn", "b1".some, "new", "c1".some, None, None))
       }
       fileService = new StoredFileService[IO](Path.fromNioPath(new File(folder).toPath))
       routes      = new MultipartHttpEndpoint[IO](fileService, responseProvider, auth, table).service.orNotFound

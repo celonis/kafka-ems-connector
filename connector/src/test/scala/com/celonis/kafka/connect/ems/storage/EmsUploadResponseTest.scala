@@ -20,6 +20,7 @@ import io.circe.parser._
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import cats.syntax.option._
 
 class EmsUploadResponseTest extends AnyFunSuite with Matchers with EitherValues {
 
@@ -41,13 +42,41 @@ class EmsUploadResponseTest extends AnyFunSuite with Matchers with EitherValues 
     val emsUploadResponse = decode[EmsUploadResponse](jsonResponse)
     emsUploadResponse.value should be(
       EmsUploadResponse(
-        id                    = "7513bc96-7003-480e-9b72-4e4ae8a7b05c",
+        id                    = "7513bc96-7003-480e-9b72-4e4ae8a7b05c".some,
         fileName              = "my-parquet-nice-file-name.parquet",
-        bucketId              = "6ca836f9-12e3-46f0-a5c4-20c9a309833d",
+        bucketId              = "6ca836f9-12e3-46f0-a5c4-20c9a309833d".some,
         flushStatus           = "NEW",
         clientId              = None,
         fallbackVarcharLength = Some(10000),
         upsertStrategy        = None,
+      ),
+    )
+
+  }
+
+  test("should decode emsUploadResponse with nullable id and bucketId") {
+    val jsonResponse =
+      """
+        |{
+        |  "id" : null,
+        |  "fileName" : "my-parquet-nice-file-name.parquet",
+        |  "flushStatus" : "NEW",
+        |  "clientId" : null,
+        |  "fallbackVarcharLength" : 10000,
+        |  "upsertStrategy" : null
+        |}
+        |""".stripMargin
+
+    val emsUploadResponse = decode[EmsUploadResponse](jsonResponse)
+    emsUploadResponse.value should be(
+      EmsUploadResponse(
+        id = None,
+        fileName = "my-parquet-nice-file-name.parquet",
+        bucketId = None,
+        flushStatus = "NEW",
+        clientId = None,
+        fallbackVarcharLength = Some(10000),
+        upsertStrategy = None,
       ),
     )
 

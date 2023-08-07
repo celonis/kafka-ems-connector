@@ -59,7 +59,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
     val filePath         = UUID.randomUUID().toString + ".parquet"
     val fileContent      = Array[Byte](1, 2, 3, 4)
     val mapRef           = Ref.unsafe[IO, Map[String, Array[Byte]]](Map.empty)
-    val expectedResponse = EmsUploadResponse("id1", filePath, "b1", "new", "c1".some, None, None)
+    val expectedResponse = EmsUploadResponse("id1".some, filePath, "b1".some, "new", "c1".some, None, None)
     val responseQueueRef: Ref[IO, Queue[() => EmsUploadResponse]] =
       Ref.unsafe[IO, Queue[() => EmsUploadResponse]](Queue(() => expectedResponse))
     val serverResource =
@@ -117,7 +117,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
     val filePath         = UUID.randomUUID().toString + ".parquet"
     val fileContent      = Array[Byte](1, 2, 3, 4)
     val mapRef           = Ref.unsafe[IO, Map[String, Array[Byte]]](Map.empty)
-    val expectedResponse = EmsUploadResponse("id1", filePath, "b1", "new", "c1".some, None, None)
+    val expectedResponse = EmsUploadResponse("id1".some, filePath, "b1".some, "new", "c1".some, None, None)
     val responseQueueRef: Ref[IO, Queue[() => EmsUploadResponse]] =
       Ref.unsafe[IO, Queue[() => EmsUploadResponse]](Queue(() => expectedResponse))
     val serverResource =
@@ -180,7 +180,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
     val filePath         = UUID.randomUUID().toString + ".parquet"
     val fileContent      = Array[Byte](1, 2, 3, 4)
     val mapRef           = Ref.unsafe[IO, Map[String, Array[Byte]]](Map.empty)
-    val expectedResponse = EmsUploadResponse("id1", filePath, "b1", "new", "c1".some, None, None)
+    val expectedResponse = EmsUploadResponse("id1".some, filePath, "b1".some, "new", "c1".some, None, None)
     val responseQueueRef: Ref[IO, Queue[() => EmsUploadResponse]] =
       Ref.unsafe[IO, Queue[() => EmsUploadResponse]](Queue(() => expectedResponse))
     val proxyServerResource = ProxyServer.resource[IO](proxyPort, proxyAuth)
@@ -240,7 +240,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
     val filePath         = UUID.randomUUID().toString + ".parquet"
     val fileContent      = Array[Byte](1, 2, 3, 4)
     val mapRef           = Ref.unsafe[IO, Map[String, Array[Byte]]](Map.empty)
-    val expectedResponse = EmsUploadResponse("id1", filePath, "b1", "new", "c1".some, None, None)
+    val expectedResponse = EmsUploadResponse("id1".some, filePath, "b1".some, "new", "c1".some, None, None)
     val responseQueueRef: Ref[IO, Queue[() => EmsUploadResponse]] =
       Ref.unsafe[IO, Queue[() => EmsUploadResponse]](Queue(() => expectedResponse))
     val proxyServerResource = ProxyServer.resource[IO](proxyPort, proxyAuth)

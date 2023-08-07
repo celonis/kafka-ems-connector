@@ -328,9 +328,9 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
 
       when(writer2.shouldFlush).thenReturn(true)
       when(uploader.upload(UploadRequest.fromWriterState(writer2.state))).thenReturn(IO.pure(EmsUploadResponse(
-        "1",
+        "1".some,
         file2.getFileName.toString,
-        "b1",
+        "b1".some,
         "NEW",
         "c1".some,
         None,
@@ -401,7 +401,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       when(writer2.shouldFlush).thenReturn(true)
       when(
         uploader.upload(UploadRequest.fromWriterState(writer2.state)),
-      ).thenReturn(IO.pure(EmsUploadResponse("1", file2.getFileName.toString, "b1", "NEW", "c1".some, None, None)))
+      ).thenReturn(IO.pure(EmsUploadResponse("1".some, file2.getFileName.toString, "b1".some, "NEW", "c1".some, None, None)))
       manager.write(record2).unsafeRunSync()
 
       val retainedFile = new ParquetFileCleanupRename(fsImpl).renamedFile(file2, record2.metadata.offset)
@@ -470,7 +470,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       when(builder.writerFrom(record2)).thenReturn(writer2Next)
       when(
         uploader.upload(UploadRequest.fromWriterState(writer2.state)),
-      ).thenReturn(IO(EmsUploadResponse("1", file2.getFileName.toString, "b", "NEW", "c1".some, None, None)))
+      ).thenReturn(IO(EmsUploadResponse("1".some, file2.getFileName.toString, s"b".some, "NEW", "c1".some, None, None)))
       manager.write(record2).unsafeRunSync()
 
       verify(uploader, times(1)).upload(UploadRequest.fromWriterState(writer2.state))
@@ -517,7 +517,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       when(builder.writerFrom(any[Writer])).thenReturn(simpleWriter(simpleSchemaV1))
 
       when(uploader.upload(any[UploadRequest]))
-        .thenReturn(IO(EmsUploadResponse("1", file1.getFileName.toString, "b", "NEW", "c1".some, None, None)))
+        .thenReturn(IO(EmsUploadResponse("1".some, file1.getFileName.toString, "b".some, "NEW", "c1".some, None, None)))
 
       manager.write(record1).unsafeRunSync()
       manager.write(record2).unsafeRunSync()
@@ -585,7 +585,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       reset(uploader)
       when(
         uploader.upload(UploadRequest.fromWriterState(writer2.state)),
-      ).thenReturn(IO(EmsUploadResponse("1", file2.getFileName.toString, "b", "NEW", "c1".some, None, None)))
+      ).thenReturn(IO(EmsUploadResponse("1".some, file2.getFileName.toString, "b".some, "NEW", "c1".some, None, None)))
       val writer2Next = mock[Writer]
       when(builder.writerFrom(writer2)).thenReturn(writer2Next)
       manager.write(record2).unsafeRunSync()
@@ -653,7 +653,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
             s"${topicPartition.topic.value}_${topicPartition.partition.value}_${record2.metadata.offset.value}",
           ),
         ),
-      ).thenReturn(IO(EmsUploadResponse("1", file1.getFileName.toString, "b", "NEW", "c1".some, None, None)))
+      ).thenReturn(IO(EmsUploadResponse("1".some, file1.getFileName.toString, "b".some, "NEW", "c1".some, None, None)))
       manager.write(record2).unsafeRunSync()
 
       verify(uploader, times(1)).upload(
@@ -671,7 +671,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
             s"${topicPartition.topic.value}_${topicPartition.partition.value}_${record3.metadata.offset.value}",
           ),
         ),
-      ).thenReturn(IO(EmsUploadResponse("2", file2.getFileName.toString, "b", "NEW", "c1".some, None, None)))
+      ).thenReturn(IO(EmsUploadResponse("2".some, file2.getFileName.toString, "b".some, "NEW", "c1".some, None, None)))
 
       manager.write(record3).unsafeRunSync()
       verify(uploader, times(1)).upload(
