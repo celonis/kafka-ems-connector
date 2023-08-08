@@ -43,28 +43,28 @@ import java.nio.file.Path
   * be safely shared without considerable overhead.
   */
 final class WriterManager[F[_]](
-                                 sinkName: String,
-                                 uploader: Uploader[F],
-                                 workingDir: Path,
-                                 writerBuilder: WriterBuilder,
-                                 writersRef: Ref[F, Map[TopicPartition, Writer]],
-                                 fileCleanup: ParquetFileCleanup,
-                                 fileSystem: FileSystemOperations,
-                               )(
-                                 implicit
-                                 A: Async[F],
-                               ) extends StrictLogging {
+  sinkName:      String,
+  uploader:      Uploader[F],
+  workingDir:    Path,
+  writerBuilder: WriterBuilder,
+  writersRef:    Ref[F, Map[TopicPartition, Writer]],
+  fileCleanup:   ParquetFileCleanup,
+  fileSystem:    FileSystemOperations,
+)(
+  implicit
+  A: Async[F],
+) extends StrictLogging {
 
   /** Uploads the data to EMS if the commit policy is met.
     *
     * @return
     */
   val maybeUploadData: F[Unit] =
-  // The data is uploaded sequentially. We might want to parallelize the process
+    // The data is uploaded sequentially. We might want to parallelize the process
     for {
-      _ <- Async[F].delay(logger.debug(s"[{}] Received call to WriterManager.maybeUploadData", sinkName))
+      _       <- Async[F].delay(logger.debug(s"[{}] Received call to WriterManager.maybeUploadData", sinkName))
       writers <- writersRef.get.map(_.values.filter(_.shouldFlush).toList)
-      _ <- writers.traverse(w => commit(w, writerBuilder.writerFrom(w)))
+      _       <- writers.traverse(w => commit(w, writerBuilder.writerFrom(w)))
     } yield ()
 
   private case class CommitWriterResult(newWriter: Writer, offset: TopicPartitionOffset)
@@ -72,7 +72,7 @@ final class WriterManager[F[_]](
   /** Committing a file created by the writer, will result creating a new writer
     *
     * @param writer
-    * \- An instance of [[Writer]]
+    *   \- An instance of [[Writer]]
     * @return
     */
   private def commit(writer: Writer, buildFn: => Writer): F[Option[CommitWriterResult]] = {
@@ -81,9 +81,9 @@ final class WriterManager[F[_]](
     if (state.records == 0) A.pure(None)
     else {
       for {
-        _ <- A.delay(writer.close())
+        _   <- A.delay(writer.close())
         file = writer.state.file
-        _ = checkDuplicateRemovalOrderColumn(state.schema)
+        _    = checkDuplicateRemovalOrderColumn(state.schema)
 
         fileSize = Files.size(file)
         _ <- A.delay(
@@ -93,55 +93,56 @@ final class WriterManager[F[_]](
         )
         // we have a bug in how we keep track of the file size in the writer, it is updated only when there is a row flush
         stateWithSizeFixed = writer.state.copy(fileSize = fileSize)
-        uploadRequest = UploadRequest.fromWriterState(stateWithSizeFixed)
-        _ <- A.delay(logger.info(s"Request:${UploadRequest.show.show(uploadRequest)}"))
-        response <- uploader.upload(uploadRequest)
-        _ <- A.delay(logger.info(s"Received ${response.asJson.noSpaces} for uploading file:$file"))
-        _ <- A.delay(fileCleanup.clean(file, state.lastOffset))
-        newWriter <- A.delay(buildFn)
-        _ <- A.delay(logger.debug("Creating a new writer for [{}]", writer.state.show))
-        _ <- setWriter(writer.state.topicPartition, newWriter)
+        uploadRequest      = UploadRequest.fromWriterState(stateWithSizeFixed)
+        _                 <- A.delay(logger.info(s"Request:${UploadRequest.show.show(uploadRequest)}"))
+        response          <- uploader.upload(uploadRequest)
+        _                 <- A.delay(logger.info(s"Received ${response.asJson.noSpaces} for uploading file:$file"))
+        _                 <- A.delay(fileCleanup.clean(file, state.lastOffset))
+        newWriter         <- A.delay(buildFn)
+        _                 <- A.delay(logger.debug("Creating a new writer for [{}]", writer.state.show))
+        _                 <- setWriter(writer.state.topicPartition, newWriter)
       } yield CommitWriterResult(
         newWriter,
         TopicPartitionOffset(writer.state.topicPartition.topic,
-          writer.state.topicPartition.partition,
-          writer.state.lastOffset,
+                             writer.state.topicPartition.partition,
+                             writer.state.lastOffset,
         ),
       ).some
     }
   }
 
-  private def checkDuplicateRemovalOrderColumn(writerSchema: Schema): Unit = {
+  private def checkDuplicateRemovalOrderColumn(writerSchema: Schema): Unit =
     uploader.getOrderFieldName.foreach { orderFieldName =>
       Option(writerSchema.getField(orderFieldName)) match {
         case None =>
-          A.delay(logger.warn(s"Field configured as order field name, but not present in the schema. fieldName=$orderFieldName"))
+          A.delay(logger.warn(
+            s"Field configured as order field name, but not present in the schema. fieldName=$orderFieldName",
+          ))
         case Some(_) =>
       }
     }
-  }
 
   /** When a partition is opened we cleanup the folder where the temp files are accumulating
     *
     * @param partitions
-    * \- A set of topic-partition tuples which the current task will own
+    *   \- A set of topic-partition tuples which the current task will own
     */
   def open(partitions: Set[TopicPartition]): F[Unit] =
     for {
       writers <- writersRef.get.map(_.values.toList)
-      _ <- writers.traverse(w => A.delay(w.close()))
-      _ <- writersRef.update(_ => Map.empty)
-      _ <- partitions.toList.traverse(partition => A.delay(fileSystem.cleanup(workingDir, sinkName, partition)))
+      _       <- writers.traverse(w => A.delay(w.close()))
+      _       <- writersRef.update(_ => Map.empty)
+      _       <- partitions.toList.traverse(partition => A.delay(fileSystem.cleanup(workingDir, sinkName, partition)))
     } yield ()
 
   def close(partitions: List[TopicPartition]): F[Unit] =
     for {
       _ <- A.delay(logger.info(s"[{}] Received call to WriterManager.close(partitions):",
-        sinkName,
-        partitions.map(_.show).mkString(";"),
+                               sinkName,
+                               partitions.map(_.show).mkString(";"),
       ))
-      writersMap <- writersRef.get
-      _ <- partitions.flatMap(writersMap.get).traverse(w => A.delay(w.close()))
+      writersMap   <- writersRef.get
+      _            <- partitions.flatMap(writersMap.get).traverse(w => A.delay(w.close()))
       newWritersMap = writersMap -- partitions.toSet
       // do not cleanup the folders. on open partitions we do that.
       _ <- writersRef.update(_ => newWritersMap)
@@ -149,11 +150,11 @@ final class WriterManager[F[_]](
 
   val close: F[Unit] =
     for {
-      _ <- A.delay(logger.info(s"[{}] Received call to WriterManager.close()", sinkName))
-      writers <- writersRef.get.map(_.values.toList)
+      _          <- A.delay(logger.info(s"[{}] Received call to WriterManager.close()", sinkName))
+      writers    <- writersRef.get.map(_.values.toList)
       partitions <- writers.traverse(w => A.delay(w.close()).map(_ => w.state.topicPartition))
-      _ <- partitions.traverse(partition => A.delay(fileSystem.cleanup(workingDir, sinkName, partition)))
-      _ <- writersRef.update(_ => Map.empty)
+      _          <- partitions.traverse(partition => A.delay(fileSystem.cleanup(workingDir, sinkName, partition)))
+      _          <- writersRef.update(_ => Map.empty)
     } yield ()
 
   def write(record: Record): F[Unit] =
@@ -175,9 +176,9 @@ final class WriterManager[F[_]](
       latestWriter <-
         if (writer.shouldRollover(schema)) {
           for {
-            result <- commit(writer, writerBuilder.writerFrom(record))
+            result      <- commit(writer, writerBuilder.writerFrom(record))
             latestWriter = result.fold(writerBuilder.writerFrom(record))(_.newWriter)
-            _ <- setWriter(writer.state.topicPartition, latestWriter)
+            _           <- setWriter(writer.state.topicPartition, latestWriter)
           } yield latestWriter
         } else A.pure(writer)
       _ <- A.delay(latestWriter.write(record))
@@ -188,7 +189,7 @@ final class WriterManager[F[_]](
     * won't be returned to avoid Connect committing the offset
     *
     * @param currentOffsets
-    * \- A sequence of topic-partition tuples and their offset information
+    *   \- A sequence of topic-partition tuples and their offset information
     * @return
     */
   def preCommit(currentOffsets: Map[TopicPartition, OffsetAndMetadata]): F[Map[TopicPartition, OffsetAndMetadata]] =
@@ -211,14 +212,14 @@ final class WriterManager[F[_]](
 
 object WriterManager extends LazyLogging {
   def from[F[_]](
-                  config: EmsSinkConfig,
-                  sinkName: String,
-                  uploader: Uploader[F],
-                  writers: Ref[F, Map[TopicPartition, Writer]],
-                  fileSystem: FileSystemOperations,
-                )(
-                  implicit
-                  A: Async[F]): WriterManager[F] =
+    config:     EmsSinkConfig,
+    sinkName:   String,
+    uploader:   Uploader[F],
+    writers:    Ref[F, Map[TopicPartition, Writer]],
+    fileSystem: FileSystemOperations,
+  )(
+    implicit
+    A: Async[F]): WriterManager[F] =
     new WriterManager(
       sinkName,
       uploader,

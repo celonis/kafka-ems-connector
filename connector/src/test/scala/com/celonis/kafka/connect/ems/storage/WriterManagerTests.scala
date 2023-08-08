@@ -286,7 +286,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val tp3      = TopicPartition(new Topic("C"), new Partition(0))
       val uploader = mock[Uploader[IO]]
       when(uploader.getOrderFieldName).thenReturn("int_field".some)
-      val builder  = mock[WriterBuilder]
+      val builder = mock[WriterBuilder]
 
       val manager =
         new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty), ParquetFileCleanupDelete, fsOps)
@@ -354,7 +354,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val uploader = mock[Uploader[IO]]
       when(uploader.getOrderFieldName).thenReturn("int_field".some)
 
-      val builder  = mock[WriterBuilder]
+      val builder = mock[WriterBuilder]
 
       val manager = new WriterManager[IO](sink,
                                           uploader,
@@ -423,7 +423,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val tp3      = TopicPartition(new Topic("C"), new Partition(0))
       val uploader = mock[Uploader[IO]]
       when(uploader.getOrderFieldName).thenReturn("int_field".some)
-      val builder  = mock[WriterBuilder]
+      val builder = mock[WriterBuilder]
 
       val manager =
         new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty), ParquetFileCleanupDelete, fsOps)
@@ -490,7 +490,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val tp1      = TopicPartition(new Topic("topic"), new Partition(0))
       val uploader = mock[Uploader[IO]]
       when(uploader.getOrderFieldName).thenReturn("int_field".some)
-      val builder  = mock[WriterBuilder]
+      val builder = mock[WriterBuilder]
 
       val file1 = createEmptyFile(dir, "abc1")
       def simpleWriter(schema: Schema) = new SimpleDummyWriter(2, file1, schema, tp1)
@@ -539,7 +539,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val tp3      = TopicPartition(new Topic("C"), new Partition(0))
       val uploader = mock[Uploader[IO]]
       when(uploader.getOrderFieldName).thenReturn("int_field".some)
-      val builder  = mock[WriterBuilder]
+      val builder = mock[WriterBuilder]
 
       val manager =
         new WriterManager[IO](sink, uploader, dir, builder, Ref.unsafe(Map.empty), ParquetFileCleanupDelete, fsOps)
