@@ -15,6 +15,7 @@
  */
 
 package com.celonis.kafka.connect.ems.storage
+
 import cats.Show
 
 import java.nio.file.Path
@@ -38,6 +39,9 @@ object UploadRequest {
       ).mkString("_") + ".parquet",
     )
 }
+
 trait Uploader[F[_]] {
   def upload(request: UploadRequest): F[EmsUploadResponse]
+
+  def getOrderFieldName: Option[String]
 }

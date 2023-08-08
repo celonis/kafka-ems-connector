@@ -166,6 +166,8 @@ class EmsUploader[F[_]](
     ).flatMap(_ => A.raiseError(error))
 
   }
+
+  override def getOrderFieldName: Option[String] = this.maybeOrderFieldName
 }
 
 object EmsUploader {

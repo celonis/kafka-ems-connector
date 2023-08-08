@@ -285,6 +285,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val tp2      = TopicPartition(new Topic("B"), new Partition(3))
       val tp3      = TopicPartition(new Topic("C"), new Partition(0))
       val uploader = mock[Uploader[IO]]
+      when(uploader.getOrderFieldName).thenReturn("int_field".some)
       val builder  = mock[WriterBuilder]
 
       val manager =
@@ -351,6 +352,8 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val tp2      = TopicPartition(new Topic("B"), new Partition(3))
       val tp3      = TopicPartition(new Topic("C"), new Partition(0))
       val uploader = mock[Uploader[IO]]
+      when(uploader.getOrderFieldName).thenReturn("int_field".some)
+
       val builder  = mock[WriterBuilder]
 
       val manager = new WriterManager[IO](sink,
@@ -419,6 +422,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val tp2      = TopicPartition(new Topic("B"), new Partition(3))
       val tp3      = TopicPartition(new Topic("C"), new Partition(0))
       val uploader = mock[Uploader[IO]]
+      when(uploader.getOrderFieldName).thenReturn("int_field".some)
       val builder  = mock[WriterBuilder]
 
       val manager =
@@ -485,6 +489,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val sink     = "sinkA"
       val tp1      = TopicPartition(new Topic("topic"), new Partition(0))
       val uploader = mock[Uploader[IO]]
+      when(uploader.getOrderFieldName).thenReturn("int_field".some)
       val builder  = mock[WriterBuilder]
 
       val file1 = createEmptyFile(dir, "abc1")
@@ -533,6 +538,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val tp2      = TopicPartition(new Topic("B"), new Partition(3))
       val tp3      = TopicPartition(new Topic("C"), new Partition(0))
       val uploader = mock[Uploader[IO]]
+      when(uploader.getOrderFieldName).thenReturn("int_field".some)
       val builder  = mock[WriterBuilder]
 
       val manager =
@@ -583,6 +589,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       ex shouldBe exception
       verify(builder, times(0)).writerFrom(writer2)
       reset(uploader)
+      when(uploader.getOrderFieldName).thenReturn("int_field".some)
       when(
         uploader.upload(UploadRequest.fromWriterState(writer2.state)),
       ).thenReturn(IO(EmsUploadResponse("1", file2.getFileName.toString, "b", "NEW", "c1".some, None, None)))
@@ -630,6 +637,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       val record3 = Record(struct3, RecordMetadata(topicPartition, new Offset(12)))
 
       val uploader = mock[Uploader[IO]]
+      when(uploader.getOrderFieldName).thenReturn("int_field".some)
       val builder = new WriterBuilderImpl(dir,
                                           sink,
                                           new DefaultCommitPolicy(10000, 10000, 2),
@@ -664,6 +672,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       )
 
       reset(uploader)
+      when(uploader.getOrderFieldName).thenReturn("int_field".some)
       when(
         uploader.upload(
           UploadRequest(
