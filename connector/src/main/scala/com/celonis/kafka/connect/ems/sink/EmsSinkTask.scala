@@ -22,6 +22,7 @@ import cats.effect.kernel.Ref
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
+import com.celonis.kafka.connect.ems.config.HttpClientConfig.okHttpClientCalTimeout
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model._
@@ -39,6 +40,8 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 
 class EmsSinkTask extends SinkTask with StrictLogging {
@@ -52,6 +55,9 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private var transformer:         RecordTransformer   = _
   private val emsSinkConfigurator: EmsSinkConfigurator = new DefaultEmsSinkConfigurator
   private var okHttpClient:        OkHttpClient        = _
+
+  private val cancelableTimeout:  FiniteDuration = okHttpClientCalTimeout.plus(FiniteDuration(5, TimeUnit.SECONDS))
+  private val forgettableTimeout: FiniteDuration = cancelableTimeout.plus(FiniteDuration(10, TimeUnit.SECONDS))
 
   override def version(): String = Version.implementationVersion
 
@@ -125,7 +131,10 @@ class EmsSinkTask extends SinkTask with StrictLogging {
       else IO(())
     } yield ()
 
-    io.attempt.unsafeRunSync() match {
+    io
+      .timeout(cancelableTimeout)           // First try to wait for the cancellation to complete
+      .timeoutAndForget(forgettableTimeout) // But if it doesn't complete soon enough run it in the background and fail
+      .attempt.unsafeRunSync() match {
       case Left(value) =>
         retriesLeft -= 1
         errorPolicy.handle(value, retriesLeft)

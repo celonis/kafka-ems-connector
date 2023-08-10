@@ -17,6 +17,7 @@
 package com.celonis.kafka.connect.ems.config
 
 import cats.syntax.either._
+import com.celonis.kafka.connect.ems.config.HttpClientConfig.okHttpClientCalTimeout
 import enumeratum._
 import okhttp3.Credentials
 import okhttp3.OkHttpClient
@@ -32,6 +33,7 @@ import java.net.Proxy.{ Type => JavaProxyType }
 import java.net.{ Authenticator => JavaAuthenticator }
 import java.util.Base64
 import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.FiniteDuration
 
 case class BasicAuthentication(
   username: String,
@@ -56,7 +58,7 @@ sealed trait HttpClientConfig {
 
   final def createHttpClient(): OkHttpClient = {
     val builder = new OkHttpClient.Builder().connectionPool(getPoolingConfig().toConnectionPool())
-    customiseHttpClient(builder).callTimeout(90, TimeUnit.SECONDS).build()
+    customiseHttpClient(builder).callTimeout(okHttpClientCalTimeout.toSeconds, TimeUnit.SECONDS).build()
   }
 
   protected def customiseHttpClient(builder: OkHttpClient.Builder): OkHttpClient.Builder = builder
@@ -68,6 +70,8 @@ sealed trait HttpClientConfig {
 
 object HttpClientConfig {
   import EmsSinkConfigConstants._
+
+  val okHttpClientCalTimeout: FiniteDuration = FiniteDuration(90, TimeUnit.SECONDS)
 
   protected def extractProxy(props: Map[String, _]): Either[String, Option[BasicAuthentication]] =
     PropertiesHelper.getString(props, PROXY_AUTHENTICATION_KEY) match {
