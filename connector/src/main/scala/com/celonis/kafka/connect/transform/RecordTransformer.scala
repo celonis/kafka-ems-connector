@@ -57,7 +57,7 @@ final class RecordTransformer(
         ),
       )
       v <- IO.fromEither(DataConverter.apply(transformedValue))
-      _ <- IO(logger.info("[{}] EmsSinkTask:put obfuscation={}", sinkName, obfuscation))
+      _ <- IO(logger.debug("[{}] EmsSinkTask:put obfuscation={}", sinkName, obfuscation))
       value <- obfuscation.fold(IO.pure(v)) { o =>
         IO.fromEither(v.obfuscate(o).leftMap(FailedObfuscationException))
       }

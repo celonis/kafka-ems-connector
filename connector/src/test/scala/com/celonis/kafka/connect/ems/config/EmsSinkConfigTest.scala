@@ -40,6 +40,7 @@ import org.scalatest.matchers.should.Matchers
 import java.io.File
 import java.net.URL
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.Try
@@ -71,6 +72,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     embedKafkaMetadata     = true,
     useInMemoryFileSystem  = false,
     allowNullsAsPks        = false,
+    sinkPutTimeout         = FiniteDuration(288000L, TimeUnit.MILLISECONDS),
   )
 
   test(s"parse the configuration from properties") {

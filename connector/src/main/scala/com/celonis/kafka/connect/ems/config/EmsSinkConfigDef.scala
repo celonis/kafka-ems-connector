@@ -402,6 +402,13 @@ object EmsSinkConfigDef {
       Importance.MEDIUM,
       USE_IN_MEMORY_FS_DOC,
     )
+    .define(
+      SINK_PUT_TIMEOUT_KEY,
+      Type.LONG,
+      SINK_PUT_TIMEOUT_DEFAULT,
+      Importance.HIGH,
+      SINK_PUT_TIMEOUT_DOC,
+    )
 }
 
 class EmsSinkConfigDef() extends ConfigDef with LazyLogging

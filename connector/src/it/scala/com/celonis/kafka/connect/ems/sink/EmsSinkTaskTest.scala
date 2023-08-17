@@ -1,5 +1,6 @@
 package com.celonis.kafka.connect.ems.sink
 
+import cats.effect.IO
 import com.celonis.kafka.connect.ems.parquet.parquetReader
 import com.celonis.kafka.connect.ems.scalatest.fixtures.ems.withEmsSinkTask
 import com.celonis.kafka.connect.ems.storage.SampleData
@@ -8,15 +9,20 @@ import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
+import org.scalatest.Inside
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.jdk.CollectionConverters._
 import java.io.File
 import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.concurrent.duration._
+import scala.util.Failure
+import scala.util.Try
 
-class EmsSinkTaskTest extends AnyFunSuite with MockServerContainerPerSuite with Matchers with SampleData {
+class EmsSinkTaskTest extends AnyFunSuite with MockServerContainerPerSuite with Matchers with SampleData with Inside {
 
   test("writes to parquet format without obfuscation") {
     withEmsSinkTask(proxyServerUrl) { (connectorName, task, sourceTopic) =>
@@ -189,6 +195,23 @@ class EmsSinkTaskTest extends AnyFunSuite with MockServerContainerPerSuite with 
       val parsedChunk = om.readValue(jsonPayload, classOf[java.util.Map[String, Any]])
 
       parsedChunk shouldEqual jsonValue
+    }
+  }
+
+  test("honours the configured connect.ems.sink.put.timeout.ms") {
+    withEmsSinkTask(proxyServerUrl, sinkPutTimeout = Some("250"), tapRecord = _ => IO.sleep(60.hours)) {
+      (_, task, sourceTopic) =>
+        val records = List(
+          new SinkRecord(sourceTopic, 0, null, null, null, "some-message", 0),
+        )
+
+        task.open(Seq(new KafkaTopicPartition(sourceTopic, 0)).asJava)
+        val result = Try(task.put(records.asJava))
+        inside(result) {
+          case Failure(exception) =>
+            exception.getClass shouldEqual classOf[ConnectException]
+            exception.getMessage should include("timed out after 250")
+        }
     }
   }
 
