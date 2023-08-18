@@ -49,13 +49,7 @@ object EmsSinkTask {
   private val StopTimeout: FiniteDuration = 5.seconds
 }
 
-/** The EMS Sink task
-  *
-  * @param evalTap
-  *   An extension point allowing to execute an IO action whenever a record is received. (e.g. sleeping indefinitely, or
-  *   triggering an error in integration tests)
-  */
-class EmsSinkTask(evalTap: SinkRecord => IO[Unit] = Function.const(IO.unit)) extends SinkTask with StrictLogging {
+class EmsSinkTask extends SinkTask with StrictLogging {
 
   private var writerManager: WriterManager[IO] = _
   private var sinkName:      String            = _
@@ -131,7 +125,6 @@ class EmsSinkTask(evalTap: SinkRecord => IO[Unit] = Function.const(IO.unit)) ext
         .toList
         .traverse { record =>
           for {
-            _          <- evalTap(record)
             avroRecord <- transformer.transform(record)
             tp          = TopicPartition(new Topic(record.topic()), new Partition(record.kafkaPartition()))
             metadata    = RecordMetadata(tp, new Offset(record.kafkaOffset()))

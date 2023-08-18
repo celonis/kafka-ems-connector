@@ -1,12 +1,10 @@
 package com.celonis.kafka.connect.ems.scalatest.fixtures
 
-import cats.effect.IO
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants
 import com.celonis.kafka.connect.ems.sink.EmsSinkTask
 import com.celonis.kafka.connect.ems.randomEmsTable
 import com.celonis.kafka.connect.ems.randomTopicName
 import com.celonis.kafka.connect.transform.FlattenerConfig
-import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
@@ -22,8 +20,6 @@ object ems {
     obfuscationFields: Option[String]          = None,
     sha512Salt:        Option[String]          = None,
     flattenerConfig:   Option[FlattenerConfig] = None,
-    sinkPutTimeout:    Option[String]          = None,
-    tapRecord:         SinkRecord => IO[Unit]  = Function.const(IO.unit),
   )(testCode: (String, EmsSinkTask, String) => Any): Unit = {
     val sourceTopic = randomTopicName()
     val emsTable    = randomEmsTable()
@@ -52,11 +48,8 @@ object ems {
         props += EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_KEY   -> jsonChunksConf.fallbackVarcharLength.toString
       }
     }
-    sinkPutTimeout.foreach { timeoutInMillis =>
-      props += EmsSinkConfigConstants.SINK_PUT_TIMEOUT_KEY -> timeoutInMillis
-    }
 
-    val task = new EmsSinkTask(tapRecord)
+    val task = new EmsSinkTask()
     try {
       task.start(props.asJava)
       val _ = testCode(connectorName, task, sourceTopic)
