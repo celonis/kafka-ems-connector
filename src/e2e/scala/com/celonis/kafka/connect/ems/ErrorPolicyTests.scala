@@ -141,9 +141,7 @@ class ErrorPolicyTests extends AnyFunSuite with KafkaConnectContainerPerSuite wi
       .withConfig(SINK_PUT_TIMEOUT_KEY, "250")
 
     withConnector(emsConnector) {
-
       withParquetUploadLatency(1.second) { // trigger SINK_PUT_TIMEOUT by injecting a 1 second latency
-
         sendDummyAvroRecord(sourceTopic)
 
         val consumer = new WaitingConsumer
@@ -154,6 +152,7 @@ class ErrorPolicyTests extends AnyFunSuite with KafkaConnectContainerPerSuite wi
           TimeUnit.SECONDS,
         )
       }
+
       eventually(timeout(60 seconds)) {
         val status = kafkaConnectClient.getConnectorStatus(emsConnector.name)
         status.tasks.head.state should be("FAILED")

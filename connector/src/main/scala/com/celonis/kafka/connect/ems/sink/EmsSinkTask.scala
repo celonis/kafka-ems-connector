@@ -25,6 +25,7 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model._
+import com.celonis.kafka.connect.ems.sink.EmsSinkTask.PutTimeoutException
 import com.celonis.kafka.connect.ems.sink.EmsSinkTask.StopTimeout
 import com.celonis.kafka.connect.ems.storage.EmsUploader
 import com.celonis.kafka.connect.ems.storage.FileSystemOperations
@@ -47,6 +48,17 @@ import scala.jdk.CollectionConverters._
 
 object EmsSinkTask {
   private val StopTimeout: FiniteDuration = 5.seconds
+  final case class PutTimeoutException(configuredTimeout: FiniteDuration) extends Throwable {
+    override def getMessage =
+      s"The EmsSinkTask#put() operation timed out after $configuredTimeout. Please try restarting the connector task"
+  }
+
+  object PutTimeoutException {
+    def adaptFromThrowable(configuredTimeout: FiniteDuration): PartialFunction[Throwable, PutTimeoutException] = {
+      case error: TimeoutException if error.getMessage.contains(configuredTimeout.toString()) =>
+        PutTimeoutException(configuredTimeout)
+    }
+  }
 }
 
 class EmsSinkTask extends SinkTask with StrictLogging {
@@ -135,14 +147,14 @@ class EmsSinkTask extends SinkTask with StrictLogging {
       else IO(())
     } yield ()
 
-    io.timeoutAndForget(emsSinkConfig.sinkPutTimeout).attempt.unsafeRunSync() match {
-      case Left(value) if value.isInstanceOf[TimeoutException] =>
-        throw new ConnectException(
-          s"The EmsSinkTask#put() operation timed out after ${emsSinkConfig.sinkPutTimeout}. Please try restarting the connector task",
-        )
-      case Left(value) =>
+    io.timeoutAndForget(emsSinkConfig.sinkPutTimeout)
+      .adaptError(PutTimeoutException.adaptFromThrowable(emsSinkConfig.sinkPutTimeout))
+      .attempt.unsafeRunSync() match {
+      case Left(error) if error.isInstanceOf[PutTimeoutException] =>
+        throw new ConnectException(error.getMessage)
+      case Left(error) =>
         retriesLeft -= 1
-        errorPolicy.handle(value, retriesLeft)
+        errorPolicy.handle(error, retriesLeft)
       case Right(_) =>
         retriesLeft = maxRetries
     }
