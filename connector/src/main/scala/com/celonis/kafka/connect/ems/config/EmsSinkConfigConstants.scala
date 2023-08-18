@@ -187,4 +187,9 @@ object EmsSinkConfigConstants {
     "Rather than writing to the host file system, buffer parquet data files in memory"
   val USE_IN_MEMORY_FS_DEFAULT = false
 
+  val SINK_PUT_TIMEOUT_KEY = s"${CONNECTOR_PREFIX}.sink.put.timeout.ms"
+  val SINK_PUT_TIMEOUT_DOC =
+    "The maximum time (in milliseconds) for the connector task to complete the upload of a single Parquet file before being flagged as failed. Note: this value should always be lower than max.poll.interval.ms"
+  val SINK_PUT_TIMEOUT_DEFAULT = 288000L // 4.8 minutes
+
 }

@@ -21,7 +21,23 @@ import com.celonis.kafka.connect.ems.testcontainers.connect.KafkaConnectClient
 import eu.rekawek.toxiproxy.Proxy
 import eu.rekawek.toxiproxy.model.ToxicDirection
 
+import scala.concurrent.duration.FiniteDuration
+
 object connect {
+
+  def withParquetUploadLatency(
+    latency:  FiniteDuration,
+  )(testCode: => Unit,
+  )(
+    implicit
+    proxy: Proxy) = {
+    proxy.toxics().latency("LATENCY_UPSTREAM", ToxicDirection.UPSTREAM, latency.toMillis)
+    try {
+      testCode
+    } finally {
+      proxy.toxics().get("LATENCY_UPSTREAM").remove()
+    }
+  }
 
   def withConnectionCut(
     testCode: => Any,

@@ -27,6 +27,8 @@ import org.apache.commons.validator.routines.UrlValidator
 import java.io.File
 import java.net.URL
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.FiniteDuration
 
 final case class EmsSinkConfig(
   sinkName:               String,
@@ -50,6 +52,7 @@ final case class EmsSinkConfig(
   embedKafkaMetadata:     Boolean,
   useInMemoryFileSystem:  Boolean,
   allowNullsAsPks:        Boolean,
+  sinkPutTimeout:         FiniteDuration,
 )
 
 object EmsSinkConfig {
@@ -120,6 +123,10 @@ object EmsSinkConfig {
       includeEmbeddedMetadata = PropertiesHelper.getBoolean(props, EMBED_KAFKA_EMBEDDED_METADATA_KEY).getOrElse(
         EMBED_KAFKA_EMBEDDED_METADATA_DEFAULT,
       )
+      sinkPutTimeout = FiniteDuration(
+        PropertiesHelper.getLong(props, SINK_PUT_TIMEOUT_KEY).getOrElse(SINK_PUT_TIMEOUT_DEFAULT),
+        TimeUnit.MILLISECONDS,
+      )
     } yield EmsSinkConfig(
       sinkName,
       url,
@@ -142,5 +149,6 @@ object EmsSinkConfig {
       includeEmbeddedMetadata,
       useInMemoryFs,
       allowNullsAsPks,
+      sinkPutTimeout,
     )
 }

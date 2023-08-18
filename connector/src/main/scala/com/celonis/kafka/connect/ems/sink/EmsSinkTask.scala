@@ -25,6 +25,8 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model._
+import com.celonis.kafka.connect.ems.sink.EmsSinkTask.PutTimeoutException
+import com.celonis.kafka.connect.ems.sink.EmsSinkTask.StopTimeout
 import com.celonis.kafka.connect.ems.storage.EmsUploader
 import com.celonis.kafka.connect.ems.storage.FileSystemOperations
 import com.celonis.kafka.connect.ems.storage.Writer
@@ -35,11 +37,29 @@ import com.typesafe.scalalogging.StrictLogging
 import okhttp3.OkHttpClient
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
+import scala.concurrent.TimeoutException
+import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
+
+object EmsSinkTask {
+  private val StopTimeout: FiniteDuration = 5.seconds
+  final case class PutTimeoutException(configuredTimeout: FiniteDuration) extends Throwable {
+    override def getMessage =
+      s"The EmsSinkTask#put() operation timed out after $configuredTimeout. Please try restarting the connector task"
+  }
+
+  object PutTimeoutException {
+    def adaptFromThrowable(configuredTimeout: FiniteDuration): PartialFunction[Throwable, PutTimeoutException] = {
+      case error: TimeoutException if error.getMessage.contains(configuredTimeout.toString()) =>
+        PutTimeoutException(configuredTimeout)
+    }
+  }
+}
 
 class EmsSinkTask extends SinkTask with StrictLogging {
 
@@ -52,6 +72,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private var transformer:         RecordTransformer   = _
   private val emsSinkConfigurator: EmsSinkConfigurator = new DefaultEmsSinkConfigurator
   private var okHttpClient:        OkHttpClient        = _
+  private var emsSinkConfig:       EmsSinkConfig       = _
 
   override def version(): String = Version.implementationVersion
 
@@ -100,10 +121,11 @@ class EmsSinkTask extends SinkTask with StrictLogging {
       )
     }
 
-    maxRetries  = config.retries.retries
-    retriesLeft = maxRetries
-    errorPolicy = config.errorPolicy
-    transformer = RecordTransformer.fromConfig(config)
+    maxRetries    = config.retries.retries
+    retriesLeft   = maxRetries
+    errorPolicy   = config.errorPolicy
+    transformer   = RecordTransformer.fromConfig(config)
+    emsSinkConfig = config
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
@@ -125,10 +147,14 @@ class EmsSinkTask extends SinkTask with StrictLogging {
       else IO(())
     } yield ()
 
-    io.attempt.unsafeRunSync() match {
-      case Left(value) =>
+    io.timeoutAndForget(emsSinkConfig.sinkPutTimeout)
+      .adaptError(PutTimeoutException.adaptFromThrowable(emsSinkConfig.sinkPutTimeout))
+      .attempt.unsafeRunSync() match {
+      case Left(error) if error.isInstanceOf[PutTimeoutException] =>
+        throw new ConnectException(error.getMessage)
+      case Left(error) =>
         retriesLeft -= 1
-        errorPolicy.handle(value, retriesLeft)
+        errorPolicy.handle(error, retriesLeft)
       case Right(_) =>
         retriesLeft = maxRetries
     }
@@ -207,14 +233,14 @@ class EmsSinkTask extends SinkTask with StrictLogging {
 
   override def stop(): Unit = {
     (for {
-      _ <- IO(logger.debug(s"[{}] EmsSinkTask.Stop", sinkName))
+      _ <- IO(logger.warn(s"[{}] EmsSinkTask.Stop", sinkName))
       _ <- Option(writerManager).fold(IO(()))(_.close)
-      _ <- Option(okHttpClient).fold(IO(()))(c => IO(c.dispatcher().executorService().shutdown()))
+      _ <- Option(okHttpClient).fold(IO(()))(c => IO(c.dispatcher().executorService().shutdownNow()).void)
       _ <- Option(okHttpClient).fold(IO(()))(c => IO(c.connectionPool().evictAll()))
-      _ <- Option(okHttpClient).fold(IO(()))(c => IO(c.cache().close()))
-    } yield ()).attempt.unsafeRunSync() match {
+
+    } yield ()).timeoutAndForget(StopTimeout).attempt.unsafeRunSync() match {
       case Left(value) =>
-        logger.warn(s"[$sinkName]There was an error stopping the EmsSinkTask", value)
+        logger.warn(s"[{}] There was an error stopping the EmsSinkTask: {}", sinkName, value)
       case Right(_) =>
     }
     writerManager = null
