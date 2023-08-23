@@ -28,6 +28,7 @@ import com.celonis.kafka.connect.ems.model.TopicPartitionOffset
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.StrictLogging
 import io.circe.syntax.EncoderOps
+import org.apache.avro.Schema
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 
 import java.nio.file.Files
@@ -55,6 +56,7 @@ final class WriterManager[F[_]](
 ) extends StrictLogging {
 
   /** Uploads the data to EMS if the commit policy is met.
+    *
     * @return
     */
   val maybeUploadData: F[Unit] =
@@ -68,6 +70,7 @@ final class WriterManager[F[_]](
   private case class CommitWriterResult(newWriter: Writer, offset: TopicPartitionOffset)
 
   /** Committing a file created by the writer, will result creating a new writer
+    *
     * @param writer
     *   \- An instance of [[Writer]]
     * @return
@@ -78,8 +81,10 @@ final class WriterManager[F[_]](
     if (state.records == 0) A.pure(None)
     else {
       for {
-        _       <- A.delay(writer.close())
-        file     = writer.state.file
+        _   <- A.delay(writer.close())
+        file = writer.state.file
+        _   <- checkDuplicateRemovalOrderColumn(state.schema)
+
         fileSize = Files.size(file)
         _ <- A.delay(
           logger.info(
@@ -106,7 +111,21 @@ final class WriterManager[F[_]](
     }
   }
 
+  private def checkDuplicateRemovalOrderColumn(writerSchema: Schema): F[Unit] = {
+    uploader.getOrderFieldName.map { orderFieldName =>
+      Option(writerSchema.getField(orderFieldName)) match {
+        case None =>
+          A.delay(logger.warn(
+            s"Field configured as order field name, but not present in the schema. fieldName=$orderFieldName",
+          ))
+        case Some(_) =>
+          A.unit
+      }
+    }
+  }.getOrElse(A.unit)
+
   /** When a partition is opened we cleanup the folder where the temp files are accumulating
+    *
     * @param partitions
     *   \- A set of topic-partition tuples which the current task will own
     */
@@ -170,6 +189,7 @@ final class WriterManager[F[_]](
 
   /** Extracts the current offset for a given topic partition. If a topic partition does not have a committed offset, it
     * won't be returned to avoid Connect committing the offset
+    *
     * @param currentOffsets
     *   \- A sequence of topic-partition tuples and their offset information
     * @return
