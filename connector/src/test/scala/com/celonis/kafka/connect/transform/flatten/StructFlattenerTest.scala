@@ -284,6 +284,39 @@ class StructFlattenerTest extends AnyFunSuite with SampleData {
     assertResult(expected)(flatten(nestedMap, schema))
   }
 
+  test("JSON encodes collection of JSON records - union nested null") {
+
+    val nestedSchema2 = SchemaBuilder.struct()
+      .field("a_string", Schema.OPTIONAL_STRING_SCHEMA)
+      .optional()
+      .build()
+
+    val nestedSchema1 = SchemaBuilder.struct()
+      .field("a_map", nestedSchema2)
+      .field("a_map2", nestedSchema2)
+      .field("a_string", Schema.STRING_SCHEMA)
+      .optional()
+      .build()
+
+    val schema = SchemaBuilder
+      .struct()
+      .field("payload", nestedSchema1)
+      .build()
+
+    val jsonRecord = Map[String, Any](
+      "payload" -> Map[String, Any](
+        "a_map2"   -> Map[String, Any]("a_string" -> "def").asJava,
+        "a_map"    -> null,
+        "a_string" -> "abc",
+      ).asJava,
+    ).asJava
+
+    val result = flatten(jsonRecord, schema).asInstanceOf[Struct]
+    assertResult(null)(result.get("payload_a_map_a_string"))
+    assertResult("def")(result.get("payload_a_map2_a_string"))
+    assertResult("abc")(result.get("payload_a_string"))
+  }
+
   lazy val aDecimal:             java.math.BigDecimal = new java.math.BigDecimal(java.math.BigInteger.valueOf(123), 5)
   lazy val decimalConnectSchema: SchemaBuilder        = Decimal.builder(5).parameter("connect.decimal.precision", "24")
 
