@@ -294,6 +294,7 @@ object Settings extends Dependencies {
       "com.google.guava",
       "log4j",
       "org.apache.logging.log4j",
+      "kotlin",
     )
 
     def configureAssembly(): Project =
