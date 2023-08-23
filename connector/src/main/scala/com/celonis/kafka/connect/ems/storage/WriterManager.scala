@@ -83,7 +83,7 @@ final class WriterManager[F[_]](
       for {
         _   <- A.delay(writer.close())
         file = writer.state.file
-        _    = checkDuplicateRemovalOrderColumn(state.schema)
+        _   <- checkDuplicateRemovalOrderColumn(state.schema)
 
         fileSize = Files.size(file)
         _ <- A.delay(
@@ -111,16 +111,18 @@ final class WriterManager[F[_]](
     }
   }
 
-  private def checkDuplicateRemovalOrderColumn(writerSchema: Schema): Unit =
-    uploader.getOrderFieldName.foreach { orderFieldName =>
+  private def checkDuplicateRemovalOrderColumn(writerSchema: Schema): F[Unit] = {
+    uploader.getOrderFieldName.map { orderFieldName =>
       Option(writerSchema.getField(orderFieldName)) match {
         case None =>
           A.delay(logger.warn(
             s"Field configured as order field name, but not present in the schema. fieldName=$orderFieldName",
           ))
         case Some(_) =>
+          A.unit
       }
     }
+  }.getOrElse(A.unit)
 
   /** When a partition is opened we cleanup the folder where the temp files are accumulating
     *
