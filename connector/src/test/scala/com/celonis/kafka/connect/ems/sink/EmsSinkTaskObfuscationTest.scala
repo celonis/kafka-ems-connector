@@ -74,7 +74,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         embedKafkaMetadata    = false,
         useInMemoryFileSystem = false,
         allowNullsAsPks       = false,
-        sinkPutTimeout = 4.minutes,
+        sinkPutTimeout        = 4.minutes,
       )
       val config = Map(
         ENDPOINT_KEY                     -> sinkConfig.url.toString,
@@ -94,7 +94,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         FALLBACK_VARCHAR_LENGTH_KEY      -> sinkConfig.fallbackVarCharLengths.map(_.toString).orNull,
         OBFUSCATION_TYPE_KEY             -> "fix",
         OBFUSCATED_FIELDS_KEY            -> "b.x",
-        SINK_PUT_TIMEOUT_KEY -> 4.minutes.toMillis.toString,
+        SINK_PUT_TIMEOUT_KEY             -> 4.minutes.toMillis.toString,
       )
       task.start(config.asJava)
 
