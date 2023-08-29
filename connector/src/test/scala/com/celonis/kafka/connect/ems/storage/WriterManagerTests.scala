@@ -471,14 +471,14 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
       when(writer2.shouldRollover(any[Schema])).thenReturn(true)
       val writer2Next = mock[Writer]
       reset(builder)
-      when(builder.writerFrom(record2)).thenReturn(writer2Next)
+      when(builder.writerFrom(writer2, record2)).thenReturn(writer2Next)
       when(
         uploader.upload(UploadRequest.fromWriterState(writer2.state)),
       ).thenReturn(IO(EmsUploadResponse("1", file2.getFileName.toString, "b", "NEW", "c1".some, None, None)))
       manager.write(record2).unsafeRunSync()
 
       verify(uploader, times(1)).upload(UploadRequest.fromWriterState(writer2.state))
-      verify(builder, times(1)).writerFrom(record2)
+      verify(builder, times(1)).writerFrom(writer2, record2)
       verify(writer2, times(0)).write(record2)
       verify(writer2Next, times(1)).write(record2)
     }
@@ -519,7 +519,7 @@ class WriterManagerTests extends AnyFunSuite with Matchers with WorkingDirectory
         simpleWriter(simpleSchemaV1),
       )
 
-      when(builder.writerFrom(any[Writer])).thenReturn(simpleWriter(simpleSchemaV1))
+      when(builder.writerFrom(any[Writer], any[Record])).thenReturn(simpleWriter(simpleSchemaV1))
 
       when(uploader.upload(any[UploadRequest]))
         .thenReturn(IO(EmsUploadResponse("1", file1.getFileName.toString, "b", "NEW", "c1".some, None, None)))

@@ -113,11 +113,11 @@ class EmsUploader[F[_]](
             },
           )
       case Status.BadRequest =>
-        response.as[EmsBadRequestResponse]
+        response.as[String]
           .redeemWith(
             t => unmarshalError(t, request.localFile, response),
             { msg =>
-              val error = UploadFailedException(response.status, msg.errors.flatMap(_.error).mkString(","), null)
+              val error = UploadFailedException(response.status, msg, null)
               genericError(error, request.localFile, error.msg, response)
             },
           )
@@ -160,7 +160,7 @@ class EmsUploader[F[_]](
     )
     A.delay(
       logger.error(
-        s"Failed to upload the file:$file. Status code:${response.status.show}, Error:${error.msg}",
+        s"Failed to upload the file:$file. Status code:${response.status.show}, Error:${error.msg}. Error: ${throwable.getMessage}",
         error,
       ),
     ).flatMap(_ => A.raiseError(error))

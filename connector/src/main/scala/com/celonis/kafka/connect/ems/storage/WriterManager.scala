@@ -178,8 +178,8 @@ final class WriterManager[F[_]](
       latestWriter <-
         if (writer.shouldRollover(schema)) {
           for {
-            result      <- commit(writer, writerBuilder.writerFrom(record))
-            latestWriter = result.fold(writerBuilder.writerFrom(record))(_.newWriter)
+            result      <- commit(writer, writerBuilder.writerFrom(writer, record))
+            latestWriter = result.fold(writerBuilder.writerFrom(writer, record))(_.newWriter)
             _           <- setWriter(writer.state.topicPartition, latestWriter)
           } yield latestWriter
         } else A.pure(writer)

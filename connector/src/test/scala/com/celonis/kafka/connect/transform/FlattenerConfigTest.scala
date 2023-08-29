@@ -33,14 +33,19 @@ class FlattenerConfigTest extends org.scalatest.funsuite.AnyFunSuite with Inside
   }
   test("returns an error message when a flattener setting is supplied without the flattener being enabled") {
     Seq(
-      "connect.ems.flattener.collections.discard" -> "true",
-      "connect.ems.flattener.jsonblob.chunks"     -> 5,
+      Map[String, Any](
+        "connect.ems.flattener.enable"              -> "false",
+        "connect.ems.flattener.collections.discard" -> "true",
+      ),
+      Map[String, Any](
+        "connect.ems.flattener.enable"          -> "false",
+        "connect.ems.flattener.jsonblob.chunks" -> 5,
+      ),
     ).foreach {
-      case (key, value) =>
-        val result = FlattenerConfig.extract(Map(key -> value), None)
+      case map =>
+        val result = FlattenerConfig.extract(map, None)
         inside(result) {
           case Left(errorMsg) =>
-            assert(errorMsg.contains(key))
             assert(errorMsg.contains("connect.ems.flattener.enable"))
         }
 

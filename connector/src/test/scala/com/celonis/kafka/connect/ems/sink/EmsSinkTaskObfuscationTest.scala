@@ -95,6 +95,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         OBFUSCATION_TYPE_KEY             -> "fix",
         OBFUSCATED_FIELDS_KEY            -> "b.x",
         SINK_PUT_TIMEOUT_KEY             -> 4.minutes.toMillis.toString,
+        FLATTENER_ENABLE_KEY             -> false.toString,
       )
       task.start(config.asJava)
 

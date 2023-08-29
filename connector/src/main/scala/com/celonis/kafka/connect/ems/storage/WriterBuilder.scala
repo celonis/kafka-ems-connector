@@ -39,6 +39,17 @@ trait WriterBuilder {
     * @return
     */
   def writerFrom(record: Record): Writer
+
+  /** Creates a new [[Writer]] whenever the schema rollback happened. It also means that the previous file was sent, so
+    * committedOffset is set lastOffset as a from previous [[Writer]]
+    *
+    * @param record
+    *   \- An instance of [[Record]]
+    * @param writer
+    *   \- An instance of [[Writer]]
+    * @return
+    */
+  def writerFrom(writer: Writer, record: Record): Writer
 }
 
 class WriterBuilderImpl(
@@ -83,17 +94,49 @@ class WriterBuilderImpl(
     val formatWriter =
       ParquetFormatWriter.from(output, explode.explodeSchema(record.value.getSchema), parquet, explode.toExplodeFn)
     val state = WriterState(
-      record.metadata.topicPartition,
-      None,
+      topicPartition = record.metadata.topicPartition,
+      firstOffset    = None,
       // creates the state from the record. the data hasn't been yet written
       // The connector uses this to filter out records which were processed
-      new Offset(record.metadata.offset.value - 1),
-      None,
-      0L,
-      0L,
-      System.currentTimeMillis(),
-      record.value.getSchema,
-      output.outputFile(),
+      lastOffset      = new Offset(record.metadata.offset.value - 1),
+      committedOffset = None,
+      fileSize        = 0L,
+      records         = 0L,
+      lastWriteTs     = System.currentTimeMillis(),
+      schema          = record.value.getSchema,
+      file            = output.outputFile(),
+    )
+    new EmsWriter(
+      sinkName,
+      commitPolicy,
+      formatWriter,
+      state,
+    )
+  }
+
+  /** Creates a new [[Writer]] whenever the schema rollback happened. It also means that the previous file was sent, so
+    * committedOffset is set lastOffset as a from previous [[Writer]]
+    *
+    * @param record
+    *   \- An instance of [[Record]]
+    * @param writer
+    *   \- An instance of [[Writer]]
+    * @return
+    */
+  def writerFrom(writer: Writer, record: Record): Writer = {
+    val output = fileSystem.createOutput(tempDir, sinkName, record.metadata.topicPartition)
+    val formatWriter =
+      ParquetFormatWriter.from(output, explode.explodeSchema(record.value.getSchema), parquet, explode.toExplodeFn)
+    val state = WriterState(
+      topicPartition  = record.metadata.topicPartition,
+      firstOffset     = None,
+      lastOffset      = new Offset(record.metadata.offset.value - 1),
+      committedOffset = Some(writer.state.lastOffset),
+      fileSize        = 0L,
+      records         = 0L,
+      lastWriteTs     = System.currentTimeMillis(),
+      schema          = record.value.getSchema,
+      file            = output.outputFile(),
     )
     new EmsWriter(
       sinkName,
