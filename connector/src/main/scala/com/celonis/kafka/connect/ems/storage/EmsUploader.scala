@@ -146,7 +146,7 @@ class EmsUploader[F[_]](
     )
     A.delay(
       logger.error(
-        s"Failed to upload the file:$file. Status code:${response.status.show}, Error:${error.msg}",
+        s"Failed to upload the file:$file. Status code:${response.status.show}, Error:$msg",
         error,
       ),
     ).flatMap(_ => A.raiseError(error))
@@ -160,7 +160,7 @@ class EmsUploader[F[_]](
     )
     A.delay(
       logger.error(
-        s"Failed to upload the file:$file. Status code:${response.status.show}, Error:${error.msg}. Error: ${throwable.getMessage}",
+        s"Failed to upload the file:$file. Status code:${response.status.show}, Exception:${throwable.getMessage}",
         error,
       ),
     ).flatMap(_ => A.raiseError(error))

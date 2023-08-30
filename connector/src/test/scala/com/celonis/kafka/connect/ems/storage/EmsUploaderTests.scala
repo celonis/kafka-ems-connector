@@ -161,7 +161,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
     val port             = 21212
     val auth             = "this is auth"
     val targetTable      = "tableA"
-    val path             = "/api/push/br"
+    val path             = "/api/push/respond-with-bad-request"
     val filePath         = UUID.randomUUID().toString + ".parquet"
     val fileContent      = Array[Byte](1, 2, 3, 4)
     val mapRef           = Ref.unsafe[IO, Map[String, Array[Byte]]](Map.empty)
