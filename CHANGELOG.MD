@@ -6,8 +6,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-Here we write upgrading notes for brands. It's a team effort to make them as
-straightforward as possible.
+## [1.8.3] - 2023-08-30
+
+### Fixed
+
+- Error logging for not successful file upload.
+- Committing an offset for heterogeneous topics.
+
+### Changed
+
+- `connect.ems.flattener.enable` is true by default.
+
+## [1.8.2] - 2023-08-25
 
 ### Added
 
