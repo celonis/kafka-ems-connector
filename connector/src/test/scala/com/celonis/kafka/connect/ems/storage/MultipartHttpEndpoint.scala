@@ -54,5 +54,9 @@ class MultipartHttpEndpoint[F[_]: Concurrent](
 
         }
       }
+    case req @ POST -> Root / "api" / "push" / "respond-with-bad-request" =>
+      req.decodeWith(multipart[F], strict = true) { _ =>
+        BadRequest("Bad request string message.")
+      }
   }
 }

@@ -155,7 +155,7 @@ object EmsSinkConfigConstants {
   val FLATTENER_ENABLE_KEY = s"${CONNECTOR_PREFIX}.flattener.enable"
   val FLATTENER_ENABLE_DOC =
     s"Enable flattening of nested records. This is likely to be needed if the source data contains nested objects or collections."
-  val FLATTENER_ENABLE_DEFAULT = false
+  val FLATTENER_ENABLE_DEFAULT = true
 
   val FLATTENER_DISCARD_COLLECTIONS_KEY = s"${CONNECTOR_PREFIX}.flattener.collections.discard"
   val FLATTENER_DISCARD_COLLECTIONS_DOC =

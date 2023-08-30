@@ -15,6 +15,7 @@
  */
 
 package com.celonis.kafka.connect.ems.storage
+
 import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.kernel.Resource
@@ -23,6 +24,7 @@ import cats.syntax.option._
 import com.celonis.kafka.connect.ems.config.BasicAuthentication
 import com.celonis.kafka.connect.ems.config.UnproxiedHttpClientConfig
 import com.celonis.kafka.connect.ems.errors.UploadFailedException
+import org.http4s.Status.BadRequest
 import org.http4s.Status.Forbidden
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -45,7 +47,6 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
   CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE => MAX_IDLE_DEFAULT,
 }
 
-import java.nio.file.Path
 class EmsUploaderTests extends AnyFunSuite with Matchers {
 
   private val defaultPoolingConfig: PoolingConfig =
@@ -69,16 +70,8 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                               auth,
                               targetTable,
       )
-    val fileResource = Resource.make[IO, Path](
-      IO {
-        val file = new File(filePath)
-        file.createNewFile()
-        val fw = new FileOutputStream(file)
-        fw.write(fileContent)
-        fw.close()
-        file.toPath
-      },
-    )(path => IO(java.nio.file.Files.delete(path)))
+
+    val fileResource: Resource[IO, File] = makeFileResource(filePath, fileContent)
 
     (for {
       server <- serverResource
@@ -100,7 +93,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
               UnproxiedHttpClientConfig(defaultPoolingConfig).createHttpClient(),
             ),
           )
-          response <- uploader.upload(UploadRequest(file, "a_filename.parquet"))
+          response <- uploader.upload(UploadRequest(file.toPath, "a_filename.parquet"))
           map      <- mapRef.get
         } yield {
           response shouldBe expectedResponse
@@ -127,14 +120,8 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                               auth,
                               targetTable,
       )
-    val fileResource: Resource[IO, File] = Resource.make[IO, File](IO {
-      val file = new File(filePath)
-      file.createNewFile()
-      val fw = new FileOutputStream(file)
-      fw.write(fileContent)
-      fw.close()
-      file
-    })(file => IO(file.delete()).map(_ => ()))
+
+    val fileResource: Resource[IO, File] = makeFileResource(filePath, fileContent)
 
     (for {
       server <- serverResource
@@ -167,7 +154,63 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
             case Right(_) => fail("Should fail with Forbidden")
           }
         }
-    }
+    }.unsafeRunSync()
+  }
+
+  test("handles non json responses") {
+    val port             = 21212
+    val auth             = "this is auth"
+    val targetTable      = "tableA"
+    val path             = "/api/push/respond-with-bad-request"
+    val filePath         = UUID.randomUUID().toString + ".parquet"
+    val fileContent      = Array[Byte](1, 2, 3, 4)
+    val mapRef           = Ref.unsafe[IO, Map[String, Array[Byte]]](Map.empty)
+    val expectedResponse = EmsUploadResponse("id1", filePath, "b1", "new", "c1".some, None, None)
+    val responseQueueRef: Ref[IO, Queue[() => EmsUploadResponse]] =
+      Ref.unsafe[IO, Queue[() => EmsUploadResponse]](Queue(() => expectedResponse))
+    val serverResource =
+      HttpServer.resource[IO](port,
+                              new InMemoryFileService[IO](mapRef),
+                              new QueueEmsUploadResponseProvider[IO](responseQueueRef),
+                              auth,
+                              targetTable,
+      )
+
+    val fileResource: Resource[IO, File] = makeFileResource(filePath, fileContent)
+
+    (for {
+      server <- serverResource
+      file   <- fileResource
+    } yield (server, file)).use {
+      case (_, file) =>
+        for {
+          uploader <- IO(
+            new EmsUploader[IO](
+              new URL(s"http://localhost:$port$path"),
+              "this is auth",
+              targetTable,
+              None,
+              "CelonisKafka2Ems vx.Test",
+              None,
+              None,
+              UnproxiedHttpClientConfig(defaultPoolingConfig),
+              None,
+              UnproxiedHttpClientConfig(defaultPoolingConfig).createHttpClient(),
+            ),
+          )
+          e <- uploader.upload(UploadRequest(file.toPath, "a_filename.parquet")).attempt
+        } yield {
+          e match {
+            case Left(value) =>
+              value match {
+                case e: UploadFailedException =>
+                  e.status shouldBe BadRequest
+                  e.msg contains "Bad request string message."
+              }
+            case Right(_) => fail("Should fail with Forbidden")
+          }
+        }
+    }.unsafeRunSync()
   }
 
   test("uploads the file through an unauthenticated proxy") {
@@ -191,14 +234,8 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                               auth,
                               targetTable,
       )
-    val fileResource: Resource[IO, File] = Resource.make[IO, File](IO {
-      val file = new File(filePath)
-      file.createNewFile()
-      val fw = new FileOutputStream(file)
-      fw.write(fileContent)
-      fw.close()
-      file
-    })(file => IO(file.delete()).map(_ => ()))
+
+    val fileResource: Resource[IO, File] = makeFileResource(filePath, fileContent)
 
     (for {
       server <- serverResource
@@ -251,14 +288,7 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
                               auth,
                               targetTable,
       )
-    val fileResource: Resource[IO, File] = Resource.make[IO, File](IO {
-      val file = new File(filePath)
-      file.createNewFile()
-      val fw = new FileOutputStream(file)
-      fw.write(fileContent)
-      fw.close()
-      file
-    })(file => IO(file.delete()).map(_ => ()))
+    val fileResource: Resource[IO, File] = makeFileResource(filePath, fileContent)
 
     (for {
       server <- serverResource
@@ -289,5 +319,15 @@ class EmsUploaderTests extends AnyFunSuite with Matchers {
         }
     }.unsafeRunSync()
   }
+
+  private def makeFileResource(filePath: String, fileContent: Array[Byte]): Resource[IO, File] =
+    Resource.make[IO, File](IO {
+      val file = new File(filePath)
+      file.createNewFile()
+      val fw = new FileOutputStream(file)
+      fw.write(fileContent)
+      fw.close()
+      file
+    })(file => IO(file.delete()).map(_ => ()))
 
 }
