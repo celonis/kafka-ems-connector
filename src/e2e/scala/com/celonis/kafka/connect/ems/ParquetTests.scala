@@ -44,6 +44,7 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with S
         .withConfig(OBFUSCATION_TYPE_KEY, "shA512")
         // This has been renamed and should be ignored and not make the connector registration fail
         .withConfig("connect.ems.parquet.write.flush.records", 1)
+        .withConfig(FLATTENER_ENABLE_KEY, false)
 
     val randomInt = scala.util.Random.nextInt()
     val expectations = List(
@@ -156,6 +157,7 @@ class ParquetTests extends AnyFunSuite with KafkaConnectContainerPerSuite with S
       .withConfig(COMMIT_SIZE_KEY, 1000000L)
       .withConfig(COMMIT_INTERVAL_KEY, 3600000)
       .withConfig(TMP_DIRECTORY_KEY, "/tmp/")
+      .withConfig(FLATTENER_ENABLE_KEY, false)
       .withConfig(DECIMAL_CONVERSION_KEY, true) // Activate decimal conversion
 
     testParquetValuesAndSchemas(emsConnectorConfig, expectedValues)
