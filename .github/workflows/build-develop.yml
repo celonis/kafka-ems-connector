@@ -87,7 +87,6 @@ jobs:
         with:
           java-version: "11"
           distribution: "adopt"
-          cache: "sbt"
 
       - name: Create NOTICE File
         run: |
