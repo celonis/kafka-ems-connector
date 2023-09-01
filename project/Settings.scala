@@ -9,7 +9,6 @@ import sbtassembly.AssemblyKeys.assemblyExcludedJars
 import sbtassembly.AssemblyKeys.assemblyMergeStrategy
 import sbtassembly.MergeStrategy
 import sbtassembly.PathList
-import sbtbuildinfo.BuildInfoPlugin
 import scalafix.sbt.ScalafixPlugin.autoImport.scalafixConfigSettings
 import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
 import scoverage._
@@ -166,10 +165,7 @@ object Settings extends Dependencies {
     betterMonadicFor,
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision,
-    libraryDependencies ++= {
-      sys.props += "packaging.type" -> "jar"
-      Seq(Dependencies.scalaCollectionCompat)
-    },
+    libraryDependencies ++= Seq(Dependencies.scalaCollectionCompat),
   )
 
   val rootSettings: Seq[Setting[_]] = commonSettings ++ Seq(
