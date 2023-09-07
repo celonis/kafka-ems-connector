@@ -9,7 +9,6 @@ import sbtassembly.AssemblyKeys.assemblyExcludedJars
 import sbtassembly.AssemblyKeys.assemblyMergeStrategy
 import sbtassembly.MergeStrategy
 import sbtassembly.PathList
-import sbtbuildinfo.BuildInfoPlugin
 import scalafix.sbt.ScalafixPlugin.autoImport.scalafixConfigSettings
 import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
 import scoverage._

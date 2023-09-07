@@ -18,6 +18,7 @@ lazy val root = Project("kafka-ems-connector", file("."))
   .settings(rootSettings)
   .settings(
     name := "kafka-ems-connector",
+    excludeDependencies += ExclusionRule("javax.ws.rs", "javax.ws.rs-api"),
   )
   .aggregate(
     connector,

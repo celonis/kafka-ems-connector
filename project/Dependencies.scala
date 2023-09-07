@@ -59,9 +59,9 @@ object Dependencies {
     val kindProjectorVersion    = "0.10.3"
     val betterMonadicForVersion = "0.3.1"
 
-    val slf4jVersion = "1.7.36"
+    val slf4jVersion = "2.0.7"
 
-    val logbackVersion        = "1.2.11"
+    val logbackVersion        = "1.4.11"
     val scalaLoggingVersion   = "3.9.2"
     val classGraphVersions    = "4.4.12"
     val scalaCollectionCompat = "2.4.2"
@@ -209,6 +209,7 @@ object Dependencies {
   val json4s                   = "org.json4s"               %% "json4s-native"          % Versions.json4sVersion
   val kafkaClients             = "org.apache.kafka"          % "kafka-clients"          % Versions.kafkaVersion
   val connectApi               = "org.apache.kafka"          % "connect-api"            % Versions.kafkaVersion
+  val slf4jApi                 = "org.slf4j"                 % "slf4j-api"              % Versions.slf4jVersion
 
   lazy val nettyCodecHttp:    ModuleID = "io.netty" % "netty-codec-http"    % nettyVersion
   lazy val nettyCodecSocks:   ModuleID = "io.netty" % "netty-codec-socks"   % nettyVersion
@@ -279,6 +280,8 @@ trait Dependencies {
     parquetAvro,
     parquetHadoop,
     hadoopCommon,
+    slf4jApi,
+    logback,
   )
 
   // override to the newest netty deps
