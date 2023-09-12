@@ -18,6 +18,7 @@ package com.celonis.kafka.connect.ems.sink
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_RECORDS_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.COMMIT_SIZE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_MAX
 import org.apache.kafka.connect.errors.ConnectException
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -74,4 +75,24 @@ class EmsSinkConfiguratorTest extends AnyFunSuite with Matchers {
     val thrown = the[ConnectException] thrownBy emsSinkConfigurator.getEmsSinkConfig(props)
     thrown.getMessage should include regex "^.*Uploading the data to EMS requires a record count greater than 0.*$"
   }
+
+  test(s"throws exception when $FALLBACK_VARCHAR_LENGTH_MAX is too big") {
+    val props = Map(
+      "name" -> "ems",
+      EmsSinkConfigConstants.ENDPOINT_KEY -> "https://celonis.cloud",
+      EmsSinkConfigConstants.AUTHORIZATION_KEY -> "AppKey key",
+      EmsSinkConfigConstants.TARGET_TABLE_KEY -> "target-table",
+      EmsSinkConfigConstants.COMMIT_RECORDS_KEY -> "1",
+      EmsSinkConfigConstants.COMMIT_SIZE_KEY -> "1000000",
+      EmsSinkConfigConstants.COMMIT_INTERVAL_KEY -> "3600000",
+      EmsSinkConfigConstants.TMP_DIRECTORY_KEY -> "/tmp/",
+      EmsSinkConfigConstants.ERROR_POLICY_KEY -> "CONTINUE",
+      EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_KEY -> "65001",
+    ).asJava
+
+    val thrown = the[ConnectException] thrownBy emsSinkConfigurator.getEmsSinkConfig(props)
+    thrown.getMessage should include regex "^.*Must be greater than 0 and smaller or equal than 65000.*$"
+  }
 }
+
+

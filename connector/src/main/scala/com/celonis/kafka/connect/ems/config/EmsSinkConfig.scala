@@ -68,6 +68,8 @@ object EmsSinkConfig {
     PropertiesHelper.getInt(props, FALLBACK_VARCHAR_LENGTH_KEY) match {
       case Some(value) =>
         if (value <= 0) error(FALLBACK_VARCHAR_LENGTH_KEY, FALLBACK_VARCHAR_LENGTH_DOC)
+        else if (value > FALLBACK_VARCHAR_LENGTH_MAX)
+          error(FALLBACK_VARCHAR_LENGTH_KEY, FALLBACK_VARCHAR_LENGTH_DOC)
         else value.some.asRight[String]
       case None => None.asRight
     }
