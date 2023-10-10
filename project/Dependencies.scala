@@ -71,7 +71,7 @@ object Dependencies {
     val hadoopVersion       = "3.3.4"
     val woodstockVersion    = "5.4.0"
 
-    val nettyVersion = "4.1.89.Final"
+    val nettyVersion = "4.1.97.Final"
 
     val nimbusJoseJwtVersion = "9.22"
 
