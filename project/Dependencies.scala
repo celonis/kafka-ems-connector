@@ -1,7 +1,6 @@
 import Dependencies.Versions.jacksonDatabindVersion
 import Dependencies.Versions.jacksonVersion
 import Dependencies.Versions.jimfsVersion
-import Dependencies.Versions.nettyVersion
 import Dependencies.Versions.nimbusJoseJwtVersion
 import Dependencies._
 import sbt._
@@ -70,8 +69,6 @@ object Dependencies {
     val parquetVersion      = "1.12.2"
     val hadoopVersion       = "3.3.4"
     val woodstockVersion    = "5.4.0"
-
-    val nettyVersion = "4.1.97.Final"
 
     val nimbusJoseJwtVersion = "9.22"
 
@@ -211,15 +208,6 @@ object Dependencies {
   val connectApi               = "org.apache.kafka"          % "connect-api"            % Versions.kafkaVersion
   val slf4jApi                 = "org.slf4j"                 % "slf4j-api"              % Versions.slf4jVersion
 
-  lazy val nettyCodecHttp:    ModuleID = "io.netty" % "netty-codec-http"    % nettyVersion
-  lazy val nettyCodecSocks:   ModuleID = "io.netty" % "netty-codec-socks"   % nettyVersion
-  lazy val nettyCodec:        ModuleID = "io.netty" % "netty-codec"         % nettyVersion
-  lazy val nettyCommon:       ModuleID = "io.netty" % "netty-common"        % nettyVersion
-  lazy val nettyHandlerProxy: ModuleID = "io.netty" % "netty-handler-proxy" % nettyVersion
-  lazy val nettyHandler:      ModuleID = "io.netty" % "netty-handler"       % nettyVersion
-  lazy val nettyResolver:     ModuleID = "io.netty" % "netty-resolver"      % nettyVersion
-  lazy val nettyTransport:    ModuleID = "io.netty" % "netty-transport"     % nettyVersion
-
   lazy val jacksonCore: ModuleID = "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion
   lazy val jacksonDatabind: ModuleID =
     "com.fasterxml.jackson.core" % "jackson-databind" % jacksonDatabindVersion
@@ -284,16 +272,6 @@ trait Dependencies {
     logback,
   )
 
-  // override to the newest netty deps
-  val nettyDeps = Seq(nettyCodecHttp,
-                      nettyCodecSocks,
-                      nettyCodec,
-                      nettyCommon,
-                      nettyHandlerProxy,
-                      nettyHandler,
-                      nettyResolver,
-                      nettyTransport,
-  )
   val jacksonDeps = Seq(jacksonCore, jacksonModuleScala, jacksonDatabind, jacksonXml)
 
   // Specific modules dependencies
@@ -315,7 +293,7 @@ trait Dependencies {
     hadoopMapReduce,
     woodstock,
     jimfs,
-  ) ++ enumeratum ++ circe ++ http4s ++ nettyDeps).map(_.exclude("org.slf4j", "slf4j-log4j12"))
+  ) ++ enumeratum ++ circe ++ http4s).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
     .map(
@@ -327,7 +305,7 @@ trait Dependencies {
       ),
     ) ++ jacksonDeps
 
-  val emsSinkOverrides = jacksonDeps ++ nettyDeps ++ Seq(avro, nimbusJoseJwt)
+  val emsSinkOverrides = jacksonDeps ++ Seq(avro, nimbusJoseJwt)
 
   // build plugins
   val kindProjectorPlugin = addCompilerPlugin("org.typelevel" %% "kind-projector" % Versions.kindProjectorVersion)
