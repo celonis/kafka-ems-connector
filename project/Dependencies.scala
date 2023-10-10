@@ -42,7 +42,7 @@ object Dependencies {
     val confluentVersion = "7.1.1"
 
     val http4sVersion = "0.23.11"
-    val avroVersion   = "1.11.0"
+    val avroVersion   = "1.11.3"
     val avro4sVersion = "4.0.13"
 
     val catsVersion           = "2.7.0"
