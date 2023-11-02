@@ -80,6 +80,11 @@ addCommandAlias(
 
 addCommandAlias("fullTest", ";test;it:test;fun:test;e2e:test")
 addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")
+addCommandAlias(
+  "assemblyWithoutTest",
+  ";kafka-ems-connector / clean; kafka-ems-connector / generateManifest; set connector / assembly / test := {}; connector / assembly",
+)
+addCommandAlias("assemblyAndE2eTest", ";assemblyWithoutTest;kafka-ems-connector / E2e / test")
 
 dependencyCheckFormats                  := Seq("XML", "HTML")
 dependencyCheckNodeAnalyzerEnabled      := Some(false)
