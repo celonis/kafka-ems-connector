@@ -100,6 +100,27 @@ git push origin vx.y.z
 
 The release will be automatically generated after the action has finished successfully.
 
+## E2e tests
+`e2e` tests runs against a packaged version of the connector. To run them, first run the `assembly` task, then the `e2e` tests.
+
+To run the assembly task without tests, the following command alias can be used:
+
+```
+sbt assemblyWithoutTest
+```
+
+Then `e2e` tests can be run with:
+
+```
+sbt "kafka-ems-connector / E2e / test"
+```
+
+The two tasks above can also be run with a single command:
+
+```
+sbt assemblyAndE2eTest
+```
+
 ## Locally run a vulnerability scan
 
 - Make sure you have [dependency-check](https://owasp.org/www-project-dependency-check/) installed
