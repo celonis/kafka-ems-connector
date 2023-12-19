@@ -32,6 +32,46 @@ import org.scalatest.matchers.should.Matchers
 import scala.jdk.CollectionConverters._
 
 class RecordTransformerTest extends AnyFunSuite with Matchers {
+
+  test("evolves target schema and aligns sunk record value to it") {
+    val value1 = Map[String, Any](
+      "a_string" -> "hello",
+      "an_int" -> 1,
+      "a_float" -> 1.5,
+    ).asJava
+
+    val value2 = Map[String, Any](
+      "a_string" -> "hello again",
+      //other fields omitted
+    ).asJava
+
+
+    val transformer =
+      RecordTransformer.fromConfig(
+        "mySink",
+        PreConversionConfig(false),
+        Some(FlattenerConfig(discardCollections = true, jsonBlobChunks = None)),
+        Nil,
+        None,
+        allowNullsAsPks = false,
+        FieldInserter.embeddedKafkaMetadata(doInsert = true, None))
+
+
+    val record1        = sinkRecord(value1)
+    transformer.transform(record1).unsafeRunSync()
+    val record2        = sinkRecord(value2)
+
+    val genericRecord = transformer.transform(record2).unsafeRunSync()
+
+    genericRecord.get("a_string") shouldEqual "hello again"
+    genericRecord.get("an_int") shouldEqual null
+    genericRecord.get("a_float") shouldEqual null
+    genericRecord.get("kafkaPartition") shouldEqual record2.kafkaPartition()
+    genericRecord.get("kafkaOffset") shouldEqual record2.kafkaOffset()
+    genericRecord.get("kafkaTimestamp") shouldEqual record2.timestamp()
+  }
+
+
   test("With Chunking enabled, heterogeneous arrays are handled properly") {
     val value = Map(
       "heterogeneous_array" -> List[Any]("a", 1, true).asJava,

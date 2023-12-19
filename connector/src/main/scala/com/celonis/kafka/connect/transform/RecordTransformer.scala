@@ -25,12 +25,14 @@ import com.celonis.kafka.connect.ems.errors.FailedObfuscationException
 import com.celonis.kafka.connect.ems.model._
 import com.celonis.kafka.connect.ems.obfuscation.ObfuscationUtils._
 import com.celonis.kafka.connect.ems.storage.PrimaryKeysValidator
+import com.celonis.kafka.connect.schema.{StructSchemaAlignment, StructSchemaEvolution}
 import com.celonis.kafka.connect.transform.conversion.ConnectConversion
 import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadata
 import com.celonis.kafka.connect.transform.fields.FieldInserter
 import com.celonis.kafka.connect.transform.flatten.Flattener
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.avro.generic.GenericRecord
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
 /** The main business transformation.
@@ -45,9 +47,13 @@ final class RecordTransformer(
   obfuscation:   Option[ObfuscationConfig],
   inserter:      FieldInserter,
 ) extends StrictLogging {
+
+  private var targetSchema: Schema = SchemaBuilder.struct().build();
+  private val schemaEvolution = new StructSchemaEvolution();
+
   def transform(sinkRecord: SinkRecord): IO[GenericRecord] = {
     val (convertedValue, convertedSchema) = preConversion.convert(sinkRecord.value(), Option(sinkRecord.valueSchema()))
-    val flattenedValue                    = flattener.flatten(convertedValue, convertedSchema)
+    val flattenedValue = flattener.flatten(convertedValue, convertedSchema)
 
     for {
       transformedValue <- IO(
@@ -56,7 +62,8 @@ final class RecordTransformer(
           EmbeddedKafkaMetadata(sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset(), sinkRecord.timestamp()),
         ),
       )
-      v <- IO.fromEither(DataConverter.apply(transformedValue))
+      schemaAlignedValue = evolveSchemaAndAlignValue(transformedValue)
+      v <- IO.fromEither(DataConverter.apply(schemaAlignedValue))
       _ <- IO(logger.debug("[{}] EmsSinkTask:put obfuscation={}", sinkName, obfuscation))
       value <- obfuscation.fold(IO.pure(v)) { o =>
         IO.fromEither(v.obfuscate(o).leftMap(FailedObfuscationException))
@@ -68,34 +75,42 @@ final class RecordTransformer(
       _ <- IO.fromEither(pksValidator.validate(value, metadata))
     } yield value
   }
+
+  private def evolveSchemaAndAlignValue(value: Any): Any =
+    value match {
+      case struct: Struct =>
+        targetSchema = schemaEvolution.evolve(targetSchema, struct.schema())
+        StructSchemaAlignment.alignTo(targetSchema, struct)
+      case _ => value
+    }
 }
 
-object RecordTransformer {
-  def fromConfig(
-    sinkName:            String,
-    preConversionConfig: PreConversionConfig,
-    flattenerConfig:     Option[FlattenerConfig],
-    primaryKeys:         List[String],
-    obfuscation:         Option[ObfuscationConfig],
-    allowNullsAsPks:     Boolean,
-    inserter:            FieldInserter): RecordTransformer =
-    new RecordTransformer(
-      sinkName,
-      ConnectConversion.fromConfig(preConversionConfig),
-      Flattener.fromConfig(flattenerConfig),
-      new PrimaryKeysValidator(primaryKeys, allowNullsAsPks),
-      obfuscation,
-      inserter,
-    )
+  object RecordTransformer {
+    def fromConfig(
+                    sinkName: String,
+                    preConversionConfig: PreConversionConfig,
+                    flattenerConfig: Option[FlattenerConfig],
+                    primaryKeys: List[String],
+                    obfuscation: Option[ObfuscationConfig],
+                    allowNullsAsPks: Boolean,
+                    inserter: FieldInserter): RecordTransformer =
+      new RecordTransformer(
+        sinkName,
+        ConnectConversion.fromConfig(preConversionConfig),
+        Flattener.fromConfig(flattenerConfig),
+        new PrimaryKeysValidator(primaryKeys, allowNullsAsPks),
+        obfuscation,
+        inserter,
+      )
 
-  def fromConfig(config: EmsSinkConfig): RecordTransformer =
-    fromConfig(
-      config.sinkName,
-      config.preConversionConfig,
-      config.flattenerConfig,
-      config.primaryKeys,
-      config.obfuscation,
-      config.allowNullsAsPks,
-      FieldInserter.embeddedKafkaMetadata(config.embedKafkaMetadata, config.orderField.name),
-    )
+    def fromConfig(config: EmsSinkConfig): RecordTransformer =
+      fromConfig(
+        config.sinkName,
+        config.preConversionConfig,
+        config.flattenerConfig,
+        config.primaryKeys,
+        config.obfuscation,
+        config.allowNullsAsPks,
+        FieldInserter.embeddedKafkaMetadata(config.embedKafkaMetadata, config.orderField.name),
+      )
 }
