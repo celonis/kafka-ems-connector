@@ -32,6 +32,75 @@ import org.scalatest.matchers.should.Matchers
 import scala.jdk.CollectionConverters._
 
 class RecordTransformerTest extends AnyFunSuite with Matchers {
+
+  test("evolves target schema and aligns sunk record value to it") {
+    val value1 = Map[String, Any](
+      "a_string" -> "hello",
+      "an_int"   -> 1,
+      "a_float"  -> 1.5,
+    ).asJava
+
+    val value2 = Map[String, Any](
+      "a_string" -> "hello again",
+      // other fields omitted
+    ).asJava
+
+    val transformer =
+      RecordTransformer.fromConfig(
+        "mySink",
+        PreConversionConfig(false),
+        Some(FlattenerConfig(discardCollections = true, jsonBlobChunks = None)),
+        Nil,
+        None,
+        allowNullsAsPks = false,
+        FieldInserter.embeddedKafkaMetadata(doInsert = true, None),
+      )
+
+    val record1 = sinkRecord(value1)
+    transformer.transform(record1).unsafeRunSync()
+    val record2 = sinkRecord(value2)
+
+    val genericRecord = transformer.transform(record2).unsafeRunSync()
+
+    genericRecord.get("a_string") shouldEqual "hello again"
+    genericRecord.get("an_int") shouldEqual null
+    genericRecord.get("a_float") shouldEqual null
+  }
+
+  test("resets schema when schema evolution fails due to a type error") {
+    val value1 = Map[String, Any](
+      "some_field"       -> "hello",
+      "some_other_field" -> "hello",
+    ).asJava
+
+    val value2 = Map[String, Any](
+      "some_field" -> 22, // field type has changed!
+    ).asJava
+
+    val transformer =
+      RecordTransformer.fromConfig(
+        "mySink",
+        PreConversionConfig(false),
+        Some(FlattenerConfig(discardCollections = true, jsonBlobChunks = None)),
+        Nil,
+        None,
+        allowNullsAsPks = false,
+        FieldInserter.embeddedKafkaMetadata(doInsert = true, None),
+      )
+
+    val record1        = sinkRecord(value1)
+    val genericRecord1 = transformer.transform(record1).unsafeRunSync()
+
+    genericRecord1.hasField("some_field") shouldBe true
+    genericRecord1.hasField("some_other_field") shouldBe true
+
+    val record2        = sinkRecord(value2)
+    val genericRecord2 = transformer.transform(record2).unsafeRunSync()
+
+    genericRecord2.get("some_field") shouldEqual 22
+    genericRecord2.hasField("some_other_field") shouldBe false
+  }
+
   test("With Chunking enabled, heterogeneous arrays are handled properly") {
     val value = Map(
       "heterogeneous_array" -> List[Any]("a", 1, true).asJava,

@@ -25,12 +25,18 @@ import com.celonis.kafka.connect.ems.errors.FailedObfuscationException
 import com.celonis.kafka.connect.ems.model._
 import com.celonis.kafka.connect.ems.obfuscation.ObfuscationUtils._
 import com.celonis.kafka.connect.ems.storage.PrimaryKeysValidator
+import com.celonis.kafka.connect.schema.SchemaEvolutionException
+import com.celonis.kafka.connect.schema.StructSchemaAlignment
+import com.celonis.kafka.connect.schema.StructSchemaEvolution
 import com.celonis.kafka.connect.transform.conversion.ConnectConversion
 import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadata
 import com.celonis.kafka.connect.transform.fields.FieldInserter
 import com.celonis.kafka.connect.transform.flatten.Flattener
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.avro.generic.GenericRecord
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 
 /** The main business transformation.
@@ -45,6 +51,10 @@ final class RecordTransformer(
   obfuscation:   Option[ObfuscationConfig],
   inserter:      FieldInserter,
 ) extends StrictLogging {
+
+  private var targetSchema: Schema = SchemaBuilder.struct().build();
+  private val schemaEvolution = new StructSchemaEvolution();
+
   def transform(sinkRecord: SinkRecord): IO[GenericRecord] = {
     val (convertedValue, convertedSchema) = preConversion.convert(sinkRecord.value(), Option(sinkRecord.valueSchema()))
     val flattenedValue                    = flattener.flatten(convertedValue, convertedSchema)
@@ -56,8 +66,9 @@ final class RecordTransformer(
           EmbeddedKafkaMetadata(sinkRecord.kafkaPartition(), sinkRecord.kafkaOffset(), sinkRecord.timestamp()),
         ),
       )
-      v <- IO.fromEither(DataConverter.apply(transformedValue))
-      _ <- IO(logger.debug("[{}] EmsSinkTask:put obfuscation={}", sinkName, obfuscation))
+      schemaAlignedValue = evolveSchemaAndAlignValue(transformedValue)
+      v                 <- IO.fromEither(DataConverter.apply(schemaAlignedValue))
+      _                 <- IO(logger.debug("[{}] EmsSinkTask:put obfuscation={}", sinkName, obfuscation))
       value <- obfuscation.fold(IO.pure(v)) { o =>
         IO.fromEither(v.obfuscate(o).leftMap(FailedObfuscationException))
       }
@@ -68,6 +79,21 @@ final class RecordTransformer(
       _ <- IO.fromEither(pksValidator.validate(value, metadata))
     } yield value
   }
+
+  private def evolveSchemaAndAlignValue(value: Any): Any =
+    value match {
+      case struct: Struct =>
+        try {
+          targetSchema = schemaEvolution.evolve(targetSchema, struct.schema())
+          StructSchemaAlignment.alignTo(targetSchema, struct)
+        } catch {
+          case exception: SchemaEvolutionException =>
+            logger.warn(s"resetting incrementally computed schema as evolution failed: ${exception.getMessage}")
+            targetSchema = struct.schema()
+            struct
+        }
+      case _ => value
+    }
 }
 
 object RecordTransformer {

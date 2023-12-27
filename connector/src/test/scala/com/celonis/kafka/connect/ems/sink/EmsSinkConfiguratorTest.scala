@@ -78,15 +78,15 @@ class EmsSinkConfiguratorTest extends AnyFunSuite with Matchers {
 
   test(s"throws exception when $FALLBACK_VARCHAR_LENGTH_MAX is too big") {
     val props = Map(
-      "name" -> "ems",
-      EmsSinkConfigConstants.ENDPOINT_KEY -> "https://celonis.cloud",
-      EmsSinkConfigConstants.AUTHORIZATION_KEY -> "AppKey key",
-      EmsSinkConfigConstants.TARGET_TABLE_KEY -> "target-table",
-      EmsSinkConfigConstants.COMMIT_RECORDS_KEY -> "1",
-      EmsSinkConfigConstants.COMMIT_SIZE_KEY -> "1000000",
-      EmsSinkConfigConstants.COMMIT_INTERVAL_KEY -> "3600000",
-      EmsSinkConfigConstants.TMP_DIRECTORY_KEY -> "/tmp/",
-      EmsSinkConfigConstants.ERROR_POLICY_KEY -> "CONTINUE",
+      "name"                                             -> "ems",
+      EmsSinkConfigConstants.ENDPOINT_KEY                -> "https://celonis.cloud",
+      EmsSinkConfigConstants.AUTHORIZATION_KEY           -> "AppKey key",
+      EmsSinkConfigConstants.TARGET_TABLE_KEY            -> "target-table",
+      EmsSinkConfigConstants.COMMIT_RECORDS_KEY          -> "1",
+      EmsSinkConfigConstants.COMMIT_SIZE_KEY             -> "1000000",
+      EmsSinkConfigConstants.COMMIT_INTERVAL_KEY         -> "3600000",
+      EmsSinkConfigConstants.TMP_DIRECTORY_KEY           -> "/tmp/",
+      EmsSinkConfigConstants.ERROR_POLICY_KEY            -> "CONTINUE",
       EmsSinkConfigConstants.FALLBACK_VARCHAR_LENGTH_KEY -> "65001",
     ).asJava
 
@@ -94,5 +94,3 @@ class EmsSinkConfiguratorTest extends AnyFunSuite with Matchers {
     thrown.getMessage should include regex "^.*Must be greater than 0 and smaller or equal than 65000.*$"
   }
 }
-
-
