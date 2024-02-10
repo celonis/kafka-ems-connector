@@ -75,6 +75,8 @@ public class StructSchemaEvolution implements SchemaEvolution {
       throws SchemaEvolutionException {
     SchemaBuilder result = SchemaUtils.withMetadata(SchemaBuilder.struct(), currentSchema);
 
+    if (currentSchema.isOptional() || recordSchema.isOptional()) result.optional();
+
     // First currentSchemaFields
     currentSchema.fields().stream()
         .forEach(
