@@ -183,6 +183,28 @@ class StructSchemaEvolutionTest extends AnyFunSuite with Matchers with Inside {
 
     schemaEv.evolve(currentSchema, recordSchema) shouldEqual expectedResult
   }
+
+  test("testSchemaEvolutionPreservesFieldOptionality") {
+    val currentSchema =
+      SchemaBuilder.struct.field("a_struct",
+                                 SchemaBuilder.struct.field("optional_string", Schema.OPTIONAL_STRING_SCHEMA).build,
+      ).field("an_empty_struct", SchemaBuilder.struct.optional.schema).build
+    val recordSchema = SchemaBuilder.struct.field(
+      "a_struct",
+      SchemaBuilder.struct.optional.field("optional_string", Schema.OPTIONAL_STRING_SCHEMA).field("an_int",
+                                                                                                  Schema.INT64_SCHEMA,
+      ).field("a_string_2", Schema.STRING_SCHEMA).build,
+    ).field("an_empty_struct", SchemaBuilder.struct.schema).build
+    val expectedResult = SchemaBuilder.struct.field(
+      "a_struct",
+      SchemaBuilder.struct.optional.field("optional_string", Schema.OPTIONAL_STRING_SCHEMA).field("an_int",
+                                                                                                  Schema.INT64_SCHEMA,
+      ).field("a_string_2", Schema.STRING_SCHEMA).build,
+    ).field("an_empty_struct", SchemaBuilder.struct.optional.schema).build
+    val result = schemaEv.evolve(currentSchema, recordSchema)
+    result shouldEqual expectedResult
+  }
+
   test("SchemaEvolutionWithAdditionalStructRecordField") {
     val currentSchema =
       SchemaBuilder.struct()
