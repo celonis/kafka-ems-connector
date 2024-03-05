@@ -17,6 +17,7 @@
 package com.celonis.kafka.connect.transform.flatten
 
 import com.celonis.kafka.connect.transform.FlattenerConfig
+import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue
 import org.apache.kafka.connect.data.Schema
 
 trait Flattener {
@@ -30,7 +31,10 @@ object Flattener {
     config match {
       case Some(config) => config.jsonBlobChunks match {
           case Some(jsonBlobChunks) => new ChunkedJsonBlobFlattener(jsonBlobChunks)
-          case None                 => new NormalisingFlattener(new StructFlattener(new SchemaFlattener(config.discardCollections)))
+          case None => new NormalisingFlattener(
+              new StructFlattener(new SchemaFlattener(config.discardCollections)),
+              new InferSchemaAndNormaliseValue(config.discardCollections),
+            )
         }
       case None => noOpFlattener
     }
