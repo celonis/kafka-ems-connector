@@ -29,7 +29,7 @@ private final class NormalisingFlattener(
     val valueAndSchema = originalSchema match {
       case Some(originalSchema) => ValueAndSchema(originalValue, originalSchema)
       case None =>
-        normaliser(originalValue).getOrElse(ValueAndSchema(originalValue, Schema.BYTES_SCHEMA))
+        normaliser(originalValue).toTry.get
     }
 
     innerFlattener.flatten(valueAndSchema.normalisedValue, Some(valueAndSchema.schema))

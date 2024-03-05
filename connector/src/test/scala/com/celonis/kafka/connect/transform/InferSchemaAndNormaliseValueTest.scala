@@ -16,6 +16,7 @@
 
 package com.celonis.kafka.connect.transform
 
+import com.celonis.kafka.connect.ems.errors.SchemaInferenceException
 import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue.ValueAndSchema
 import com.celonis.kafka.connect.transform.flatten.ConnectJsonConverter
 import org.apache.kafka.connect.data.Schema
@@ -28,14 +29,14 @@ import scala.annotation.nowarn
 import scala.jdk.CollectionConverters._
 
 class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuite with Matchers {
-  test("returns None when encountering an unexpected value") {
+  test("returns Left when encountering an unexpected value") {
     List[Any](
       null,
       Range(1, 10),
       Iterator.continually(true),
       (),
     ).foreach {
-      value => assertResult(None)(infer(value))
+      value => assert(infer(value).isLeft)
     }
   }
   test("Infers the schema of simple primitives") {
@@ -46,7 +47,7 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
       true  -> Schema.OPTIONAL_BOOLEAN_SCHEMA,
     ).foreach {
       case (value, expectedSchema) =>
-        assertResult(Some(ValueAndSchema(value, expectedSchema)))(infer(value))
+        assertResult(Right(ValueAndSchema(value, expectedSchema)))(infer(value))
     }
   }
 
@@ -55,7 +56,7 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
     val expectedSchema = SchemaBuilder.struct().field("hi", Schema.OPTIONAL_STRING_SCHEMA).build()
     val expectedValue  = new Struct(expectedSchema).put("hi", "there")
 
-    assertResult(Some(ValueAndSchema(expectedValue, expectedSchema)))(infer(value))
+    assertResult(Right(ValueAndSchema(expectedValue, expectedSchema)))(infer(value))
   }
 
   test("Infers simple maps of primitives") {
@@ -63,7 +64,7 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
     val expectedSchema = SchemaBuilder.struct().field("1", Schema.OPTIONAL_BOOLEAN_SCHEMA).build()
     val expectedValue  = new Struct(expectedSchema).put("1", true)
 
-    assertResult(Some(ValueAndSchema(expectedValue, expectedSchema)))(infer(value))
+    assertResult(Right(ValueAndSchema(expectedValue, expectedSchema)))(infer(value))
   }
 
   test("Infers simple collections") {
@@ -71,7 +72,7 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
     val expectedSchema = Schema.OPTIONAL_STRING_SCHEMA
     val expectedValue  = """["a","b","c"]"""
 
-    assertResult(Some(ValueAndSchema(expectedValue, expectedSchema)))(infer(value))
+    assertResult(Right(ValueAndSchema(expectedValue, expectedSchema)))(infer(value))
   }
 
   test("Normalisation transforms maps nested in maps") {
@@ -80,25 +81,25 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
     val expectedSchema = SchemaBuilder.struct().field("nested", nestedSchema).build()
     val expectedValue  = new Struct(expectedSchema).put("nested", new Struct(nestedSchema).put("a", "123"))
 
-    assertResult(Some(ValueAndSchema(expectedValue, expectedSchema)))(infer(value))
+    assertResult(Right(ValueAndSchema(expectedValue, expectedSchema)))(infer(value))
   }
 
   test("Normalisation transforms maps nested in arrays") {
     val value         = List(Map("a" -> "123").asJava).asJava
     val expectedValue = """[{"a":"123"}]"""
 
-    assertResult(Some(ValueAndSchema(expectedValue, Schema.OPTIONAL_STRING_SCHEMA)))(infer(value))
+    assertResult(Right(ValueAndSchema(expectedValue, Schema.OPTIONAL_STRING_SCHEMA)))(infer(value))
   }
 
   test("Succeeds with empty arrays") {
     val value = List.empty[Int].asJava
-    assertResult(Some(ValueAndSchema("[]", Schema.OPTIONAL_STRING_SCHEMA)))(infer(value))
+    assertResult(Right(ValueAndSchema("[]", Schema.OPTIONAL_STRING_SCHEMA)))(infer(value))
   }
 
   test("Succeeds with empty map") {
     val value          = Map.empty[Boolean, Boolean].asJava
     val expectedSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BYTES_SCHEMA).build()
-    assertResult(Some(ValueAndSchema(value, expectedSchema)))(infer(value))
+    assertResult(Right(ValueAndSchema(value, expectedSchema)))(infer(value))
   }
 
   test("Succeeds with non-empty heterogeneous collections") {
@@ -106,14 +107,13 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
       List[Any](1, "blah", true).asJava,
       List(List[Any](1, "blah").asJava).asJava,
     ).foreach { value =>
-      val result = infer(value)
-      assert(result.nonEmpty)
+      infer(value)
     }
   }
 
   test("Fails when a map contains an empty key") {
     val value = Map("" -> "x", "y" -> "x").asJava
-    assertResult(None)(infer(value))
+    assert(infer(value).isLeft)
   }
 
   test("infers nested object's schema") {
@@ -123,7 +123,7 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
         |""".stripMargin
     val om     = new ObjectMapper()
     val value  = om.readValue(rawJson, classOf[java.util.Map[String, AnyRef]])
-    val schema = infer(value).map(_.schema).getOrElse(fail("some schema expected!"))
+    val schema = infer(value).toTry.get.schema
 
     assertResult(
       SchemaBuilder.struct().field(
@@ -144,7 +144,7 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
         |""".stripMargin
 
     val value          = new ObjectMapper().readValue(rawJson, classOf[java.util.Map[String, AnyRef]])
-    val valueAndSchema = infer(value).getOrElse(fail("some schema expected!"))
+    val valueAndSchema = infer(value).toTry.get
 
     val expectedSchema = SchemaBuilder.struct().field(
       "hello",
@@ -173,7 +173,7 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
     val expectedNestedValue = new Struct(expectedNestedSchema).put("hello", "man")
     val expectedValue       = new Struct(expectedSchema).put("hi", "there").put("itemsNested", expectedNestedValue)
 
-    assertResult(Some(ValueAndSchema(expectedValue, expectedSchema)))(infer(value, true))
+    assertResult(Right(ValueAndSchema(expectedValue, expectedSchema)))(infer(value, true))
   }
 
   test("normalises a schemaless JSON") {
@@ -199,9 +199,9 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
         |}
         |""".stripMargin
 
-    val schemaAndValue                           = ConnectJsonConverter.converter.toConnectData("topic", json.getBytes)
-    val Some(ValueAndSchema(normalisedValue, _)) = infer(schemaAndValue.value())
-    val struct                                   = normalisedValue.asInstanceOf[Struct]
+    val schemaAndValue                            = ConnectJsonConverter.converter.toConnectData("topic", json.getBytes)
+    val Right(ValueAndSchema(normalisedValue, _)) = infer(schemaAndValue.value())
+    val struct                                    = normalisedValue.asInstanceOf[Struct]
 
     assertResult(Set(
       "idType",
@@ -231,6 +231,6 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
     struct.get("nums") shouldBe """[1,3,4]"""
   }
 
-  private def infer(value: Any, discardCollections: Boolean = false): Option[ValueAndSchema] =
+  private def infer(value: Any, discardCollections: Boolean = false): Either[SchemaInferenceException, ValueAndSchema] =
     new InferSchemaAndNormaliseValue(discardCollections).apply(value)
 }

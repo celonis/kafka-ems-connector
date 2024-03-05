@@ -130,7 +130,7 @@ class SchemaLessJsonValueConverterTest extends AnyFunSuite with Matchers {
   private val inference = new InferSchemaAndNormaliseValue(false);
 
   private def convert(value: Any): Either[Throwable, GenericRecord] =
-    inference(value).toRight(new RuntimeException("whatever")).flatMap(valueAndSchema =>
+    inference(value).flatMap(valueAndSchema =>
       DataConverter(valueAndSchema.normalisedValue),
     )
 
