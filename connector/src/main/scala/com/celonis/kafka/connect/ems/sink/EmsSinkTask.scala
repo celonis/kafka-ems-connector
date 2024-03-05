@@ -41,7 +41,6 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.ErrantRecordReporter
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
-import scala.jdk.FutureConverters._
 
 import java.util
 import scala.concurrent.TimeoutException

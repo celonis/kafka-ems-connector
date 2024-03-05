@@ -57,6 +57,7 @@ object ErrorPolicy extends Enum[ErrorPolicy] {
       }
   }
 
+
   def extract(props: Map[String, _]): Either[String, ErrorPolicy] =
     nonEmptyStringOr(props, ERROR_POLICY_KEY, ERROR_POLICY_DOC)
       .flatMap { constant =>

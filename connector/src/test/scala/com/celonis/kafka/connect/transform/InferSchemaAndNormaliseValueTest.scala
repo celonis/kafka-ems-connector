@@ -16,7 +16,7 @@
 
 package com.celonis.kafka.connect.transform
 
-import com.celonis.kafka.connect.ems.errors.SchemaInferenceException
+import com.celonis.kafka.connect.ems.errors.InvalidInputException
 import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue.ValueAndSchema
 import com.celonis.kafka.connect.transform.flatten.ConnectJsonConverter
 import org.apache.kafka.connect.data.Schema
@@ -231,6 +231,6 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
     struct.get("nums") shouldBe """[1,3,4]"""
   }
 
-  private def infer(value: Any, discardCollections: Boolean = false): Either[SchemaInferenceException, ValueAndSchema] =
+  private def infer(value: Any, discardCollections: Boolean = false): Either[InvalidInputException, ValueAndSchema] =
     new InferSchemaAndNormaliseValue(discardCollections).apply(value)
 }

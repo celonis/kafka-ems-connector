@@ -27,7 +27,6 @@ final case class UploadFailedException(status: Status, msg: String, throwable: T
     extends ConnectException(msg, throwable)
     with EmsSinkException
 
-final case class InvalidInputException(msg: String)    extends ConnectException(msg) with EmsSinkException
-final case class SchemaInferenceException(msg: String) extends ConnectException(msg) with EmsSinkException
+final case class InvalidInputException(msg: String) extends ConnectException(msg) with EmsSinkException
 
 final case class FailedObfuscationException(msg: String) extends ConnectException(msg) with EmsSinkException
