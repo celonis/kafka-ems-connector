@@ -38,8 +38,10 @@ import okhttp3.OkHttpClient
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.sink.ErrantRecordReporter
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
+import scala.jdk.FutureConverters._
 
 import java.util
 import scala.concurrent.TimeoutException
@@ -135,14 +137,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         // filter our "deletes" for now
         .filter(_.value() != null)
         .toList
-        .traverse { record =>
-          for {
-            avroRecord <- transformer.transform(record)
-            tp          = TopicPartition(new Topic(record.topic()), new Partition(record.kafkaPartition()))
-            metadata    = RecordMetadata(tp, new Offset(record.kafkaOffset()))
-            _          <- writerManager.write(Record(avroRecord, metadata))
-          } yield ()
-        }
+        .traverse(processSingleRecordOrReport(context.errantRecordReporter()))
       _ <- if (records.isEmpty) writerManager.maybeUploadData
       else IO(())
     } yield ()
@@ -159,6 +154,22 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         retriesLeft = maxRetries
     }
   }
+
+  private def processSingleRecord(record: SinkRecord): IO[Unit] = for {
+    avroRecord <- transformer.transform(record)
+    tp          = TopicPartition(new Topic(record.topic()), new Partition(record.kafkaPartition()))
+    metadata    = RecordMetadata(tp, new Offset(record.kafkaOffset()))
+    _          <- writerManager.write(Record(avroRecord, metadata))
+  } yield ()
+
+  private def processSingleRecordOrReport(reporter: ErrantRecordReporter)(record: SinkRecord): IO[Unit] =
+    if (reporter == null) processSingleRecord(record)
+    else {
+      processSingleRecord(record).attempt.flatTap {
+        case Left(error) => IO(reporter.report(record, error))
+        case _           => IO.unit
+      }.flatMap(IO.fromEither)
+    }
 
   override def preCommit(
     currentOffsets: util.Map[KafkaTopicPartition, OffsetAndMetadata]): util.Map[KafkaTopicPartition,
