@@ -24,6 +24,7 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper
 
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters._
 
 class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuite with Matchers {
@@ -157,6 +158,22 @@ class InferSchemaAndNormaliseValueTest extends org.scalatest.funsuite.AnyFunSuit
 
     assertResult(expectedSchema)(valueAndSchema.schema)
     assertResult(expectedValue)(valueAndSchema.normalisedValue)
+  }
+
+  test("drops arrays when discard collection is set to true") {
+    @nowarn
+    val value = Map("hi" -> "there",
+                    "items"       -> List(1, 2, 3).asJava,
+                    "itemsNested" -> Map("hello" -> "man", "items" -> List("a", "b").asJava).asJava,
+    ).asJava
+    val expectedNestedSchema = SchemaBuilder.struct().field("hello", Schema.OPTIONAL_STRING_SCHEMA).build()
+    val expectedSchema = SchemaBuilder.struct().field("hi", Schema.OPTIONAL_STRING_SCHEMA).field("itemsNested",
+                                                                                                 expectedNestedSchema,
+    ).build()
+    val expectedNestedValue = new Struct(expectedNestedSchema).put("hello", "man")
+    val expectedValue       = new Struct(expectedSchema).put("hi", "there").put("itemsNested", expectedNestedValue)
+
+    assertResult(Some(ValueAndSchema(expectedValue, expectedSchema)))(infer(value, true))
   }
 
   test("normalises a schemaless JSON") {
