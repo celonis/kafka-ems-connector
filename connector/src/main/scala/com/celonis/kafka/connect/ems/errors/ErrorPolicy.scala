@@ -23,31 +23,28 @@ import com.celonis.kafka.connect.ems.config.PropertiesHelper.error
 import com.celonis.kafka.connect.ems.config.PropertiesHelper.nonEmptyStringOr
 import com.typesafe.scalalogging.StrictLogging
 
-import enumeratum._
-import enumeratum.EnumEntry.Uppercase
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.errors.RetriableException
 
-sealed trait ErrorPolicy extends EnumEntry with Uppercase {
+sealed trait ErrorPolicy {
   def handle(error: Throwable, retries: Int): Unit
 }
 
-object ErrorPolicy extends Enum[ErrorPolicy] {
-  val values: IndexedSeq[ErrorPolicy] = findValues
+object ErrorPolicy {
 
-  case object Continue extends ErrorPolicy with StrictLogging {
+  object Continue extends ErrorPolicy with StrictLogging {
     override def handle(error: Throwable, retries: Int): Unit =
       logger.warn(s"Error policy is set to CONTINUE.", error)
   }
 
-  case object Throw extends ErrorPolicy with StrictLogging {
+  object Throw extends ErrorPolicy with StrictLogging {
     override def handle(error: Throwable, retries: Int): Unit = {
       logger.warn(s"Error policy is set to THROW.", error)
       throw new ConnectException(error)
     }
   }
 
-  case object Retry extends ErrorPolicy with StrictLogging {
+  object Retry extends ErrorPolicy with StrictLogging {
     override def handle(error: Throwable, retries: Int): Unit =
       if (retries == 0) {
         throw new ConnectException(error)
@@ -57,13 +54,21 @@ object ErrorPolicy extends Enum[ErrorPolicy] {
       }
   }
 
+  // Override handling of InvalidInput exceptions by skipping them
+  final class ContinueOnInvalidInputPolicy(inner: ErrorPolicy) extends ErrorPolicy with StrictLogging {
+    override def handle(error: Throwable, retries: Int): Unit = error match {
+      case _: InvalidInputException => logger.warn("Error policy is set to CONTINUE on InvalidInput", error)
+      case _ => inner.handle(error, retries)
+
+    }
+  }
 
   def extract(props: Map[String, _]): Either[String, ErrorPolicy] =
-    nonEmptyStringOr(props, ERROR_POLICY_KEY, ERROR_POLICY_DOC)
-      .flatMap { constant =>
-        ErrorPolicy.withNameInsensitiveOption(constant) match {
-          case Some(value) => value.asRight[String]
-          case None        => error(ERROR_POLICY_KEY, ERROR_POLICY_DOC)
-        }
+    nonEmptyStringOr(props, ERROR_POLICY_KEY, ERROR_POLICY_DOC).map(_.toUpperCase)
+      .flatMap {
+        case "THROW"    => Throw.asRight
+        case "RETRY"    => Retry.asRight
+        case "CONTINUE" => Continue.asRight
+        case _          => error(ERROR_POLICY_KEY, ERROR_POLICY_DOC)
       }
 }

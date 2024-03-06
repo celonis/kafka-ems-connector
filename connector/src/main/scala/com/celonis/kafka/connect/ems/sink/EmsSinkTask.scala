@@ -21,9 +21,9 @@ import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
+import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType.RETRY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
-import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model._
 import com.celonis.kafka.connect.ems.sink.EmsSinkTask.PutTimeoutException
 import com.celonis.kafka.connect.ems.sink.EmsSinkTask.StopTimeout
@@ -122,9 +122,9 @@ class EmsSinkTask extends SinkTask with StrictLogging {
       )
     }
 
-    maxRetries    = config.retries.retries
+    maxRetries    = config.errorPolicyConfig.retryConfig.retries
     retriesLeft   = maxRetries
-    errorPolicy   = config.errorPolicy
+    errorPolicy   = config.errorPolicyConfig.errorPolicy
     transformer   = RecordTransformer.fromConfig(config)
     emsSinkConfig = config
   }
@@ -136,7 +136,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         // filter our "deletes" for now
         .filter(_.value() != null)
         .toList
-        .traverse(processSingleRecordOrReport(context.errantRecordReporter()))
+        .traverse(processSingleRecordOrReport(errantRecordReporter()))
       _ <- if (records.isEmpty) writerManager.maybeUploadData
       else IO(())
     } yield ()
@@ -154,6 +154,9 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     }
   }
 
+  private def errantRecordReporter(): Option[ErrantRecordReporter] =
+    Option(context).flatMap(context => Option(context.errantRecordReporter()))
+
   private def processSingleRecord(record: SinkRecord): IO[Unit] = for {
     avroRecord <- transformer.transform(record)
     tp          = TopicPartition(new Topic(record.topic()), new Partition(record.kafkaPartition()))
@@ -161,13 +164,13 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     _          <- writerManager.write(Record(avroRecord, metadata))
   } yield ()
 
-  private def processSingleRecordOrReport(reporter: ErrantRecordReporter)(record: SinkRecord): IO[Unit] =
-    if (reporter == null) processSingleRecord(record)
-    else {
-      processSingleRecord(record).attempt.flatTap {
-        case Left(error) => IO(reporter.report(record, error))
-        case _           => IO.unit
-      }.flatMap(IO.fromEither)
+  private def processSingleRecordOrReport(reporter: Option[ErrantRecordReporter])(record: SinkRecord): IO[Unit] =
+    reporter match {
+      case Some(reporter) => processSingleRecord(record).attempt.flatTap {
+          case Left(error) => IO(reporter.report(record, error))
+          case _           => IO.unit
+        }.flatMap(IO.fromEither)
+      case None => processSingleRecord(record)
     }
 
   override def preCommit(
@@ -258,8 +261,8 @@ class EmsSinkTask extends SinkTask with StrictLogging {
 
   private def maybeSetErrorInterval(config: EmsSinkConfig): Unit =
     // if error policy is retry set retry interval
-    config.errorPolicy match {
-      case Retry => Option(context).foreach(_.timeout(config.retries.interval))
+    config.errorPolicyConfig.policyType match {
+      case RETRY => Option(context).foreach(_.timeout(config.errorPolicyConfig.retryConfig.interval))
       case _     =>
     }
 }

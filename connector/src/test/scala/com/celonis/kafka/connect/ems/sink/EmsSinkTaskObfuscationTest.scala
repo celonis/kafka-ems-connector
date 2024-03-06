@@ -23,8 +23,8 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
   CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE => MAX_IDLE_DEFAULT,
   _,
 }
+import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType
 import com.celonis.kafka.connect.ems.config._
-import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
 import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupRename
 import com.celonis.kafka.connect.ems.storage.WorkingDirectory
@@ -56,9 +56,8 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         "tableA",
         Some("id11111"),
         AuthorizationHeader("AppKey 123"),
-        Retry,
+        ErrorPolicyConfig(ErrorPolicyType.RETRY, RetryConfig(1, 1000), continueOnInvalidError = false),
         policy,
-        RetryConfig(1, 1000),
         dir,
         ParquetConfig.default,
         List("a", "b"),
@@ -80,12 +79,12 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         ENDPOINT_KEY                     -> sinkConfig.url.toString,
         TARGET_TABLE_KEY                 -> sinkConfig.target,
         AUTHORIZATION_KEY                -> sinkConfig.authorization.header,
-        ERROR_POLICY_KEY                 -> sinkConfig.errorPolicy.entryName,
+        ERROR_POLICY_KEY                 -> sinkConfig.errorPolicyConfig.policyType.toString,
         COMMIT_SIZE_KEY                  -> policy.fileSize.toString,
         COMMIT_INTERVAL_KEY              -> policy.interval.toString,
         COMMIT_RECORDS_KEY               -> policy.records.toString,
-        ERROR_RETRY_INTERVAL             -> sinkConfig.retries.interval.toString,
-        NBR_OF_RETRIES_KEY               -> sinkConfig.retries.retries.toString,
+        ERROR_RETRY_INTERVAL             -> sinkConfig.errorPolicyConfig.retryConfig.interval.toString,
+        NBR_OF_RETRIES_KEY               -> sinkConfig.errorPolicyConfig.retryConfig.retries.toString,
         TMP_DIRECTORY_KEY                -> dir.toString,
         DEBUG_KEEP_TMP_FILES_KEY         -> sinkConfig.parquet.cleanup.isInstanceOf[ParquetFileCleanupRename].toString,
         PARQUET_ROW_GROUP_SIZE_BYTES_KEY -> sinkConfig.parquet.rowGroupSize.toString,
