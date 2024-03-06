@@ -158,7 +158,7 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     genericRecord.get("another_optional_decimal") shouldBe null
   }
 
-  test("With Chunking disabled, heterogeneous arrays prevent flattening") {
+  test("With Chunking disabled, heterogeneous arrays do not prevent flattening") {
     val value = Map(
       "heterogeneous_array" -> List[Any]("a", 1, true).asJava,
     ).asJava
@@ -167,7 +167,9 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     ()
   }
 
-  test("With Chunking disabled, heterogeneous arrays prevents flattening, even with discardCollection enabled") {
+  test(
+    "With Chunking disabled, heterogeneous arrays do not prevents flattening, even with discardCollection enabled",
+  ) {
     val value = Map(
       "foo"                 -> "bar",
       "heterogeneous_array" -> List[Any]("a", 1, true).asJava,
