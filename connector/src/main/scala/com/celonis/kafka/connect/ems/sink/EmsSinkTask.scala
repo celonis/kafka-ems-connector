@@ -24,6 +24,7 @@ import cats.implicits._
 import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType.RETRY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
+import com.celonis.kafka.connect.ems.errors.InvalidInputException
 import com.celonis.kafka.connect.ems.model._
 import com.celonis.kafka.connect.ems.sink.EmsSinkTask.PutTimeoutException
 import com.celonis.kafka.connect.ems.sink.EmsSinkTask.StopTimeout
@@ -167,8 +168,8 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private def processSingleRecordOrReport(reporter: Option[ErrantRecordReporter])(record: SinkRecord): IO[Unit] =
     reporter match {
       case Some(reporter) => processSingleRecord(record).attempt.flatTap {
-          case Left(error) => IO(reporter.report(record, error))
-          case _           => IO.unit
+          case Left(error: InvalidInputException) => IO(reporter.report(record, error))
+          case _                                  => IO.unit
         }.flatMap(IO.fromEither)
       case None => processSingleRecord(record)
     }
