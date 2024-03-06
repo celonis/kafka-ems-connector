@@ -171,6 +171,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private def processSingleRecordOrReport(reporter: Option[ErrantRecordReporter])(record: SinkRecord): IO[Unit] =
     reporter match {
       case Some(reporter) => processSingleRecord(record).attempt.flatTap {
+          // Only report InvalidInput errors
           case Left(error: InvalidInputException) => IO(reporter.report(record, error))
           case _                                  => IO.unit
         }.flatMap(IO.fromEither)
