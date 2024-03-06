@@ -84,7 +84,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         COMMIT_INTERVAL_KEY              -> policy.interval.toString,
         COMMIT_RECORDS_KEY               -> policy.records.toString,
         ERROR_RETRY_INTERVAL             -> sinkConfig.errorPolicyConfig.retryConfig.interval.toString,
-        ERROR_POLICY_RETRIES_KEY               -> sinkConfig.errorPolicyConfig.retryConfig.retries.toString,
+        ERROR_POLICY_RETRIES_KEY         -> sinkConfig.errorPolicyConfig.retryConfig.retries.toString,
         TMP_DIRECTORY_KEY                -> dir.toString,
         DEBUG_KEEP_TMP_FILES_KEY         -> sinkConfig.parquet.cleanup.isInstanceOf[ParquetFileCleanupRename].toString,
         PARQUET_ROW_GROUP_SIZE_BYTES_KEY -> sinkConfig.parquet.rowGroupSize.toString,

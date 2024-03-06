@@ -17,10 +17,16 @@
 package com.celonis.kafka.connect.ems.config
 
 import cats.implicits.catsSyntaxOptionId
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{CLOSE_EVERY_CONNECTION_DEFAULT_VALUE => CLOSE_CONN_DEFAULT, CONNECTION_POOL_KEEPALIVE_MILLIS_DEFAULT_VALUE => KEEPALIVE_DEFAULT, CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE => MAX_IDLE_DEFAULT, _}
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{
+  CLOSE_EVERY_CONNECTION_DEFAULT_VALUE => CLOSE_CONN_DEFAULT,
+  CONNECTION_POOL_KEEPALIVE_MILLIS_DEFAULT_VALUE => KEEPALIVE_DEFAULT,
+  CONNECTION_POOL_MAX_IDLE_CONNECTIONS_DEFAULT_VALUE => MAX_IDLE_DEFAULT,
+  _,
+}
 import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType
 import com.celonis.kafka.connect.ems.model.DataObfuscation.FixObfuscation
-import com.celonis.kafka.connect.ems.storage.{FileSystemOperations, ParquetFileCleanupDelete}
+import com.celonis.kafka.connect.ems.storage.FileSystemOperations
+import com.celonis.kafka.connect.ems.storage.ParquetFileCleanupDelete
 import com.celonis.kafka.connect.transform.PreConversionConfig
 import com.celonis.kafka.connect.transform.fields.EmbeddedKafkaMetadataFieldInserter
 import org.scalatest.funsuite.AnyFunSuite
@@ -243,7 +249,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     COMMIT_INTERVAL_KEY         -> config.commitPolicy.interval,
     COMMIT_RECORDS_KEY          -> config.commitPolicy.records,
     ERROR_RETRY_INTERVAL        -> config.errorPolicyConfig.retryConfig.interval,
-    ERROR_POLICY_RETRIES_KEY          -> config.errorPolicyConfig.retryConfig.retries,
+    ERROR_POLICY_RETRIES_KEY    -> config.errorPolicyConfig.retryConfig.retries,
     TMP_DIRECTORY_KEY           -> config.workingDir.toString,
     PRIMARY_KEYS_KEY            -> config.primaryKeys.mkString(","),
     CONNECTION_ID_KEY           -> config.connectionId.get,
