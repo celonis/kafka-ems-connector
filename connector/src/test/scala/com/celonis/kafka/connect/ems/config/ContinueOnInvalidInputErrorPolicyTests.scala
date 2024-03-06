@@ -17,20 +17,20 @@
 package com.celonis.kafka.connect.ems.config
 
 import com.celonis.kafka.connect.ems.errors.InvalidInputException
-import com.celonis.kafka.connect.ems.errors.ErrorPolicy.ContinueOnInvalidInputPolicy
+import com.celonis.kafka.connect.ems.errors.ErrorPolicy.ContinueOnInvalidInput
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Throw
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 class ContinueOnInvalidInputErrorPolicyTests extends AnyFunSuite with Matchers {
   test("Does not call inner policy if error is an InvalidInputException") {
-    val policy = new ContinueOnInvalidInputPolicy(Throw)
+    val policy = new ContinueOnInvalidInput(Throw)
 
     noException should be thrownBy policy.handle(InvalidInputException("Ooops"), 3)
   }
 
   test("Call inner policy if error is not an InvalidInputException") {
-    val policy = new ContinueOnInvalidInputPolicy(Throw)
+    val policy = new ContinueOnInvalidInput(Throw)
 
     assertThrows[RuntimeException](policy.handle(new RuntimeException("Ooops"), 3))
   }

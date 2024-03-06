@@ -23,7 +23,7 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.NBR_OF_RETRIE
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-class RetryTests extends AnyFunSuite with Matchers {
+class RetryConfigTests extends AnyFunSuite with Matchers {
   test(s"return defaults if retry keys are missing") {
     RetryConfig.extractRetry(Map.empty) shouldBe Right(RetryConfig(NBR_OF_RETIRES_DEFAULT,
                                                                    ERROR_RETRY_INTERVAL_DEFAULT,

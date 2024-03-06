@@ -3,14 +3,14 @@ package com.celonis.kafka.connect.ems.config
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
 import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType
-//import com.celonis.kafka.connect.ems.config.PropertiesHelper.error
+import com.celonis.kafka.connect.ems.config.PropertiesHelper.error
 import com.celonis.kafka.connect.ems.config.PropertiesHelper.nonEmptyStringOr
 import cats.syntax.either._
 import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType.CONTINUE
 import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType.RETRY
 import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType.THROW
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
-import com.celonis.kafka.connect.ems.errors.ErrorPolicy.ContinueOnInvalidInputPolicy
+import com.celonis.kafka.connect.ems.errors.ErrorPolicy.ContinueOnInvalidInput
 
 final case class ErrorPolicyConfig(
   policyType:             ErrorPolicyType,
@@ -23,7 +23,7 @@ final case class ErrorPolicyConfig(
       case ErrorPolicyType.CONTINUE => ErrorPolicy.Continue
       case ErrorPolicyType.RETRY    => ErrorPolicy.Retry
     }
-    if (continueOnInvalidError) new ContinueOnInvalidInputPolicy(innerPolicy) else innerPolicy
+    if (continueOnInvalidError) new ContinueOnInvalidInput(innerPolicy) else innerPolicy
   }
 }
 
@@ -47,6 +47,6 @@ object ErrorPolicyConfig {
         case "THROW"    => THROW.asRight
         case "RETRY"    => RETRY.asRight
         case "CONTINUE" => CONTINUE.asRight
-        case x          => x.asLeft
+        case _          => error(ERROR_POLICY_KEY, ERROR_POLICY_DOC)
       }
 }

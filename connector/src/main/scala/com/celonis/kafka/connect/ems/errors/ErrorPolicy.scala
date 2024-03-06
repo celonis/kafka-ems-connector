@@ -32,19 +32,19 @@ sealed trait ErrorPolicy {
 
 object ErrorPolicy {
 
-  object Continue extends ErrorPolicy with StrictLogging {
+  case object Continue extends ErrorPolicy with StrictLogging {
     override def handle(error: Throwable, retries: Int): Unit =
       logger.warn(s"Error policy is set to CONTINUE.", error)
   }
 
-  object Throw extends ErrorPolicy with StrictLogging {
+  case object Throw extends ErrorPolicy with StrictLogging {
     override def handle(error: Throwable, retries: Int): Unit = {
       logger.warn(s"Error policy is set to THROW.", error)
       throw new ConnectException(error)
     }
   }
 
-  object Retry extends ErrorPolicy with StrictLogging {
+  case object Retry extends ErrorPolicy with StrictLogging {
     override def handle(error: Throwable, retries: Int): Unit =
       if (retries == 0) {
         throw new ConnectException(error)
@@ -55,7 +55,7 @@ object ErrorPolicy {
   }
 
   // Override handling of InvalidInput exceptions by skipping them
-  final class ContinueOnInvalidInputPolicy(inner: ErrorPolicy) extends ErrorPolicy with StrictLogging {
+  final case class ContinueOnInvalidInput(inner: ErrorPolicy) extends ErrorPolicy with StrictLogging {
     override def handle(error: Throwable, retries: Int): Unit = error match {
       case _: InvalidInputException => logger.warn("Error policy is set to CONTINUE on InvalidInput", error)
       case _ => inner.handle(error, retries)
