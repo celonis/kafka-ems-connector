@@ -47,6 +47,7 @@ object ErrorPolicy {
   case object Retry extends ErrorPolicy with StrictLogging {
     override def handle(error: Throwable, retries: Int): Unit =
       if (retries == 0) {
+        logger.warn(s"Error policy is set to RETRY and no more attempts left.", error)
         throw new ConnectException(error)
       } else {
         logger.warn(s"Error policy is set to RETRY. Remaining attempts [$retries]", error)

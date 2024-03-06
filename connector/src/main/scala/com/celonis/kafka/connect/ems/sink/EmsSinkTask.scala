@@ -150,6 +150,9 @@ class EmsSinkTask extends SinkTask with StrictLogging {
       case Left(error) =>
         retriesLeft -= 1
         errorPolicy.handle(error, retriesLeft)
+        // Next row will be executed only if errorPolicy swallow the error. This is necessary when using RETRY policy
+        // with ContinueOnInvalidInput one, where we retries for some errors, but we continue for others.
+        retriesLeft = maxRetries
       case Right(_) =>
         retriesLeft = maxRetries
     }
@@ -238,7 +241,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     } yield ()).attempt.unsafeRunSync() match {
       case Left(value) =>
         logger.warn(
-          s"[$sinkName]There was an error closing the partitions: ${topicPartitions.map(_.show).mkString(",")}]]",
+          s"[$sinkName] There was an error closing the partitions: ${topicPartitions.map(_.show).mkString(",")}]]",
           value,
         )
       case Right(_) =>
