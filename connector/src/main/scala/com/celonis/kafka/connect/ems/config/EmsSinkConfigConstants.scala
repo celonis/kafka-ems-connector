@@ -64,10 +64,10 @@ object EmsSinkConfigConstants {
        | Default is $PARQUET_ROW_GROUP_SIZE_BYTES_DEFAULT.
        | """.stripMargin
 
-  val NBR_OF_RETRIES_KEY = s"$CONNECTOR_PREFIX.max.retries"
-  val NBR_OF_RETRIES_DOC =
+  val ERROR_POLICY_RETRIES_KEY = s"$CONNECTOR_PREFIX.max.retries"
+  val ERROR_POLICY_RETRIES_DOC =
     "The maximum number of times to re-attempt to write the records before the task is marked as failed."
-  val NBR_OF_RETIRES_DEFAULT: Int = 10
+  val ERROR_POLICY_RETRIES_DEFAULT: Int = 10
 
   val ERROR_POLICY_KEY = s"$CONNECTOR_PREFIX.error.policy"
   val ERROR_POLICY_DOC: String =
@@ -76,7 +76,7 @@ object EmsSinkConfigConstants {
        | There are three available options:
        |    CONTINUE - the error is swallowed
        |    THROW - the error is allowed to propagate.
-       |    RETRY - The exception causes the Connect framework to retry the message. The number of retries is set by $NBR_OF_RETRIES_KEY.
+       |    RETRY - The exception causes the Connect framework to retry the message. The number of retries is set by $ERROR_POLICY_RETRIES_KEY.
        |All errors will be logged automatically, even if the code swallows them.
     """.stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
@@ -84,6 +84,11 @@ object EmsSinkConfigConstants {
   val ERROR_RETRY_INTERVAL     = s"$CONNECTOR_PREFIX.retry.interval"
   val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT: Long = 60000L
+
+  val ERROR_CONTINUE_ON_INVALID_INPUT_KEY = s"$CONNECTOR_PREFIX.error.policy.continue.on.invalid.input"
+  val ERROR_CONTINUE_ON_INVALID_INPUT_DOC: String =
+    "If set to 'true', connector will continue when invalid input errors occur. Invalid records will be sent to the DLQ, if present. "
+  val ERROR_CONTINUE_ON_INVALID_INPUT_DEFAULT = false
 
   val FALLBACK_VARCHAR_LENGTH_KEY = s"$CONNECTOR_PREFIX.data.fallback.varchar.length"
   val FALLBACK_VARCHAR_LENGTH_DOC =

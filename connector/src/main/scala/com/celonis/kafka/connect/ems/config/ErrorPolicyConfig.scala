@@ -1,21 +1,17 @@
 package com.celonis.kafka.connect.ems.config
 
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
-import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType
-import com.celonis.kafka.connect.ems.config.PropertiesHelper.error
-import com.celonis.kafka.connect.ems.config.PropertiesHelper.nonEmptyStringOr
 import cats.syntax.either._
-import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType.CONTINUE
-import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType.RETRY
-import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType.THROW
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.{ERROR_CONTINUE_ON_INVALID_INPUT_DEFAULT, ERROR_CONTINUE_ON_INVALID_INPUT_KEY, ERROR_POLICY_DOC, ERROR_POLICY_KEY}
+import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType
+import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType.{CONTINUE, RETRY, THROW}
+import com.celonis.kafka.connect.ems.config.PropertiesHelper.{error, getBoolean, nonEmptyStringOr}
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.ContinueOnInvalidInput
 
 final case class ErrorPolicyConfig(
   policyType:             ErrorPolicyType,
   retryConfig:            RetryConfig,
-  continueOnInvalidError: Boolean,
+  continueOnInvalidInput: Boolean,
 ) {
   lazy val errorPolicy: ErrorPolicy = {
     val innerPolicy = policyType match {
@@ -23,7 +19,7 @@ final case class ErrorPolicyConfig(
       case ErrorPolicyType.CONTINUE => ErrorPolicy.Continue
       case ErrorPolicyType.RETRY    => ErrorPolicy.Retry
     }
-    if (continueOnInvalidError) new ContinueOnInvalidInput(innerPolicy) else innerPolicy
+    if (continueOnInvalidInput) new ContinueOnInvalidInput(innerPolicy) else innerPolicy
   }
 }
 
@@ -39,7 +35,9 @@ object ErrorPolicyConfig {
     for {
       policyType  <- extractType(props)
       retryConfig <- RetryConfig.extractRetry(props)
-    } yield ErrorPolicyConfig(policyType, retryConfig, continueOnInvalidError = false)
+      continueOnInvalidInput =
+        getBoolean(props, ERROR_CONTINUE_ON_INVALID_INPUT_KEY).getOrElse(ERROR_CONTINUE_ON_INVALID_INPUT_DEFAULT)
+    } yield ErrorPolicyConfig(policyType, retryConfig, continueOnInvalidInput = continueOnInvalidInput)
 
   private def extractType(props: Map[String, _]): Either[String, ErrorPolicyType] =
     nonEmptyStringOr(props, ERROR_POLICY_KEY, ERROR_POLICY_DOC).map(_.toUpperCase)

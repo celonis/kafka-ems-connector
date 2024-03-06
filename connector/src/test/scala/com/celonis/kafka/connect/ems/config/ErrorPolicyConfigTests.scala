@@ -16,6 +16,7 @@
 
 package com.celonis.kafka.connect.ems.config
 
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_CONTINUE_ON_INVALID_INPUT_KEY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DOC
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
 import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType
@@ -63,16 +64,31 @@ class ErrorPolicyConfigTests extends AnyFunSuite with Matchers {
     )
   }
 
+  test(s"it parses $ERROR_CONTINUE_ON_INVALID_INPUT_KEY") {
+    val testCases = List(
+      Map(ERROR_POLICY_KEY -> "retry")
+        -> ErrorPolicyConfig(ErrorPolicyType.RETRY, RetryConfig(10, 60000), continueOnInvalidInput = false),
+      Map(ERROR_POLICY_KEY -> "retry", ERROR_CONTINUE_ON_INVALID_INPUT_KEY -> "false")
+        -> ErrorPolicyConfig(ErrorPolicyType.RETRY, RetryConfig(10, 60000), continueOnInvalidInput = false),
+      Map(ERROR_POLICY_KEY -> "retry", ERROR_CONTINUE_ON_INVALID_INPUT_KEY -> "true")
+        -> ErrorPolicyConfig(ErrorPolicyType.RETRY, RetryConfig(10, 60000), continueOnInvalidInput = true),
+    )
+
+    testCases.foreach { case (props, expectedConfig) =>
+      assertResult(Right(expectedConfig))(ErrorPolicyConfig.extract(props))
+    }
+  }
+
   test("build Error Policy based on config") {
     val testCases = List(
-      ErrorPolicyConfig(ErrorPolicyType.CONTINUE, RetryConfig(1, 1), false) -> Continue,
-      ErrorPolicyConfig(ErrorPolicyType.THROW, RetryConfig(1, 1), false)    -> Throw,
-      ErrorPolicyConfig(ErrorPolicyType.RETRY, RetryConfig(1, 1), false)    -> Retry,
-      ErrorPolicyConfig(ErrorPolicyType.CONTINUE, RetryConfig(1, 1), true) -> ContinueOnInvalidInput(
+      ErrorPolicyConfig(ErrorPolicyType.CONTINUE, RetryConfig(10, 60000), false) -> Continue,
+      ErrorPolicyConfig(ErrorPolicyType.THROW, RetryConfig(10, 60000), false)    -> Throw,
+      ErrorPolicyConfig(ErrorPolicyType.RETRY, RetryConfig(10, 60000), false)    -> Retry,
+      ErrorPolicyConfig(ErrorPolicyType.CONTINUE, RetryConfig(10, 60000), true) -> ContinueOnInvalidInput(
         Continue,
       ),
-      ErrorPolicyConfig(ErrorPolicyType.THROW, RetryConfig(1, 1), true) -> ContinueOnInvalidInput(Throw),
-      ErrorPolicyConfig(ErrorPolicyType.RETRY, RetryConfig(1, 1), true) -> ContinueOnInvalidInput(Retry),
+      ErrorPolicyConfig(ErrorPolicyType.THROW, RetryConfig(10, 60000), true) -> ContinueOnInvalidInput(Throw),
+      ErrorPolicyConfig(ErrorPolicyType.RETRY, RetryConfig(10, 60000), true) -> ContinueOnInvalidInput(Retry),
     )
 
     testCases.foreach { case (config, expectedPolicy) =>
