@@ -30,6 +30,7 @@ import com.celonis.kafka.connect.ems.config.PropertiesHelper.getBoolean
 import com.celonis.kafka.connect.ems.config.PropertiesHelper.nonEmptyStringOr
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.errors.InvalidInputErrorHandler
+import org.apache.kafka.connect.sink.ErrantRecordReporter
 
 final case class ErrorPolicyConfig(
   policyType:             ErrorPolicyType,
@@ -43,7 +44,8 @@ final case class ErrorPolicyConfig(
       case ErrorPolicyType.RETRY    => ErrorPolicy.Retry
     }
 
-  lazy val invalidInputErrorHandler: InvalidInputErrorHandler = new InvalidInputErrorHandler(continueOnInvalidInput)
+  def invalidInputErrorHandler(reporter: Option[ErrantRecordReporter]): InvalidInputErrorHandler =
+    new InvalidInputErrorHandler(continueOnInvalidInput, reporter)
 }
 
 object ErrorPolicyConfig {
