@@ -17,7 +17,8 @@
 package com.celonis.kafka.connect.ems.errors
 
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.kafka.connect.errors.{ConnectException, RetriableException}
+import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.errors.RetriableException
 
 sealed trait ErrorPolicy {
   def handle(error: Throwable, retries: Int): Unit
