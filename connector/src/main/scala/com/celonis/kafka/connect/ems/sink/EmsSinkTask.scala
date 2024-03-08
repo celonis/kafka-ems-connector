@@ -24,7 +24,7 @@ import cats.implicits._
 import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType.RETRY
 import com.celonis.kafka.connect.ems.config.EmsSinkConfig
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
-import com.celonis.kafka.connect.ems.errors.InvalidInputException
+import com.celonis.kafka.connect.ems.errors.InvalidInputErrorHandler
 import com.celonis.kafka.connect.ems.model._
 import com.celonis.kafka.connect.ems.sink.EmsSinkTask.PutTimeoutException
 import com.celonis.kafka.connect.ems.sink.EmsSinkTask.StopTimeout
@@ -47,6 +47,7 @@ import java.util
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
+import scala.util.Try
 
 object EmsSinkTask {
   private val StopTimeout: FiniteDuration = 5.seconds
@@ -68,9 +69,15 @@ class EmsSinkTask extends SinkTask with StrictLogging {
   private var writerManager: WriterManager[IO] = _
   private var sinkName:      String            = _
 
-  private var maxRetries:          Int                 = 0
-  private var retriesLeft:         Int                 = maxRetries
-  private var errorPolicy:         ErrorPolicy         = ErrorPolicy.Retry
+  private var maxRetries:  Int = 0
+  private var retriesLeft: Int = maxRetries
+
+  // Error Policy acts at the batch level
+  private var errorPolicy: ErrorPolicy = ErrorPolicy.Retry
+
+  // InvalidInput acts at the record level
+  private var invalidInputErrorHandler: InvalidInputErrorHandler = _
+
   private var transformer:         RecordTransformer   = _
   private val emsSinkConfigurator: EmsSinkConfigurator = new DefaultEmsSinkConfigurator
   private var okHttpClient:        OkHttpClient        = _
@@ -123,11 +130,12 @@ class EmsSinkTask extends SinkTask with StrictLogging {
       )
     }
 
-    maxRetries    = config.errorPolicyConfig.retryConfig.retries
-    retriesLeft   = maxRetries
-    errorPolicy   = config.errorPolicyConfig.errorPolicy
-    transformer   = RecordTransformer.fromConfig(config)
-    emsSinkConfig = config
+    maxRetries               = config.errorPolicyConfig.retryConfig.retries
+    retriesLeft              = maxRetries
+    errorPolicy              = config.errorPolicyConfig.errorPolicy
+    invalidInputErrorHandler = config.errorPolicyConfig.invalidInputErrorHandler(errantRecordReporter())
+    transformer              = RecordTransformer.fromConfig(config)
+    emsSinkConfig            = config
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
@@ -137,7 +145,7 @@ class EmsSinkTask extends SinkTask with StrictLogging {
         // filter our "deletes" for now
         .filter(_.value() != null)
         .toList
-        .traverse(processSingleRecordOrReport(errantRecordReporter()))
+        .traverse(processSingleRecordOrReport)
       _ <- if (records.isEmpty) writerManager.maybeUploadData
       else IO(())
     } yield ()
@@ -168,14 +176,10 @@ class EmsSinkTask extends SinkTask with StrictLogging {
     _          <- writerManager.write(Record(avroRecord, metadata))
   } yield ()
 
-  private def processSingleRecordOrReport(reporter: Option[ErrantRecordReporter])(record: SinkRecord): IO[Unit] =
-    reporter match {
-      case Some(reporter) => processSingleRecord(record).attempt.flatTap {
-          // Only report InvalidInput errors
-          case Left(error: InvalidInputException) => IO(reporter.report(record, error))
-          case _                                  => IO.unit
-        }.flatMap(IO.fromEither)
-      case None => processSingleRecord(record)
+  private def processSingleRecordOrReport(record: SinkRecord): IO[Unit] =
+    processSingleRecord(record).attempt.flatMap {
+      case Left(throwable) => IO.fromTry(Try(invalidInputErrorHandler.handle(record, throwable)))
+      case _               => IO.unit
     }
 
   override def preCommit(
