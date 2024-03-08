@@ -16,15 +16,8 @@
 
 package com.celonis.kafka.connect.ems.errors
 
-import cats.syntax.either._
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_DOC
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
-import com.celonis.kafka.connect.ems.config.PropertiesHelper.error
-import com.celonis.kafka.connect.ems.config.PropertiesHelper.nonEmptyStringOr
 import com.typesafe.scalalogging.StrictLogging
-
-import org.apache.kafka.connect.errors.ConnectException
-import org.apache.kafka.connect.errors.RetriableException
+import org.apache.kafka.connect.errors.{ConnectException, RetriableException}
 
 sealed trait ErrorPolicy {
   def handle(error: Throwable, retries: Int): Unit
@@ -55,21 +48,4 @@ object ErrorPolicy {
       }
   }
 
-  // Override handling of InvalidInput exceptions by skipping them
-  final case class ContinueOnInvalidInput(inner: ErrorPolicy) extends ErrorPolicy with StrictLogging {
-    override def handle(error: Throwable, retries: Int): Unit = error match {
-      case _: InvalidInputException => logger.warn("Error policy is set to CONTINUE on InvalidInput", error)
-      case _ => inner.handle(error, retries)
-
-    }
-  }
-
-  def extract(props: Map[String, _]): Either[String, ErrorPolicy] =
-    nonEmptyStringOr(props, ERROR_POLICY_KEY, ERROR_POLICY_DOC).map(_.toUpperCase)
-      .flatMap {
-        case "THROW"    => Throw.asRight
-        case "RETRY"    => Retry.asRight
-        case "CONTINUE" => Continue.asRight
-        case _          => error(ERROR_POLICY_KEY, ERROR_POLICY_DOC)
-      }
 }

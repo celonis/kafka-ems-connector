@@ -29,21 +29,21 @@ import com.celonis.kafka.connect.ems.config.PropertiesHelper.error
 import com.celonis.kafka.connect.ems.config.PropertiesHelper.getBoolean
 import com.celonis.kafka.connect.ems.config.PropertiesHelper.nonEmptyStringOr
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy
-import com.celonis.kafka.connect.ems.errors.ErrorPolicy.ContinueOnInvalidInput
+import com.celonis.kafka.connect.ems.errors.InvalidInputErrorHandler
 
 final case class ErrorPolicyConfig(
   policyType:             ErrorPolicyType,
   retryConfig:            RetryConfig,
   continueOnInvalidInput: Boolean,
 ) {
-  lazy val errorPolicy: ErrorPolicy = {
-    val innerPolicy = policyType match {
+  lazy val errorPolicy: ErrorPolicy =
+    policyType match {
       case ErrorPolicyType.THROW    => ErrorPolicy.Throw
       case ErrorPolicyType.CONTINUE => ErrorPolicy.Continue
       case ErrorPolicyType.RETRY    => ErrorPolicy.Retry
     }
-    if (continueOnInvalidInput) new ContinueOnInvalidInput(innerPolicy) else innerPolicy
-  }
+
+  lazy val invalidInputErrorHandler: InvalidInputErrorHandler = new InvalidInputErrorHandler(continueOnInvalidInput)
 }
 
 object ErrorPolicyConfig {

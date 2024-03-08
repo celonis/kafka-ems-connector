@@ -21,7 +21,6 @@ import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.ERROR_POLICY_KEY
 import com.celonis.kafka.connect.ems.config.ErrorPolicyConfig.ErrorPolicyType
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Continue
-import com.celonis.kafka.connect.ems.errors.ErrorPolicy.ContinueOnInvalidInput
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Retry
 import com.celonis.kafka.connect.ems.errors.ErrorPolicy.Throw
 import org.scalatest.funsuite.AnyFunSuite
@@ -84,11 +83,6 @@ class ErrorPolicyConfigTests extends AnyFunSuite with Matchers {
       ErrorPolicyConfig(ErrorPolicyType.CONTINUE, RetryConfig(10, 60000), false) -> Continue,
       ErrorPolicyConfig(ErrorPolicyType.THROW, RetryConfig(10, 60000), false)    -> Throw,
       ErrorPolicyConfig(ErrorPolicyType.RETRY, RetryConfig(10, 60000), false)    -> Retry,
-      ErrorPolicyConfig(ErrorPolicyType.CONTINUE, RetryConfig(10, 60000), true) -> ContinueOnInvalidInput(
-        Continue,
-      ),
-      ErrorPolicyConfig(ErrorPolicyType.THROW, RetryConfig(10, 60000), true) -> ContinueOnInvalidInput(Throw),
-      ErrorPolicyConfig(ErrorPolicyType.RETRY, RetryConfig(10, 60000), true) -> ContinueOnInvalidInput(Retry),
     )
 
     testCases.foreach { case (config, expectedPolicy) =>
