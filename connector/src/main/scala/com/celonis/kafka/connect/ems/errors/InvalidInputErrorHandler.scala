@@ -4,7 +4,9 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.ErrantRecordReporter
 import org.apache.kafka.connect.sink.SinkRecord
 
-// Override handling of InvalidInput exceptions by skipping them
+/** Error policies work at the batch level, while this handler works at the record level. It works only for
+  * InvalidInputExceptions, that are errors due to defects of single records.
+  */
 final class InvalidInputErrorHandler(
   continueOnInvalidInput: Boolean,
   errantRecordReporter:   Option[ErrantRecordReporter],
