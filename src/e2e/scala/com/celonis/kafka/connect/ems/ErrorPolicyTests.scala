@@ -184,8 +184,6 @@ class ErrorPolicyTests extends AnyFunSuite with KafkaConnectContainerPerSuite wi
       .withConfig("value.converter", "org.apache.kafka.connect.json.JsonConverter")
       .withConfig("key.converter", "org.apache.kafka.connect.storage.StringConverter")
 
-    println(proxyServerUrl)
-
     withMockResponse(emsRequestForTable(emsTable), mockEmsResponse) {
       withConnector(emsConnector) {
 
