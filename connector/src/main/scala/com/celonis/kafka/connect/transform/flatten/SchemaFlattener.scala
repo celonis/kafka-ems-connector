@@ -19,11 +19,16 @@ package com.celonis.kafka.connect.transform.flatten
 import com.celonis.kafka.connect.transform.flatten.SchemaFlattener.Field
 import com.celonis.kafka.connect.transform.flatten.SchemaFlattener.FlatSchema
 import com.celonis.kafka.connect.transform.flatten.SchemaFlattener.Path
+import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 
 import scala.jdk.CollectionConverters._
 
+/** Flatten a schema, but also do some normalization:
+  *   1. Sanitize non-avro compatible field names 2. Convert Enums to Strings 3. Make everything optional
+  * @param discardCollections
+  */
 private final class SchemaFlattener(discardCollections: Boolean) {
   def flatten(schema: Schema): FlatSchema = FlatSchema(flatten(Path.empty, schema))
 
@@ -41,14 +46,25 @@ private final class SchemaFlattener(discardCollections: Boolean) {
     // TODO: top level array and maps should be returned as they are
     case Schema.Type.ARRAY | Schema.Type.MAP => List(Field(path, Schema.OPTIONAL_STRING_SCHEMA))
 
+    // Transforms enums to plain strings.
+    case Schema.Type.STRING if isEnum(schema) =>
+      val newSchema =
+        new SchemaBuilder(Schema.Type.STRING).optional()
+      if (schema.defaultValue() != null) newSchema.defaultValue(schema.defaultValue())
+      List(Field(path, newSchema.build()))
+
     case primitive =>
       val newSchema =
         new SchemaBuilder(primitive).optional()
       if (schema.parameters() != null) newSchema.parameters(schema.parameters())
       if (schema.name() != null) newSchema.name(schema.name())
       if (schema.version() != null) newSchema.version(schema.version())
+      if (schema.defaultValue() != null) newSchema.defaultValue(schema.defaultValue())
       List(Field(path, newSchema.build()))
   }
+
+  private def isEnum(schema: Schema): Boolean =
+    schema.parameters != null && schema.parameters.containsKey(AvroData.AVRO_TYPE_ENUM)
 }
 
 private object SchemaFlattener {
@@ -66,7 +82,7 @@ private object SchemaFlattener {
   final case class Field(path: Path, schema: Schema)
 
   final case class Path(segments: Vector[String]) {
-    // We make the flat version of a name avro-complaint, replacing unallowed characters with an underscore
+    // We make the flat version of a name avro-complaint, replacing invalid characters with an underscore
     def name: String = segments.mkString("_").replaceAll("[^a-zA-Z0-9]", "_")
     def append(segment: String): Path = Path(segments :+ segment)
   }
