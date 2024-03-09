@@ -27,7 +27,6 @@ import scala.jdk.CollectionConverters._
 
 /** Flatten a schema, but also do some normalization:
   *   1. Sanitize non-avro compatible field names 2. Convert Enums to Strings 3. Make everything optional
-  * @param discardCollections
   */
 private final class SchemaFlattener(discardCollections: Boolean) {
   def flatten(schema: Schema): FlatSchema = FlatSchema(flatten(Path.empty, schema))
