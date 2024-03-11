@@ -32,11 +32,11 @@ object RetryConfig {
           else value.asRight[String]
         case None => ERROR_RETRY_INTERVAL_DEFAULT.asRight[String]
       }
-      retries <- PropertiesHelper.getInt(props, NBR_OF_RETRIES_KEY) match {
+      retries <- PropertiesHelper.getInt(props, ERROR_POLICY_RETRIES_KEY) match {
         case Some(value) =>
-          if (value <= 0) error(NBR_OF_RETRIES_KEY, "Number of retries needs to be greater than 0.")
+          if (value <= 0) error(ERROR_POLICY_RETRIES_KEY, "Number of retries needs to be greater than 0.")
           else value.asRight[String]
-        case None => NBR_OF_RETIRES_DEFAULT.asRight[String]
+        case None => ERROR_POLICY_RETRIES_DEFAULT.asRight[String]
       }
     } yield RetryConfig(retries, interval)
 

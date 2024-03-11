@@ -4,6 +4,8 @@
 package com.celonis.kafka.connect.ems
 
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
+import com.celonis.kafka.connect.ems.parquet.ParquetLocalInputFile
+import com.celonis.kafka.connect.ems.parquet.extractParquetFromRequest
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration
 import com.celonis.kafka.connect.ems.testcontainers.connect.EmsConnectorConfiguration.TOPICS_KEY
 import com.celonis.kafka.connect.ems.testcontainers.scalatest.KafkaConnectContainerPerSuite
@@ -11,6 +13,8 @@ import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.connect.w
 import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.connect.withConnector
 import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.connect.withParquetUploadLatency
 import com.celonis.kafka.connect.ems.testcontainers.scalatest.fixtures.mockserver.withMockResponse
+import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.parquet.hadoop.ParquetFileReader
 import org.mockserver.verify.VerificationTimes
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -156,6 +160,51 @@ class ErrorPolicyTests extends AnyFunSuite with KafkaConnectContainerPerSuite wi
       eventually(timeout(60 seconds)) {
         val status = kafkaConnectClient.getConnectorStatus(emsConnector.name)
         status.tasks.head.state should be("FAILED")
+      }
+    }
+  }
+
+  test("continue on invalid input") {
+
+    val sourceTopic = randomTopicName()
+    val emsTable    = randomEmsTable()
+
+    val emsConnector = new EmsConnectorConfiguration("ems")
+      .withConfig(TOPICS_KEY, sourceTopic)
+      .withConfig(ENDPOINT_KEY, proxyServerUrl)
+      .withConfig(AUTHORIZATION_KEY, "AppKey key")
+      .withConfig(TARGET_TABLE_KEY, emsTable)
+      .withConfig(COMMIT_RECORDS_KEY, 2)
+      .withConfig(COMMIT_SIZE_KEY, 1000000L)
+      .withConfig(COMMIT_INTERVAL_KEY, 3600000)
+      .withConfig(TMP_DIRECTORY_KEY, "/tmp/")
+      .withConfig(ERROR_POLICY_KEY, "THROW")
+      .withConfig(ERROR_CONTINUE_ON_INVALID_INPUT_KEY, true)
+      .withConfig("value.converter.schemas.enable", "false")
+      .withConfig("value.converter", "org.apache.kafka.connect.json.JsonConverter")
+      .withConfig("key.converter", "org.apache.kafka.connect.storage.StringConverter")
+
+    withMockResponse(emsRequestForTable(emsTable), mockEmsResponse) {
+      withConnector(emsConnector) {
+
+        // The first error should not prevent other records to be ingested, even if they are part of the same put batch
+        withStringStringProducer { producer =>
+          producer.send(new ProducerRecord(sourceTopic, """{"":"missingKey"}"""))
+          producer.send(new ProducerRecord(sourceTopic, """{"x":"validKey"}"""))
+          producer.send(new ProducerRecord(sourceTopic, """{"x":"validKey"}"""))
+        }
+
+        eventually(timeout(20 seconds), interval(1 seconds)) {
+          mockServerClient.verify(emsRequestForTable(emsTable), VerificationTimes.once())
+          val status = kafkaConnectClient.getConnectorStatus(emsConnector.name)
+          status.tasks.head.state should be("RUNNING")
+        }
+
+        val httpRequests = mockServerClient.retrieveRecordedRequests(emsRequestForTable(emsTable))
+        val parquetFile  = extractParquetFromRequest(httpRequests.head)
+        val fileReader   = ParquetFileReader.open(new ParquetLocalInputFile(parquetFile))
+
+        fileReader.getRecordCount shouldBe 2
       }
     }
   }

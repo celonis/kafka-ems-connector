@@ -134,15 +134,15 @@ object EmsSinkConfigDef {
       ERROR_POLICY_DOC,
     )
     .define(
-      NBR_OF_RETRIES_KEY,
+      ERROR_POLICY_RETRIES_KEY,
       Type.INT,
-      NBR_OF_RETIRES_DEFAULT,
+      ERROR_POLICY_RETRIES_DEFAULT,
       Importance.MEDIUM,
-      NBR_OF_RETRIES_DOC,
+      ERROR_POLICY_RETRIES_DOC,
       "Error",
       2,
       ConfigDef.Width.LONG,
-      NBR_OF_RETRIES_KEY,
+      ERROR_POLICY_RETRIES_KEY,
     )
     .define(
       ERROR_RETRY_INTERVAL,
@@ -154,6 +154,13 @@ object EmsSinkConfigDef {
       3,
       ConfigDef.Width.LONG,
       ERROR_RETRY_INTERVAL,
+    )
+    .define(
+      ERROR_CONTINUE_ON_INVALID_INPUT_KEY,
+      Type.BOOLEAN,
+      ERROR_CONTINUE_ON_INVALID_INPUT_DEFAULT,
+      Importance.MEDIUM,
+      ERROR_CONTINUE_ON_INVALID_INPUT_DOC,
     )
     .define(
       PARQUET_ROW_GROUP_SIZE_BYTES_KEY,

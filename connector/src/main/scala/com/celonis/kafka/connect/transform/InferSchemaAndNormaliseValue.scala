@@ -16,16 +16,19 @@
 
 package com.celonis.kafka.connect.transform
 
-import cats.implicits.catsSyntaxOptionId
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 
 import scala.jdk.CollectionConverters._
 import cats.instances.list._
-import cats.instances.option._
+import cats.instances.either._
 import cats.syntax.traverse._
+import com.celonis.kafka.connect.ems.errors.InvalidInputException
+import com.celonis.kafka.connect.transform.InferSchemaAndNormaliseValue.ValueAndSchema
+import com.celonis.kafka.connect.transform.flatten.ConnectJsonConverter
 
+import java.nio.charset.StandardCharsets
 import scala.collection.immutable.ListMap
 
 /** This component does multiple things:
@@ -34,7 +37,7 @@ import scala.collection.immutable.ListMap
   *
   * We should split inference from normalisation, even if that will complicate the implementation
   */
-object InferSchemaAndNormaliseValue {
+final class InferSchemaAndNormaliseValue(discardCollections: Boolean) {
 
   /** Tries to infer a non-flat Kafka connect schema for a value.
     *
@@ -46,53 +49,60 @@ object InferSchemaAndNormaliseValue {
     */
 
   // TODO: Why optionals at this stage?
-  def apply(value: Any): Option[ValueAndSchema] = value match {
+  def apply(value: Any): Either[InvalidInputException, ValueAndSchema] = value match {
     case _: String =>
-      Some(ValueAndSchema(value, Schema.OPTIONAL_STRING_SCHEMA))
+      Right(ValueAndSchema(value, Schema.OPTIONAL_STRING_SCHEMA))
     case _: Long =>
-      Some(ValueAndSchema(value, Schema.OPTIONAL_INT64_SCHEMA))
+      Right(ValueAndSchema(value, Schema.OPTIONAL_INT64_SCHEMA))
     case _: Int =>
-      Some(ValueAndSchema(value, Schema.OPTIONAL_INT32_SCHEMA))
+      Right(ValueAndSchema(value, Schema.OPTIONAL_INT32_SCHEMA))
     case _: Boolean =>
-      Some(ValueAndSchema(value, Schema.OPTIONAL_BOOLEAN_SCHEMA))
+      Right(ValueAndSchema(value, Schema.OPTIONAL_BOOLEAN_SCHEMA))
     case _: Float =>
-      Some(ValueAndSchema(value, Schema.OPTIONAL_FLOAT64_SCHEMA))
+      Right(ValueAndSchema(value, Schema.OPTIONAL_FLOAT64_SCHEMA))
     case _: Double =>
-      Some(ValueAndSchema(value, Schema.OPTIONAL_FLOAT64_SCHEMA))
+      Right(ValueAndSchema(value, Schema.OPTIONAL_FLOAT64_SCHEMA))
     case value: Struct =>
-      Some(ValueAndSchema(value, value.schema()))
+      Right(ValueAndSchema(value, value.schema()))
     case _: Array[Byte] =>
-      Some(ValueAndSchema(value, Schema.OPTIONAL_BYTES_SCHEMA))
+      Right(ValueAndSchema(value, Schema.OPTIONAL_BYTES_SCHEMA))
     case list: java.util.List[_] =>
       listSchema(list)
     case innerMap: java.util.Map[_, _] =>
       mapSchema(innerMap)
+
     case _ =>
-      None
+      val className = if (value == null) "null" else value.getClass.getCanonicalName
+      Left(InvalidInputException(s"Unexpected value type encountered: $className"))
   }
 
-  private def mapSchema(values: java.util.Map[_, _]): Option[ValueAndSchema] =
+  private def mapSchema(values: java.util.Map[_, _]): Either[InvalidInputException, ValueAndSchema] =
     if (values.isEmpty) // TODO test this
-      Some(ValueAndSchema(values, SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BYTES_SCHEMA).build()))
+      Right(ValueAndSchema(values, SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BYTES_SCHEMA).build()))
     else {
-      val inferredValues = values.asScala.toMap.filterNot(_._2 == null).toList.traverse {
-        case (key, value) if key.toString.nonEmpty => InferSchemaAndNormaliseValue(value).map(key.toString -> _)
-        case _                                     => None
+      val inferredValues = values.asScala.toMap.filterNot(isValueToBeDiscarded).toList.traverse {
+        case (key, value) if key.toString.nonEmpty => apply(value).map(key.toString -> _)
+        case _                                     => Left(InvalidInputException("JSON empty key encountered"))
       }
       inferredValues.map(values => toStruct(ListMap.from(values)))
     }
 
-  private def listSchema(values: java.util.List[_]): Option[ValueAndSchema] =
-    values.asScala.toList.traverse(InferSchemaAndNormaliseValue.apply).flatMap { results =>
-      if (results.isEmpty) {
-        // If the collection is empty, we default to an array of bytes
-        ValueAndSchema(values, SchemaBuilder.array(Schema.BYTES_SCHEMA).build()).some
-      } else if (results.map(_.schema).toSet.size > 1)
-        // If the collection is not empty and contains element of different types, we fail the inference
-        None
-      else
-        ValueAndSchema(results.map(_.normalisedValue).asJava, SchemaBuilder.array(results.head.schema).build()).some
-    }
+  /** We discard values if they are null, and if they are lists when discardCollections is set to true
+    */
+  private def isValueToBeDiscarded(keyValue: (Any, Any)): Boolean = keyValue match {
+    case (_, null)                                       => true // discard fields with empty value
+    case (_, _: java.util.List[_]) if discardCollections => true // discard arrays when discardCollection is true
+    case _                                               => false
+  }
+
+  private def listSchema(values: java.util.List[_]): Either[InvalidInputException, ValueAndSchema] = {
+
+    val normalisedValue = new String(
+      ConnectJsonConverter.converter.fromConnectData("ignored", null, values),
+      StandardCharsets.UTF_8,
+    )
+    Right(ValueAndSchema(normalisedValue, Schema.OPTIONAL_STRING_SCHEMA))
+  }
 
   private def toStruct(values: ListMap[String, ValueAndSchema]): ValueAndSchema = {
     val schema = values.foldLeft(SchemaBuilder.struct()) {
@@ -104,5 +114,8 @@ object InferSchemaAndNormaliseValue {
     ValueAndSchema(struct, schema)
   }
 
+}
+
+object InferSchemaAndNormaliseValue {
   case class ValueAndSchema(normalisedValue: Any, schema: Schema)
 }

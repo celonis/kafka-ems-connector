@@ -158,28 +158,26 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     genericRecord.get("another_optional_decimal") shouldBe null
   }
 
-  test("With Chunking disabled, heterogeneous arrays prevent flattening") {
-    pendingUntilFixed {
-      val value = Map(
-        "heterogeneous_array" -> List[Any]("a", 1, true).asJava,
-      ).asJava
-      val record = sinkRecord(value)
-      flattenTransform(record)
-      ()
-    }
+  test("With Chunking disabled, heterogeneous arrays do not prevent flattening") {
+    val value = Map(
+      "heterogeneous_array" -> List[Any]("a", 1, true).asJava,
+    ).asJava
+    val record = sinkRecord(value)
+    flattenTransform(record)
+    ()
   }
 
-  test("With Chunking disabled, heterogeneous arrays prevents flattening, even with discardCollection enabled") {
-    pendingUntilFixed {
-      val value = Map(
-        "foo"                 -> "bar",
-        "heterogeneous_array" -> List[Any]("a", 1, true).asJava,
-      ).asJava
+  test(
+    "With Chunking disabled, heterogeneous arrays do not prevents flattening, even with discardCollection enabled",
+  ) {
+    val value = Map(
+      "foo"                 -> "bar",
+      "heterogeneous_array" -> List[Any]("a", 1, true).asJava,
+    ).asJava
 
-      val record = sinkRecord(value)
-      flattenTransform(record)
-      ()
-    }
+    val record = sinkRecord(value)
+    flattenTransform(record)
+    ()
   }
 
   private def chunkTransform(record: SinkRecord, maxChunks: Int, chunkSize: Int): GenericRecord = {

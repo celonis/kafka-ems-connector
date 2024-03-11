@@ -119,18 +119,18 @@ class SchemaLessJsonValueConverterTest extends AnyFunSuite with Matchers {
     excludeStruct.get("value") shouldBe false
 
     val carsSchema = record.getSchema.getField("cars").schema()
-    carsSchema.getType shouldBe Schema.Type.ARRAY
-    carsSchema.getElementType shouldBe SchemaBuilder.builder().stringType().asNullable
-    record.get("cars").toString shouldBe "[Ford, BMW, Fiat]"
+    carsSchema shouldBe SchemaBuilder.builder().stringType().asNullable
+    record.get("cars") shouldBe """["Ford","BMW","Fiat"]"""
 
     val numsSchema = record.getSchema.getField("nums").schema()
-    numsSchema.getType shouldBe Schema.Type.ARRAY
-    numsSchema.getElementType shouldBe SchemaBuilder.builder().longType().asNullable
-    record.get("nums").toString shouldBe "[1, 3, 4]"
+    numsSchema shouldBe SchemaBuilder.builder().stringType().asNullable
+    record.get("nums") shouldBe "[1,3,4]"
   }
 
+  private val inference = new InferSchemaAndNormaliseValue(false);
+
   private def convert(value: Any): Either[Throwable, GenericRecord] =
-    InferSchemaAndNormaliseValue(value).toRight(new RuntimeException("whatever")).flatMap(valueAndSchema =>
+    inference(value).flatMap(valueAndSchema =>
       DataConverter(valueAndSchema.normalisedValue),
     )
 

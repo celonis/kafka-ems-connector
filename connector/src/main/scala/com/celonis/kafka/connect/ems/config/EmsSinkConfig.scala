@@ -18,7 +18,6 @@ package com.celonis.kafka.connect.ems.config
 
 import cats.implicits._
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants._
-import com.celonis.kafka.connect.ems.errors.ErrorPolicy
 import com.celonis.kafka.connect.ems.storage.FileSystemOperations
 import com.celonis.kafka.connect.transform.FlattenerConfig
 import com.celonis.kafka.connect.transform.PreConversionConfig
@@ -36,9 +35,8 @@ final case class EmsSinkConfig(
   target:                 String,
   connectionId:           Option[String],
   authorization:          AuthorizationHeader,
-  errorPolicy:            ErrorPolicy,
+  errorPolicyConfig:      ErrorPolicyConfig,
   commitPolicy:           CommitPolicyConfig,
-  retries:                RetryConfig,
   workingDir:             Path,
   parquet:                ParquetConfig,
   primaryKeys:            List[String],
@@ -106,8 +104,7 @@ object EmsSinkConfig {
       url                   <- extractURL(props)
       table                 <- extractTargetTable(props)
       authorization         <- AuthorizationHeader.extract(props)
-      error                 <- ErrorPolicy.extract(props)
-      retry                 <- RetryConfig.extractRetry(props)
+      errorPolicyConfig     <- ErrorPolicyConfig.extract(props)
       useInMemoryFs          = PropertiesHelper.getBoolean(props, USE_IN_MEMORY_FS_KEY).getOrElse(USE_IN_MEMORY_FS_DEFAULT)
       allowNullsAsPks        = PropertiesHelper.getBoolean(props, NULL_PK_KEY).getOrElse(NULL_PK_KEY_DEFAULT)
       tempDir               <- if (useInMemoryFs) Right(FileSystemOperations.InMemoryPseudoDir) else extractWorkingDirectory(props)
@@ -135,9 +132,8 @@ object EmsSinkConfig {
       table,
       connectionId,
       authorization,
-      error,
+      errorPolicyConfig,
       commitPolicy,
-      retry,
       tempDir,
       parquetConfig,
       primaryKeys,

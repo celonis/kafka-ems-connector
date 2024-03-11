@@ -57,9 +57,9 @@ final class RecordTransformer(
 
   def transform(sinkRecord: SinkRecord): IO[GenericRecord] = {
     val (convertedValue, convertedSchema) = preConversion.convert(sinkRecord.value(), Option(sinkRecord.valueSchema()))
-    val flattenedValue                    = flattener.flatten(convertedValue, convertedSchema)
 
     for {
+      flattenedValue <- IO(flattener.flatten(convertedValue, convertedSchema))
       transformedValue <- IO(
         inserter.insertFields(
           flattenedValue,
