@@ -17,10 +17,12 @@
 package com.celonis.kafka.connect.transform.flatten
 
 import com.celonis.kafka.connect.ems.storage.SampleData
+import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 
 import scala.collection.mutable
+import org.apache.avro
 
 class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite with SampleData {
   test("flattens a schema making all primitives optional") {
@@ -124,6 +126,21 @@ class SchemaFlattenerTest extends org.scalatest.funsuite.AnyFunSuite with Sample
       .build()
 
     assertResult(expected)(flatten(schema))
+  }
+
+  test("replaces ENUMs coming from AVRO to Strings") {
+    val avroSchema = avro.SchemaBuilder.record("myRecord").fields()
+      .name("enumField").`type`(avro.SchemaBuilder.enumeration("myEnum1").symbols("a", "b")).noDefault().endRecord()
+
+    val avroData      = new AvroData(100)
+    val connectSchema = avroData.toConnectSchema(avroSchema)
+
+    val expected = SchemaBuilder
+      .struct()
+      .field("enumField", SchemaBuilder.string().optional().build())
+      .build()
+
+    assertResult(expected)(flatten(connectSchema))
   }
 
   lazy val collectionFixtures = List(
