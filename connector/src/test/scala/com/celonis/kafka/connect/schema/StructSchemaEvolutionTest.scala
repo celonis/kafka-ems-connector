@@ -55,6 +55,29 @@ class StructSchemaEvolutionTest extends AnyFunSuite with Matchers with Inside {
     expectedResult shouldEqual result
   }
 
+  test("schema evolution with case mismatches") {
+    val currentSchema =
+      SchemaBuilder.struct()
+        .field("aAa", Schema.STRING_SCHEMA)
+        .field("bBb", Schema.INT64_SCHEMA)
+        .build()
+    val recordSchema =
+      SchemaBuilder.struct()
+        .field("Aaa", Schema.STRING_SCHEMA)
+        .field("bbB", Schema.INT64_SCHEMA)
+        .build()
+
+    val expectedResult =
+      SchemaBuilder.struct()
+        .field("aAa", Schema.STRING_SCHEMA)
+        .field("bBb", Schema.INT64_SCHEMA)
+        .build()
+
+    val result = schemaEv.evolve(currentSchema, recordSchema)
+
+    expectedResult shouldEqual result
+  }
+
   test("throws exception For Different SchemaTypes with same name") {
     val currentSchema =
       SchemaBuilder.struct()

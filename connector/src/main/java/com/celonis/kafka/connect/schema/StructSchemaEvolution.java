@@ -20,6 +20,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * StructSchemaEvolution is responsible for the recursively merging existing schema and schema from
@@ -78,11 +79,14 @@ public class StructSchemaEvolution implements SchemaEvolution {
 
     if (currentSchema.isOptional() || recordSchema.isOptional()) result.optional();
 
+    final var fieldsByLowercaseName = recordSchema.fields().stream().collect(Collectors.toMap(field -> field.name().toLowerCase(), field -> field));
+
+
     // First currentSchemaFields
     currentSchema.fields().stream()
         .forEach(
             currentSchemaField -> {
-              final var recordSchemaField = recordSchema.field(currentSchemaField.name());
+              final var recordSchemaField = fieldsByLowercaseName.get(currentSchemaField.name().toLowerCase());
               if (recordSchemaField == null) {
                 // If not present in recordSchema, just add it
                 result.field(currentSchemaField.name(), currentSchemaField.schema());
@@ -97,9 +101,11 @@ public class StructSchemaEvolution implements SchemaEvolution {
               }
             });
 
+    final var currentSchemaFields = currentSchema.fields().stream().map(field -> field.name().toLowerCase()).collect(Collectors.toSet());
+
     // Just add remaining record schema fields as they are
     recordSchema.fields().stream()
-        .filter(rf -> currentSchema.field(rf.name()) == null)
+        .filter(rf -> !currentSchemaFields.contains(rf.name().toLowerCase()))
         .forEach(rf -> result.field(rf.name(), rf.schema()));
 
     return result.build();
