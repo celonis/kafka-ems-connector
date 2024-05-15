@@ -20,6 +20,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -79,14 +80,16 @@ public class StructSchemaEvolution implements SchemaEvolution {
 
     if (currentSchema.isOptional() || recordSchema.isOptional()) result.optional();
 
-    final var fieldsByLowercaseName = recordSchema.fields().stream().collect(Collectors.toMap(field -> field.name().toLowerCase(), field -> field));
-
+    final var recordFieldsByLowerCaseName = recordSchema
+            .fields()
+            .stream()
+            .collect(Collectors.toMap(field -> field.name().toLowerCase(), Function.identity()));
 
     // First currentSchemaFields
-    currentSchema.fields().stream()
+    currentSchema.fields()
         .forEach(
             currentSchemaField -> {
-              final var recordSchemaField = fieldsByLowercaseName.get(currentSchemaField.name().toLowerCase());
+              final var recordSchemaField = recordFieldsByLowerCaseName.get(currentSchemaField.name().toLowerCase());
               if (recordSchemaField == null) {
                 // If not present in recordSchema, just add it
                 result.field(currentSchemaField.name(), currentSchemaField.schema());
@@ -101,11 +104,15 @@ public class StructSchemaEvolution implements SchemaEvolution {
               }
             });
 
-    final var currentSchemaFields = currentSchema.fields().stream().map(field -> field.name().toLowerCase()).collect(Collectors.toSet());
+    final var currentSchemaLowerCasedFieldNames = currentSchema
+            .fields()
+            .stream()
+            .map(field -> field.name().toLowerCase())
+            .collect(Collectors.toSet());
 
     // Just add remaining record schema fields as they are
     recordSchema.fields().stream()
-        .filter(rf -> !currentSchemaFields.contains(rf.name().toLowerCase()))
+        .filter(rf -> !currentSchemaLowerCasedFieldNames.contains(rf.name().toLowerCase()))
         .forEach(rf -> result.field(rf.name(), rf.schema()));
 
     return result.build();
