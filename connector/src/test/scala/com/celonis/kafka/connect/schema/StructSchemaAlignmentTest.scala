@@ -33,6 +33,7 @@ class StructSchemaAlignmentTest extends AnyFunSuite with Matchers with Inside {
       Scenario.nestedArray,
       Scenario.nestedMap,
       Scenario.structInMap,
+      Scenario.caseInsensitive,
     )
   ) {
     test(scenario.label) {
@@ -202,6 +203,41 @@ object StructSchemaAlignmentTest {
       )
     }
 
-  }
+    val caseInsensitive: Scenario = {
+      val superSchema: Schema = SchemaBuilder.struct
+        .field("field1", Schema.INT64_SCHEMA).field(
+          "fieLD2",
+          SchemaBuilder.struct
+            .field("FIeld3", Schema.STRING_SCHEMA)
+            .field("Field4", Schema.OPTIONAL_INT64_SCHEMA).build,
+        ).build
 
+      val subSchema: Schema = SchemaBuilder.struct.field("field3", Schema.STRING_SCHEMA).build
+      val schema: Schema = SchemaBuilder.struct
+        .field("FIELD1", Schema.INT64_SCHEMA)
+        .field("field2", subSchema).build
+
+      val struct    = new Struct(schema)
+      val subStruct = new Struct(subSchema)
+
+      subStruct.put("field3", "hello")
+      struct.put("FIELD1", 1L)
+      struct.put("field2", subStruct)
+
+      val expected  = new Struct(superSchema)
+      val expectedSubStruct = new Struct(superSchema.field("fieLD2").schema)
+      expectedSubStruct.put("FIeld3", "hello")
+
+      expected.put("field1", 1L)
+      expected.put("fieLD2", expectedSubStruct)
+
+      Scenario(
+        label                = "case insensitive fields",
+        superSchema          = superSchema,
+        inputValue           = struct,
+        expectedAlignedValue = expected,
+      )
+    }
+
+  }
 }

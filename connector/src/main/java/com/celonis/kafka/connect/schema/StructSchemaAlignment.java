@@ -16,6 +16,7 @@
 
 package com.celonis.kafka.connect.schema;
 
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
@@ -60,12 +61,17 @@ public final class StructSchemaAlignment {
         final var structValue = (Struct) value;
         if (structValue.schema() == evolvedSchema) return structValue;
         final var newStruct = new Struct(evolvedSchema);
+        final var fieldNamesByLowercaseName = structValue.schema().fields().stream().collect(Collectors.toMap(
+                field -> field.name().toLowerCase(),
+                Field::name
+        ));
 
         for (final var evolvedField : evolvedSchema.fields()) {
-          if (structValue.schema().field(evolvedField.name()) != null) {
+          final var lowerCaseFieldName = evolvedField.name().toLowerCase();
+          if (fieldNamesByLowercaseName.get(lowerCaseFieldName) != null) {
             newStruct.put(
                 evolvedField.name(),
-                align(evolvedField.schema(), structValue.get(evolvedField.name())));
+                align(evolvedField.schema(), structValue.get(fieldNamesByLowercaseName.get(lowerCaseFieldName))));
           }
         }
 
