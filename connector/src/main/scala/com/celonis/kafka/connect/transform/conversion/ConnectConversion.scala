@@ -33,7 +33,7 @@ trait ConnectConversion {
 
 object ConnectConversion {
   def fromConfig(config: PreConversionConfig): ConnectConversion =
-    if (config.convertDecimalsToFloat) new RecursiveConversion(DecimalToFloatConversion)
+    if (config.convertDecimalsToFloat) new RecursiveConversion(DecimalToFloatConversion, identity)
     else noOpConversion
 
   val noOpConversion: ConnectConversion = new ConnectConversion {

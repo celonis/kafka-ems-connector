@@ -97,7 +97,40 @@ class RecursiveConversionTest extends AnyFunSuite with Matchers {
     convertedValue shouldBe expectedValue
   }
 
-  lazy val recursiveConversion = new RecursiveConversion(stringConversion)
+  test("it applies fieldName conversion") {
+    val recursiveConversion = new RecursiveConversion(stringConversion, _.toUpperCase)
+    val nestedSchema        = SchemaBuilder.struct().field("a_timestamp", Timestamp.SCHEMA).build()
+    val nestedStruct        = new Struct(nestedSchema)
+    nestedStruct.put("a_timestamp", aDate)
+
+    val originalSchema = SchemaBuilder.struct()
+      .field("an_int", Schema.INT32_SCHEMA)
+      .field("nested", nestedSchema)
+      .build()
+
+    val originalValue = new Struct(originalSchema)
+    originalValue.put("an_int", 123)
+    originalValue.put("nested", nestedStruct)
+
+    val expectedNestedSchema = SchemaBuilder.struct().field("A_TIMESTAMP", Schema.STRING_SCHEMA).build()
+    val expectedSchema = SchemaBuilder.struct()
+      .field("AN_INT", Schema.STRING_SCHEMA)
+      .field("NESTED", expectedNestedSchema)
+      .build()
+
+    val expectedNestedValue = new Struct(expectedNestedSchema)
+    expectedNestedValue.put("A_TIMESTAMP", aDate.toString)
+
+    val expectedValue = new Struct(expectedSchema)
+    expectedValue.put("AN_INT", "123")
+    expectedValue.put("NESTED", expectedNestedValue)
+
+    val (convertedValue, Some(convertedSchema)) = recursiveConversion.convert(originalValue, Some(originalSchema))
+    convertedSchema shouldBe expectedSchema
+    convertedValue shouldBe expectedValue
+  }
+
+  lazy val recursiveConversion = new RecursiveConversion(stringConversion, identity)
 
   lazy val stringConversion = new ConnectConversion {
     override def convertSchema(originalSchema: Schema): Schema = Schema.STRING_SCHEMA
