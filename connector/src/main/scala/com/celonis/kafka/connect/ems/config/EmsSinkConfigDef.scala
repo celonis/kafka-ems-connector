@@ -363,9 +363,16 @@ object EmsSinkConfigDef {
     .define(
       DECIMAL_CONVERSION_KEY,
       Type.BOOLEAN,
-      DECIMAL_CONVERSION_KEY_DEFAULT,
+      DECIMAL_CONVERSION_DEFAULT,
       Importance.MEDIUM,
-      DECIMAL_CONVERSION_KEY_DOC,
+      DECIMAL_CONVERSION_DOC,
+    )
+    .define(
+      TRANSFORM_FIELDS_LOWERCASE_KEY,
+      Type.BOOLEAN,
+      TRANSFORM_FIELDS_LOWERCASE_DEFAULT,
+      Importance.MEDIUM,
+      TRANSFORM_FIELDS_LOWERCASE_DOC,
     )
     .define(
       NULL_PK_KEY,

@@ -158,42 +158,47 @@ object EmsSinkConfigConstants {
   val CLOSE_EVERY_CONNECTION_DOC           = "Connection pool - Explicitly close connections"
   val CLOSE_EVERY_CONNECTION_DEFAULT_VALUE = false
 
-  val FLATTENER_ENABLE_KEY = s"${CONNECTOR_PREFIX}.flattener.enable"
+  val FLATTENER_ENABLE_KEY = s"$CONNECTOR_PREFIX.flattener.enable"
   val FLATTENER_ENABLE_DOC =
     s"Enable flattening of nested records. This is likely to be needed if the source data contains nested objects or collections."
   val FLATTENER_ENABLE_DEFAULT = true
 
-  val FLATTENER_DISCARD_COLLECTIONS_KEY = s"${CONNECTOR_PREFIX}.flattener.collections.discard"
+  val FLATTENER_DISCARD_COLLECTIONS_KEY = s"$CONNECTOR_PREFIX.flattener.collections.discard"
   val FLATTENER_DISCARD_COLLECTIONS_DOC =
     "Discard array and map fields at any level of depth. Note that the default handling of collections by the flattener function is to JSON-encode them as nullable STRING fields."
   val FLATTENER_DISCARD_COLLECTIONS_DEFAULT = false
 
-  val FLATTENER_JSONBLOB_CHUNKS_KEY = s"${CONNECTOR_PREFIX}.flattener.jsonblob.chunks"
+  val FLATTENER_JSONBLOB_CHUNKS_KEY = s"$CONNECTOR_PREFIX.flattener.jsonblob.chunks"
   val FLATTENER_JSONBLOB_CHUNKS_DOC =
     "Encodes the record into a JSON blob broken down into N VARCHAR fields (e.g. `payload_chunk1`, `payload_chunk2`, `...`, `payload_chunkN`)."
   val FLATTENER_JSONBLOB_CHUNKS_DEFAULT = null
 
-  val DECIMAL_CONVERSION_KEY = s"${CONNECTOR_PREFIX}.convert.decimals.to.double"
-  val DECIMAL_CONVERSION_KEY_DOC =
+  val DECIMAL_CONVERSION_KEY = s"$CONNECTOR_PREFIX.convert.decimals.to.double"
+  val DECIMAL_CONVERSION_DOC =
     s"Convert decimal values into doubles. Valid only for formats with schema (AVRO, Protobuf, JsonSchema)"
-  val DECIMAL_CONVERSION_KEY_DEFAULT = false
+  val DECIMAL_CONVERSION_DEFAULT = false
 
-  val NULL_PK_KEY = s"${CONNECTOR_PREFIX}.allow.null.pk"
+  val TRANSFORM_FIELDS_LOWERCASE_KEY = s"$CONNECTOR_PREFIX.convert.lowercase.fields"
+  val TRANSFORM_FIELDS_LOWERCASE_DOC =
+    s"Convert all fields to lowercase"
+  val TRANSFORM_FIELDS_LOWERCASE_DEFAULT = false
+
+  val NULL_PK_KEY = s"$CONNECTOR_PREFIX.allow.null.pk"
   val NULL_PK_KEY_DOC =
     s"Allow parsing messages with null values in the columns listed as primary keys. If disabled connector will fail after receiving such a message. NOTE: enabling that will cause data inconsistency issue on the EMS side."
   val NULL_PK_KEY_DEFAULT = false
 
-  val EMBED_KAFKA_EMBEDDED_METADATA_KEY = s"${CONNECTOR_PREFIX}.embed.kafka.metadata"
+  val EMBED_KAFKA_EMBEDDED_METADATA_KEY = s"$CONNECTOR_PREFIX.embed.kafka.metadata"
   val EMBED_KAFKA_EMBEDDED_METADATA_DOC =
     "Embed Kafka metadata such as partition, offset and timestamp as additional record fields."
   val EMBED_KAFKA_EMBEDDED_METADATA_DEFAULT = true
 
-  val USE_IN_MEMORY_FS_KEY = s"${CONNECTOR_PREFIX}.inmemfs.enable"
+  val USE_IN_MEMORY_FS_KEY = s"$CONNECTOR_PREFIX.inmemfs.enable"
   val USE_IN_MEMORY_FS_DOC =
     "Rather than writing to the host file system, buffer parquet data files in memory"
   val USE_IN_MEMORY_FS_DEFAULT = false
 
-  val SINK_PUT_TIMEOUT_KEY = s"${CONNECTOR_PREFIX}.sink.put.timeout.ms"
+  val SINK_PUT_TIMEOUT_KEY = s"$CONNECTOR_PREFIX.sink.put.timeout.ms"
   val SINK_PUT_TIMEOUT_DOC =
     "The maximum time (in milliseconds) for the connector task to complete the upload of a single Parquet file before being flagged as failed. Note: this value should always be lower than max.poll.interval.ms"
   val SINK_PUT_TIMEOUT_DEFAULT = 288000L // 4.8 minutes

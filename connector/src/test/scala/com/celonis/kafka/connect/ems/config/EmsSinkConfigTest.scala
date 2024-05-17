@@ -61,7 +61,7 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
     http                   = UnproxiedHttpClientConfig(defaultPoolingConfig),
     explode                = ExplodeConfig.None,
     orderField             = OrderFieldConfig(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName.some),
-    preConversionConfig    = PreConversionConfig(convertDecimalsToFloat = false),
+    preConversionConfig    = PreConversionConfig(convertDecimalsToFloat = false, convertFieldsToLowercase = false),
     flattenerConfig        = None,
     embedKafkaMetadata     = true,
     useInMemoryFileSystem  = false,
@@ -79,19 +79,40 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
 
   test(s"parse PreConversionConfig") {
     val expectedWithDefault =
-      anEmsSinkConfig.copy(preConversionConfig = PreConversionConfig(convertDecimalsToFloat = false))
-    val properties = propertiesFromConfig(expectedWithDefault).removed(DECIMAL_CONVERSION_KEY)
+      anEmsSinkConfig.copy(preConversionConfig =
+        PreConversionConfig(convertDecimalsToFloat = false, convertFieldsToLowercase = false),
+      )
+    val properties =
+      propertiesFromConfig(expectedWithDefault).removed(DECIMAL_CONVERSION_KEY).removed(TRANSFORM_FIELDS_LOWERCASE_KEY)
     parseProperties(properties) shouldBe Right(expectedWithDefault)
 
-    val expectedWithConversion =
-      anEmsSinkConfig.copy(preConversionConfig = PreConversionConfig(convertDecimalsToFloat = true))
-    val propertiesWithConversion = propertiesFromConfig(expectedWithConversion)
-    parseProperties(propertiesWithConversion) shouldBe Right(expectedWithConversion)
+    val expectedWithDecimalConversion =
+      anEmsSinkConfig.copy(preConversionConfig =
+        PreConversionConfig(convertDecimalsToFloat = true, convertFieldsToLowercase = false),
+      )
+    val propertiesWithDecimalConversion = propertiesFromConfig(expectedWithDecimalConversion)
+    parseProperties(propertiesWithDecimalConversion) shouldBe Right(expectedWithDecimalConversion)
 
-    val expectedWithoutConversion =
-      anEmsSinkConfig.copy(preConversionConfig = PreConversionConfig(convertDecimalsToFloat = false))
-    val propertiesWithoutConversion = propertiesFromConfig(expectedWithoutConversion)
-    parseProperties(propertiesWithoutConversion) shouldBe Right(expectedWithoutConversion)
+    val expectedWithFieldNamesConversion =
+      anEmsSinkConfig.copy(preConversionConfig =
+        PreConversionConfig(convertDecimalsToFloat = false, convertFieldsToLowercase = true),
+      )
+    val propertiesWithFieldNamesConversion = propertiesFromConfig(expectedWithFieldNamesConversion)
+    parseProperties(propertiesWithFieldNamesConversion) shouldBe Right(expectedWithFieldNamesConversion)
+
+    val expectedWithAllConversions =
+      anEmsSinkConfig.copy(preConversionConfig =
+        PreConversionConfig(convertDecimalsToFloat = true, convertFieldsToLowercase = true),
+      )
+    val propertiesWithAllConversions = propertiesFromConfig(expectedWithAllConversions)
+    parseProperties(propertiesWithAllConversions) shouldBe Right(expectedWithAllConversions)
+
+    val expectedWithoutConversions =
+      anEmsSinkConfig.copy(preConversionConfig =
+        PreConversionConfig(convertDecimalsToFloat = false, convertFieldsToLowercase = false),
+      )
+    val propertiesWithoutConversion = propertiesFromConfig(expectedWithoutConversions)
+    parseProperties(propertiesWithoutConversion) shouldBe Right(expectedWithoutConversions)
   }
 
   test(s"returns an error if AUTHORIZATION_KEY is missing") {
@@ -240,23 +261,24 @@ class EmsSinkConfigTest extends AnyFunSuite with Matchers {
   }
 
   private def propertiesFromConfig(config: EmsSinkConfig): Map[String, _] = Map(
-    "name"                      -> config.sinkName,
-    ENDPOINT_KEY                -> config.url.toString,
-    TARGET_TABLE_KEY            -> config.target,
-    AUTHORIZATION_KEY           -> config.authorization.header,
-    ERROR_POLICY_KEY            -> config.errorPolicyConfig.policyType.toString,
-    COMMIT_SIZE_KEY             -> config.commitPolicy.fileSize,
-    COMMIT_INTERVAL_KEY         -> config.commitPolicy.interval,
-    COMMIT_RECORDS_KEY          -> config.commitPolicy.records,
-    ERROR_RETRY_INTERVAL        -> config.errorPolicyConfig.retryConfig.interval,
-    ERROR_POLICY_RETRIES_KEY    -> config.errorPolicyConfig.retryConfig.retries,
-    TMP_DIRECTORY_KEY           -> config.workingDir.toString,
-    PRIMARY_KEYS_KEY            -> config.primaryKeys.mkString(","),
-    CONNECTION_ID_KEY           -> config.connectionId.get,
-    ORDER_FIELD_NAME_KEY        -> config.orderField.name.orNull,
-    FALLBACK_VARCHAR_LENGTH_KEY -> config.fallbackVarCharLengths.orNull,
-    DECIMAL_CONVERSION_KEY      -> config.preConversionConfig.convertDecimalsToFloat,
-    FLATTENER_ENABLE_KEY        -> config.flattenerConfig.isDefined,
+    "name"                         -> config.sinkName,
+    ENDPOINT_KEY                   -> config.url.toString,
+    TARGET_TABLE_KEY               -> config.target,
+    AUTHORIZATION_KEY              -> config.authorization.header,
+    ERROR_POLICY_KEY               -> config.errorPolicyConfig.policyType.toString,
+    COMMIT_SIZE_KEY                -> config.commitPolicy.fileSize,
+    COMMIT_INTERVAL_KEY            -> config.commitPolicy.interval,
+    COMMIT_RECORDS_KEY             -> config.commitPolicy.records,
+    ERROR_RETRY_INTERVAL           -> config.errorPolicyConfig.retryConfig.interval,
+    ERROR_POLICY_RETRIES_KEY       -> config.errorPolicyConfig.retryConfig.retries,
+    TMP_DIRECTORY_KEY              -> config.workingDir.toString,
+    PRIMARY_KEYS_KEY               -> config.primaryKeys.mkString(","),
+    CONNECTION_ID_KEY              -> config.connectionId.get,
+    ORDER_FIELD_NAME_KEY           -> config.orderField.name.orNull,
+    FALLBACK_VARCHAR_LENGTH_KEY    -> config.fallbackVarCharLengths.orNull,
+    DECIMAL_CONVERSION_KEY         -> config.preConversionConfig.convertDecimalsToFloat,
+    TRANSFORM_FIELDS_LOWERCASE_KEY -> config.preConversionConfig.convertFieldsToLowercase,
+    FLATTENER_ENABLE_KEY           -> config.flattenerConfig.isDefined,
     FLATTENER_DISCARD_COLLECTIONS_KEY -> config.flattenerConfig.map(_.discardCollections).getOrElse(
       FLATTENER_DISCARD_COLLECTIONS_DEFAULT,
     ),

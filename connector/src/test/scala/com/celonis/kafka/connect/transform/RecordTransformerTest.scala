@@ -48,7 +48,7 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     val transformer =
       RecordTransformer.fromConfig(
         "mySink",
-        PreConversionConfig(false),
+        PreConversionConfig(false, false),
         Some(FlattenerConfig(discardCollections = true, jsonBlobChunks = None)),
         Nil,
         None,
@@ -80,7 +80,7 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     val transformer =
       RecordTransformer.fromConfig(
         "mySink",
-        PreConversionConfig(false),
+        PreConversionConfig(false, false),
         Some(FlattenerConfig(discardCollections = true, jsonBlobChunks = None)),
         Nil,
         None,
@@ -184,7 +184,7 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     val flattenerConfig = Some(FlattenerConfig(discardCollections = false, Some(JsonBlobChunks(maxChunks, chunkSize))))
     val transformer =
       RecordTransformer.fromConfig("mySink",
-                                   PreConversionConfig(false),
+                                   PreConversionConfig(false, false),
                                    flattenerConfig,
                                    Nil,
                                    None,
@@ -198,7 +198,7 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     val flattenerConfig = Some(FlattenerConfig(discardCollections = discardCollections, None))
     val transformer =
       RecordTransformer.fromConfig("mySink",
-                                   PreConversionConfig(false),
+                                   PreConversionConfig(false, false),
                                    flattenerConfig,
                                    Nil,
                                    None,
@@ -210,7 +210,7 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
 
   private def decimalConversionWithNoFlattening(record: SinkRecord): GenericRecord = {
     val transformer =
-      RecordTransformer.fromConfig("mySink", PreConversionConfig(true), None, Nil, None, false, FieldInserter.noop)
+      RecordTransformer.fromConfig("mySink", PreConversionConfig(true, false), None, Nil, None, false, FieldInserter.noop)
     transformer.transform(record).unsafeRunSync()
   }
 
