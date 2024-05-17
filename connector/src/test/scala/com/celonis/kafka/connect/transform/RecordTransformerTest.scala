@@ -130,7 +130,7 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     val aBigDecimal = java.math.BigDecimal.valueOf(0.12345)
     val nestedSchema = SchemaBuilder.struct()
       .field("nested_decimal", Decimal.schema(5))
-      .field("nested_float32", SchemaBuilder.float32().schema()).build()
+      .field("nested_float32", Schema.FLOAT32_SCHEMA).build()
 
     val schema = SchemaBuilder.struct()
       .field("nested", nestedSchema)
@@ -156,6 +156,28 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     genericRecord.get("a_decimal") shouldBe aBigDecimal.doubleValue()
     genericRecord.get("an_optional_decimal") shouldBe aBigDecimal.doubleValue()
     genericRecord.get("another_optional_decimal") shouldBe null
+  }
+
+  test("With field to lowercase conversion enabled, field names are lowercased") {
+    val nestedSchema = SchemaBuilder.struct()
+      .field("Inner", Schema.STRING_SCHEMA)
+
+    val schema = SchemaBuilder.struct()
+      .field("nEsted", nestedSchema)
+      .field("STRING", Schema.STRING_SCHEMA)
+
+    val nestedStruct = new Struct(nestedSchema)
+    nestedStruct.put("Inner", "abc")
+
+    val struct = new Struct(schema)
+    struct.put("nEsted", nestedStruct)
+    struct.put("STRING", "def")
+
+    val record        = sinkRecord(struct, schema)
+    val genericRecord = lowercaseConversionWithNoFlattening(record)
+
+    genericRecord.get("nested").asInstanceOf[Record].get("inner") shouldBe "abc"
+    genericRecord.get("string") shouldBe "def"
   }
 
   test("With Chunking disabled, heterogeneous arrays do not prevent flattening") {
@@ -210,7 +232,27 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
 
   private def decimalConversionWithNoFlattening(record: SinkRecord): GenericRecord = {
     val transformer =
-      RecordTransformer.fromConfig("mySink", PreConversionConfig(true, false), None, Nil, None, false, FieldInserter.noop)
+      RecordTransformer.fromConfig("mySink",
+                                   PreConversionConfig(true, false),
+                                   None,
+                                   Nil,
+                                   None,
+                                   false,
+                                   FieldInserter.noop,
+      )
+    transformer.transform(record).unsafeRunSync()
+  }
+
+  private def lowercaseConversionWithNoFlattening(record: SinkRecord): GenericRecord = {
+    val transformer =
+      RecordTransformer.fromConfig("mySink",
+                                   PreConversionConfig(false, true),
+                                   None,
+                                   Nil,
+                                   None,
+                                   false,
+                                   FieldInserter.noop,
+      )
     transformer.transform(record).unsafeRunSync()
   }
 
