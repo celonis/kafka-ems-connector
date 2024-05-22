@@ -33,8 +33,11 @@ trait ConnectConversion {
 
 object ConnectConversion {
   def fromConfig(config: PreConversionConfig): ConnectConversion =
-    if (config.convertDecimalsToFloat) new RecursiveConversion(DecimalToFloatConversion)
-    else noOpConversion
+    if (config.convertFieldsToLowercase || config.convertDecimalsToFloat) {
+      val inner = if (config.convertDecimalsToFloat) DecimalToFloatConversion else noOpConversion
+      val fieldNameConversion: String => String = if (config.convertFieldsToLowercase) _.toLowerCase else identity
+      new RecursiveConversion(inner, fieldNameConversion)
+    } else noOpConversion
 
   val noOpConversion: ConnectConversion = new ConnectConversion {
     override def convertSchema(originalSchema: Schema): Schema = originalSchema

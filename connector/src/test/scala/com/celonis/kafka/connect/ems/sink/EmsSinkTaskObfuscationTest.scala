@@ -68,7 +68,7 @@ class EmsSinkTaskObfuscationTest extends AnyFunSuite with Matchers with WorkingD
         UnproxiedHttpClientConfig(defaultPoolingConfig),
         ExplodeConfig.None,
         OrderFieldConfig(Some(EmbeddedKafkaMetadataFieldInserter.CelonisOrderFieldName)),
-        PreConversionConfig(convertDecimalsToFloat = false),
+        PreConversionConfig(false, false),
         None,
         embedKafkaMetadata    = false,
         useInMemoryFileSystem = false,

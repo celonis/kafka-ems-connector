@@ -17,14 +17,17 @@
 package com.celonis.kafka.connect.transform
 
 import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DECIMAL_CONVERSION_KEY
-import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DECIMAL_CONVERSION_KEY_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.DECIMAL_CONVERSION_DEFAULT
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TRANSFORM_FIELDS_LOWERCASE_KEY
+import com.celonis.kafka.connect.ems.config.EmsSinkConfigConstants.TRANSFORM_FIELDS_LOWERCASE_DEFAULT
 import com.celonis.kafka.connect.ems.config.PropertiesHelper.getBoolean
 
-final case class PreConversionConfig(convertDecimalsToFloat: Boolean)
+final case class PreConversionConfig(convertDecimalsToFloat: Boolean, convertFieldsToLowercase: Boolean)
 
 object PreConversionConfig {
   def extract(props: Map[String, _]): PreConversionConfig =
     PreConversionConfig(
-      getBoolean(props, DECIMAL_CONVERSION_KEY).getOrElse(DECIMAL_CONVERSION_KEY_DEFAULT),
+      getBoolean(props, DECIMAL_CONVERSION_KEY).getOrElse(DECIMAL_CONVERSION_DEFAULT),
+      getBoolean(props, TRANSFORM_FIELDS_LOWERCASE_KEY).getOrElse(TRANSFORM_FIELDS_LOWERCASE_DEFAULT),
     )
 }

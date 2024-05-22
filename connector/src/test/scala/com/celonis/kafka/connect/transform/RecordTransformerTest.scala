@@ -45,16 +45,7 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
       // other fields omitted
     ).asJava
 
-    val transformer =
-      RecordTransformer.fromConfig(
-        "mySink",
-        PreConversionConfig(false),
-        Some(FlattenerConfig(discardCollections = true, jsonBlobChunks = None)),
-        Nil,
-        None,
-        allowNullsAsPks = false,
-        FieldInserter.embeddedKafkaMetadata(doInsert = true, None),
-      )
+    val transformer = buildTransformer(flatten = true, discardCollections = true)
 
     val record1 = sinkRecord(value1)
     transformer.transform(record1).unsafeRunSync()
@@ -77,16 +68,7 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
       "some_field" -> 22, // field type has changed!
     ).asJava
 
-    val transformer =
-      RecordTransformer.fromConfig(
-        "mySink",
-        PreConversionConfig(false),
-        Some(FlattenerConfig(discardCollections = true, jsonBlobChunks = None)),
-        Nil,
-        None,
-        allowNullsAsPks = false,
-        FieldInserter.embeddedKafkaMetadata(doInsert = true, None),
-      )
+    val transformer = buildTransformer(flatten = true, discardCollections = true)
 
     val record1        = sinkRecord(value1)
     val genericRecord1 = transformer.transform(record1).unsafeRunSync()
@@ -107,7 +89,7 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     ).asJava
 
     val record        = sinkRecord(value)
-    val genericRecord = chunkTransform(record, 2, 20)
+    val genericRecord = transform(record, flatten = true, jsonBlobChunks = Some(JsonBlobChunks(2, 20)))
 
     genericRecord.get("payload_chunk1") shouldBe "{\"heterogeneous_arra"
     genericRecord.get("payload_chunk2") shouldBe "y\":[\"a\",1,true]}"
@@ -120,7 +102,7 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     ).asJava
 
     val record        = sinkRecord(value)
-    val genericRecord = chunkTransform(record, 2, 20)
+    val genericRecord = transform(record, flatten = true, jsonBlobChunks = Some(JsonBlobChunks(2, 20)))
 
     genericRecord.get("payload_chunk1") shouldBe "{\"123454567890123454"
     genericRecord.get("payload_chunk2") shouldBe "56789\":\"x\",\"\":\"y\"}"
@@ -130,7 +112,7 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     val aBigDecimal = java.math.BigDecimal.valueOf(0.12345)
     val nestedSchema = SchemaBuilder.struct()
       .field("nested_decimal", Decimal.schema(5))
-      .field("nested_float32", SchemaBuilder.float32().schema()).build()
+      .field("nested_float32", Schema.FLOAT32_SCHEMA).build()
 
     val schema = SchemaBuilder.struct()
       .field("nested", nestedSchema)
@@ -149,7 +131,7 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     struct.put("another_optional_decimal", null)
 
     val record        = sinkRecord(struct, schema)
-    val genericRecord = decimalConversionWithNoFlattening(record)
+    val genericRecord = transform(record, convertDecimals = true)
 
     genericRecord.get("nested").asInstanceOf[Record].get("nested_decimal") shouldBe aBigDecimal.doubleValue()
     genericRecord.get("nested").asInstanceOf[Record].get("nested_float32") shouldBe 1.45f
@@ -158,12 +140,34 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     genericRecord.get("another_optional_decimal") shouldBe null
   }
 
+  test("With field to lowercase conversion enabled, field names are lowercased") {
+    val nestedSchema = SchemaBuilder.struct()
+      .field("Inner", Schema.STRING_SCHEMA)
+
+    val schema = SchemaBuilder.struct()
+      .field("nEsted", nestedSchema)
+      .field("STRING", Schema.STRING_SCHEMA)
+
+    val nestedStruct = new Struct(nestedSchema)
+    nestedStruct.put("Inner", "abc")
+
+    val struct = new Struct(schema)
+    struct.put("nEsted", nestedStruct)
+    struct.put("STRING", "def")
+
+    val record        = sinkRecord(struct, schema)
+    val genericRecord = transform(record, lowercaseFields = true)
+
+    genericRecord.get("nested").asInstanceOf[Record].get("inner") shouldBe "abc"
+    genericRecord.get("string") shouldBe "def"
+  }
+
   test("With Chunking disabled, heterogeneous arrays do not prevent flattening") {
     val value = Map(
       "heterogeneous_array" -> List[Any]("a", 1, true).asJava,
     ).asJava
     val record = sinkRecord(value)
-    flattenTransform(record)
+    transform(record, flatten = true)
     ()
   }
 
@@ -176,42 +180,37 @@ class RecordTransformerTest extends AnyFunSuite with Matchers {
     ).asJava
 
     val record = sinkRecord(value)
-    flattenTransform(record)
+    transform(record, flatten = true)
     ()
   }
 
-  private def chunkTransform(record: SinkRecord, maxChunks: Int, chunkSize: Int): GenericRecord = {
-    val flattenerConfig = Some(FlattenerConfig(discardCollections = false, Some(JsonBlobChunks(maxChunks, chunkSize))))
-    val transformer =
-      RecordTransformer.fromConfig("mySink",
-                                   PreConversionConfig(false),
-                                   flattenerConfig,
-                                   Nil,
-                                   None,
-                                   false,
-                                   FieldInserter.noop,
-      )
-    transformer.transform(record).unsafeRunSync()
-  }
+  private def transform(
+    record:             SinkRecord,
+    flatten:            Boolean                = false,
+    discardCollections: Boolean                = false,
+    convertDecimals:    Boolean                = false,
+    lowercaseFields:    Boolean                = false,
+    jsonBlobChunks:     Option[JsonBlobChunks] = None): GenericRecord =
+    buildTransformer(flatten, discardCollections, convertDecimals, lowercaseFields, jsonBlobChunks).transform(
+      record,
+    ).unsafeRunSync()
 
-  private def flattenTransform(record: SinkRecord, discardCollections: Boolean = false): GenericRecord = {
-    val flattenerConfig = Some(FlattenerConfig(discardCollections = discardCollections, None))
-    val transformer =
-      RecordTransformer.fromConfig("mySink",
-                                   PreConversionConfig(false),
-                                   flattenerConfig,
-                                   Nil,
-                                   None,
-                                   false,
-                                   FieldInserter.noop,
-      )
-    transformer.transform(record).unsafeRunSync()
-  }
-
-  private def decimalConversionWithNoFlattening(record: SinkRecord): GenericRecord = {
-    val transformer =
-      RecordTransformer.fromConfig("mySink", PreConversionConfig(true), None, Nil, None, false, FieldInserter.noop)
-    transformer.transform(record).unsafeRunSync()
+  private def buildTransformer(
+    flatten:            Boolean,
+    discardCollections: Boolean,
+    convertDecimals:    Boolean                = false,
+    lowercaseFields:    Boolean                = false,
+    jsonBlobChunks:     Option[JsonBlobChunks] = None): RecordTransformer = {
+    val flattenerConfig =
+      Some(FlattenerConfig(discardCollections = discardCollections, jsonBlobChunks)).filter(_ => flatten)
+    RecordTransformer.fromConfig("mySink",
+                                 PreConversionConfig(convertDecimals, lowercaseFields),
+                                 flattenerConfig,
+                                 Nil,
+                                 None,
+                                 false,
+                                 FieldInserter.noop,
+    )
   }
 
   private def sinkRecord(value: Any, schema: Schema = null): SinkRecord =

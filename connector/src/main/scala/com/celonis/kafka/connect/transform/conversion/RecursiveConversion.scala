@@ -24,13 +24,14 @@ import scala.jdk.CollectionConverters._
 
 /** Traverse containers data objects (structs, maps and lists) and apply the inner conversion to the leaves
   */
-final class RecursiveConversion(innerConversion: ConnectConversion) extends ConnectConversion {
+final class RecursiveConversion(innerConversion: ConnectConversion, fieldNameConversion: String => String)
+    extends ConnectConversion {
 
   override def convertSchema(originalSchema: Schema): Schema =
     originalSchema.`type`() match {
       case Schema.Type.STRUCT =>
         originalSchema.fields().asScala.foldLeft(SchemaBuilder.struct()) { case (builder, field) =>
-          builder.field(field.name(), convertSchema(field.schema()))
+          builder.field(fieldNameConversion(field.name()), convertSchema(field.schema()))
         }.optionalIf(originalSchema.isOptional).build()
       case Schema.Type.ARRAY =>
         SchemaBuilder.array(convertSchema(originalSchema.valueSchema())).optionalIf(originalSchema.isOptional).build()
@@ -46,10 +47,12 @@ final class RecursiveConversion(innerConversion: ConnectConversion) extends Conn
     connectValue match {
       case connectValue: Struct =>
         val newStruct = new Struct(targetSchema)
-        targetSchema.fields().asScala.foreach { field =>
+        originalSchema.fields().asScala.foreach { field =>
+          val newFieldName   = fieldNameConversion(field.name())
+          val newFieldSchema = targetSchema.field(newFieldName).schema()
           newStruct.put(
-            field.name(),
-            convertValue(connectValue.get(field), originalSchema.field(field.name()).schema(), field.schema()),
+            newFieldName,
+            convertValue(connectValue.get(field), field.schema(), newFieldSchema),
           )
         }
         newStruct
